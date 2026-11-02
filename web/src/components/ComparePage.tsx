@@ -34,6 +34,8 @@ export function ComparePage({ plans }: ComparePageProps) {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [stats, setStats] = useState<AgentStats[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Agent detection runs each CLI's --version, so the first load can take a few seconds.
+  const [loaded, setLoaded] = useState(false);
 
   const repos = useMemo(() => repoOptions(plans), [plans]);
 
@@ -49,6 +51,7 @@ export function ComparePage({ plans }: ComparePageProps) {
         setAgents(agentList);
         setStats(statList);
         setError(null);
+        setLoaded(true);
       })
       .catch((cause: unknown) => {
         if (cancelled) return;
@@ -112,7 +115,7 @@ export function ComparePage({ plans }: ComparePageProps) {
           {rows.length === 0 ? (
             <tr>
               <td className="compare-empty" colSpan={7}>
-                Chưa có agent nào.
+                {loaded ? 'Chưa có agent nào.' : 'Đang tải…'}
               </td>
             </tr>
           ) : (
