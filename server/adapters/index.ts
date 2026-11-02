@@ -1,14 +1,19 @@
 import type { AgentId, FleetEvent } from '../../shared/types.js';
 import type { AgentConfig, FleetConfig } from '../config.js';
+import { agyAdapter } from './agy.js';
+import { codexAdapter } from './codex.js';
 import { fakeAdapter } from './fake.js';
+import { opencodeAdapter } from './opencode.js';
+import { qodercliAdapter } from './qodercli.js';
 import { defaultFinalMessage, rawEvent, type AgentAdapter, type LineParser } from './types.js';
 
-/**
- * Registry of known adapters. Task 11 registers the real CLI adapters here; the
- * placeholder below keeps `getAdapter` total before they exist.
- */
+/** Registry of known adapters; every known agent has one. */
 const registry: Partial<Record<AgentId, AgentAdapter>> = {
   fake: fakeAdapter,
+  codex: codexAdapter,
+  qodercli: qodercliAdapter,
+  agy: agyAdapter,
+  opencode: opencodeAdapter,
 };
 
 /** Register (or replace) an adapter, e.g. from a real adapter module. */
