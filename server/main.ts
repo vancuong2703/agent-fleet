@@ -12,9 +12,9 @@ const config = loadConfig();
 const token = readOrCreateToken();
 const store = new Store(files.db());
 const bus = new Bus();
-const service = new TaskService({ store, bus, config });
 const ptyManager = new PtyManager(createPtyResolver(store));
-const app = buildServer({ service, store, bus, token, ptyManager });
+const service = new TaskService({ store, bus, config, onBeforeWorktreeChange: (taskId) => ptyManager.kill(taskId) });
+const app = buildServer({ service, store, bus, token, ptyManager, port: config.port, shutdown });
 const pidFile = path.win32.join(dataDir(), 'server.pid');
 let shuttingDown = false;
 let wrotePid = false;
@@ -44,10 +44,12 @@ async function shutdown(): Promise<void> {
 
 process.once('SIGINT', shutdown);
 process.once('SIGTERM', shutdown);
+process.once('SIGHUP', shutdown);
+process.once('SIGBREAK', shutdown);
 
 try {
-  service.recover();
   await app.listen({ port: config.port, host: '127.0.0.1' });
+  service.recover();
   writeFileSync(pidFile, String(process.pid), 'utf8');
   wrotePid = true;
   console.log(`Agent fleet server on http://127.0.0.1:${config.port}`);

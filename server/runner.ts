@@ -64,7 +64,7 @@ export async function runAttempt(o: {
 
   function resetIdle(): void {
     clearTimeout(idleTimer);
-    if (!stopped && !systemError) idleTimer = setTimeout(() => stop('timeout'), o.timeouts.idleMs);
+    if (!stopped && !systemError && active?.exitCode === null && active.signalCode === null) idleTimer = setTimeout(() => stop('timeout'), o.timeouts.idleMs);
   }
 
   function emit(event: FleetEvent): void {
@@ -87,7 +87,7 @@ export async function runAttempt(o: {
     terminate();
   }
 
-  /** Resolve only after stdout/stderr close, including their final partial lines. */
+  /** Wait for child exit, then give inherited stdout/stderr at most two seconds to close. */
   async function execute(
     spec: HeadlessSpec,
     onLine: (line: string, stream: 'stdout' | 'stderr') => void,
@@ -109,7 +109,7 @@ export async function runAttempt(o: {
     killing = null;
     resetIdle();
 
-    function readLines(stream: Readable, name: 'stdout' | 'stderr'): void {
+    function readLines(stream: Readable, name: 'stdout' | 'stderr'): () => void {
       let pending = '';
       stream.setEncoding('utf8');
       stream.on('data', (chunk: string) => {
@@ -127,24 +127,30 @@ export async function runAttempt(o: {
           fail(error as Error);
         }
       });
-      stream.on('end', () => {
+      const flush = () => {
         if (pending.length === 0) return;
         try {
+          const line = pending.replace(/\r$/, '');
+          pending = '';
           resetIdle();
-          onLine(pending.replace(/\r$/, ''), name);
+          onLine(line, name);
         } catch (error) {
           fail(error as Error);
         }
-      });
+      };
+      stream.on('end', flush);
+      stream.on('close', flush);
       stream.on('error', fail);
+      return flush;
     }
 
+    const closed = new Promise<void>((resolve) => { child.once('close', () => resolve()); });
     const completion = new Promise<number | null>((resolve) => {
-      child.once('error', (error) => { childError = error; clearTimeout(idleTimer); });
-      child.once('close', resolve);
+      child.once('error', (error) => { childError = error; clearTimeout(idleTimer); resolve(null); });
+      child.once('exit', resolve);
     });
-    readLines(child.stdout, 'stdout');
-    readLines(child.stderr, 'stderr');
+    const flushStdout = readLines(child.stdout, 'stdout');
+    const flushStderr = readLines(child.stderr, 'stderr');
     child.once('spawn', () => {
       try {
         if (reportSpawn) o.onSpawn(child.pid!);
@@ -162,8 +168,18 @@ export async function runAttempt(o: {
 
     const code = await completion;
     clearTimeout(idleTimer);
-    await killing;
     active = null;
+    let drainTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([closed, new Promise<void>((resolve) => { drainTimer = setTimeout(resolve, 2_000); })]);
+    } finally {
+      clearTimeout(drainTimer);
+      child.stdout.destroy();
+      child.stderr.destroy();
+      flushStdout();
+      flushStderr();
+    }
+    await killing;
     return { code: childError ? null : code, error: childError };
   }
 
@@ -181,6 +197,9 @@ export async function runAttempt(o: {
     const spec = o.adapter.headless({
       bin: o.bin, extraArgs: o.extraArgs, brief: o.brief, briefFile, cwd: path.win32.resolve(o.cwd),
     });
+    if ([spec.cmd, ...spec.args].join(' ').length > 30_000) {
+      throw new Error(`Brief quá dài cho dòng lệnh của ${o.adapter.id} (giới hạn ~32k ký tự trên Windows)`);
+    }
     const parse = o.adapter.createParser();
     const result = await execute(spec, (line, stream) => {
       for (const event of parse(line, stream)) emit(event);

@@ -19,6 +19,15 @@ afterEach(async () => {
 });
 
 describe('PtyManager', () => {
+  test('kill(taskId) waits for exit, releases its slot and ignores missing sessions', async () => {
+    const session = manager.open('t-target');
+    const exit = vi.fn();
+    session.onExit(exit);
+    await manager.kill('t-target');
+    expect(exit).toHaveBeenCalledOnce();
+    expect(manager.get('t-target')).toBeUndefined();
+    await expect(manager.kill('missing')).resolves.toBeUndefined();
+  }, 10_000);
   test('runs the fallback shell, delivers output and reuses one session per task', async () => {
     const session = manager.open('t-aaaa', 80, 24);
     let output = '';

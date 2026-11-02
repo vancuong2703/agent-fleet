@@ -54,7 +54,7 @@ export function TaskActions({ task, baseBranch }: TaskActionsProps) {
     });
 
   // A live agent must stop before the user takes the worktree over; a finished
-  // or queued task opens the shell without touching its status.
+  // task opens the shell without touching its status.
   const openTerminal = (): void => {
     if (task.status === 'running') setPending('terminal');
     else setTerminalOpen(true);
@@ -95,7 +95,7 @@ export function TaskActions({ task, baseBranch }: TaskActionsProps) {
     return null;
   })();
 
-  const terminalAvailable = task.status !== 'merged' && task.status !== 'discarded';
+  const terminalAvailable = task.status !== 'queued' && task.status !== 'merged' && task.status !== 'discarded';
 
   return (
     <div className="task-actions-wrap">

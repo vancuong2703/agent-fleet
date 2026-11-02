@@ -3,10 +3,10 @@ import { randomBytes } from 'node:crypto';
 const BASE36 = '0123456789abcdefghijklmnopqrstuvwxyz';
 
 /**
- * Random id: `p-`/`t-` + 4 base36 chars, `r-` + 6 base36 chars.
+ * Random id: `p-`/`t-`/`r-` + 6 base36 chars.
  */
 export function newId(prefix: 'p' | 't' | 'r'): string {
-  const length = prefix === 'r' ? 6 : 4;
+  const length = 6;
   const bytes = randomBytes(length);
   let suffix = '';
   for (let i = 0; i < length; i += 1) {
@@ -27,5 +27,5 @@ export function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+/, '')
     .slice(0, 40)
-    .replace(/-+$/, '');
+    .replace(/-+$/, '') || 'plan';
 }

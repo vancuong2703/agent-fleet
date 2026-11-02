@@ -1,11 +1,28 @@
 import path from 'node:path';
-import type { DiffFile } from '../shared/types.js';
+import { copyFile, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import type { DiffFile, MergeResult } from '../shared/types.js';
 import { git, withRepoLock } from './git.js';
 
-async function checkedGit(cwd: string, args: string[]): Promise<string> {
-  const result = await git(cwd, args);
+export type { MergeResult } from '../shared/types.js';
+
+async function checkedGit(cwd: string, args: string[], env?: NodeJS.ProcessEnv): Promise<string> {
+  const result = await git(cwd, args, env);
   if (result.code !== 0) throw new Error(result.stderr || `git ${args[0]} failed (${result.code})`);
   return result.stdout;
+}
+
+async function withTemporaryIndex<T>(wt: string, fn: (env: NodeJS.ProcessEnv) => Promise<T>): Promise<T> {
+  const dir = await mkdtemp(path.join(tmpdir(), 'fleet-index-'));
+  const index = path.join(dir, 'index');
+  try {
+    const current = (await checkedGit(wt, ['rev-parse', '--git-path', 'index'])).trim();
+    try { await copyFile(path.win32.resolve(wt, current), index); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+    return await fn({ GIT_INDEX_FILE: index });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 }
 
 async function withWorktreeLock<T>(cwd: string, fn: () => Promise<T>): Promise<T> {
@@ -25,11 +42,11 @@ export async function createWorktree(o: { repoPath: string; baseBranch: string; 
 }
 
 export async function diffWorktree(wt: string, baseBranch: string): Promise<{ files: DiffFile[]; patch: string }> {
-  return withWorktreeLock(wt, async () => {
-    await checkedGit(wt, ['add', '-A']);
+  return withWorktreeLock(wt, () => withTemporaryIndex(wt, async (env) => {
+    await checkedGit(wt, ['add', '-A'], env);
     // Compare against the fork point, so commits merged into the base later do not show up reversed.
     const base = (await checkedGit(wt, ['merge-base', 'HEAD', baseBranch])).trim();
-    const numstat = await checkedGit(wt, ['diff', '--cached', '--numstat', '-z', base, '--']);
+    const numstat = await checkedGit(wt, ['diff', '--cached', '--numstat', '-z', base, '--'], env);
     const records = numstat.split('\0');
     const files: DiffFile[] = [];
     for (let i = 0; i < records.length && records[i] !== ''; i++) {
@@ -46,9 +63,9 @@ export async function diffWorktree(wt: string, baseBranch: string): Promise<{ fi
       const removed = record.slice(firstTab + 1, secondTab);
       files.push({ path: filePath, added: added === '-' ? 0 : Number(added), removed: removed === '-' ? 0 : Number(removed) });
     }
-    const patch = await checkedGit(wt, ['diff', '--cached', '--no-ext-diff', base, '--']);
+    const patch = await checkedGit(wt, ['diff', '--cached', '--no-ext-diff', base, '--'], env);
     return { files, patch };
-  });
+  }));
 }
 
 export async function commitAll(wt: string, message: string): Promise<boolean> {
@@ -62,8 +79,6 @@ export async function commitAll(wt: string, message: string): Promise<boolean> {
   });
 }
 
-export type MergeResult = { ok: true } | { ok: false; reason: 'dirty' | 'wrong_branch' | 'conflict'; files?: string[] };
-
 export async function mergeBranch(o: { repoPath: string; baseBranch: string; branch: string }): Promise<MergeResult> {
   return withWorktreeLock(o.repoPath, async () => {
     if ((await checkedGit(o.repoPath, ['status', '--porcelain'])).trim() !== '') {
@@ -75,7 +90,7 @@ export async function mergeBranch(o: { repoPath: string; baseBranch: string; bra
     const merged = await git(o.repoPath, ['merge', '--no-ff', '--no-edit', o.branch]);
     if (merged.code === 0) return { ok: true };
     const files = (await checkedGit(o.repoPath, ['diff', '--name-only', '--diff-filter=U', '-z'])).split('\0').filter(Boolean);
-    if (files.length === 0) throw new Error(merged.stderr || merged.stdout);
+    if (files.length === 0) return { ok: false, reason: 'error', files: [], message: merged.stderr };
     await checkedGit(o.repoPath, ['merge', '--abort']);
     return { ok: false, reason: 'conflict', files };
   });
@@ -83,7 +98,13 @@ export async function mergeBranch(o: { repoPath: string; baseBranch: string; bra
 
 export async function removeWorktree(o: { repoPath: string; path: string; branch: string; deleteBranch: boolean }): Promise<void> {
   await withWorktreeLock(o.repoPath, async () => {
-    await checkedGit(o.repoPath, ['worktree', 'remove', '--force', path.win32.resolve(o.path)]);
+    try {
+      await checkedGit(o.repoPath, ['worktree', 'remove', '--force', path.win32.resolve(o.path)]);
+    } catch {
+      await git(o.repoPath, ['worktree', 'prune']).catch(() => {});
+      await rm(path.win32.resolve(o.path), { recursive: true, force: true }).catch(() => {});
+      await git(o.repoPath, ['worktree', 'prune']).catch(() => {});
+    }
     if (o.deleteBranch) await checkedGit(o.repoPath, ['branch', '-D', o.branch]);
   });
 }

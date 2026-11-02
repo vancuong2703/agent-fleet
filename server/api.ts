@@ -63,6 +63,7 @@ function cookieToken(cookie: string | undefined): string | undefined {
 
 export function buildServer(o: {
   service: TaskService; store: Store; bus: Bus; token: string; webDist?: string; ptyManager?: PtyManager;
+  port?: number; shutdown?: () => Promise<void> | void;
 }): FastifyInstance {
   const { service, store, bus } = o;
   const app = fastify({ ajv: { customOptions: { coerceTypes: true } } });
@@ -79,11 +80,25 @@ export function buildServer(o: {
   app.after(() => {
     app.addHook('onRequest', async (request, reply) => {
       const url = new URL(request.raw.url ?? '/', 'http://127.0.0.1');
-      if (url.pathname === '/api/health' || !protectedPath(url.pathname)) return;
-      const authenticated = matches(request.headers['x-fleet-token'])
+      if (request.method === 'GET' && url.pathname === '/api/health') return;
+      const hosts = [`127.0.0.1:${o.port}`, `localhost:${o.port}`];
+      if (o.port !== undefined && !hosts.includes(request.headers.host ?? '')) {
+        return reply.code(403).send({ error: 'forbidden' });
+      }
+      const port = o.port ?? request.raw.socket.localPort ?? 80;
+      if (request.headers.origin !== undefined && ![`http://127.0.0.1:${port}`, `http://localhost:${port}`].includes(request.headers.origin)) {
+        return reply.code(403).send({ error: 'forbidden' });
+      }
+      if (!protectedPath(url.pathname)) return;
+      const headerAuth = matches(request.headers['x-fleet-token']);
+      const authenticated = headerAuth
         || matches(cookieToken(request.headers.cookie))
         || ((url.pathname === '/ws' || url.pathname.startsWith('/ws/')) && matches(url.searchParams.get('token')));
       if (!authenticated) return reply.code(401).send({ error: 'unauthorized', message: 'Invalid or missing fleet token' });
+      if (request.method !== 'GET' && url.pathname.startsWith('/api/') && !headerAuth
+        && !request.headers['content-type']?.startsWith('application/json')) {
+        return reply.code(415).send({ error: 'unsupported_media_type' });
+      }
     });
   });
 
@@ -108,6 +123,10 @@ export function buildServer(o: {
   // Register routes after the websocket plugin so upgrades use its lifecycle hooks.
   app.register(async (routes) => {
     routes.get('/api/health', async () => ({ ok: true }));
+    routes.post('/api/shutdown', async (_request, reply) => {
+      reply.raw.once('finish', () => { setImmediate(() => { void o.shutdown?.(); }); });
+      return reply.code(202).send({ ok: true });
+    });
     routes.get('/api/plans', async () => store.listPlans());
     routes.post<{ Body: Parameters<TaskService['createPlan']>[0] }>('/api/plans', {
       schema: { body: objectSchema({ name: nonempty, repoPath: nonempty, baseBranch: nonempty }, ['name', 'repoPath']) },
@@ -194,6 +213,11 @@ export function buildServer(o: {
         }
         let session;
         try {
+          const found = task(taskId);
+          if (!['taken_over', 'done', 'failed', 'timeout', 'interrupted'].includes(found.status)) {
+            socket.close(1008, `Task ${taskId} is ${found.status}`);
+            return;
+          }
           session = manager.open(
             taskId,
             dimension(request.query.cols, 80),

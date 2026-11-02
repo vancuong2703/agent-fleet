@@ -15,12 +15,14 @@ vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
 let cwd: string;
 let events: FleetEvent[];
 let pids: number[];
+let grandchildren: number[];
 let controllers: AbortController[];
 
 beforeEach(async () => {
   cwd = await mkdtemp(path.join(tmpdir(), 'fleet runner with spaces-'));
   events = [];
   pids = [];
+  grandchildren = [];
   controllers = [];
 });
 
@@ -28,12 +30,16 @@ afterEach(async () => {
   vi.restoreAllMocks();
   vi.unstubAllEnvs();
   for (const controller of controllers) controller.abort();
+  for (const pid of grandchildren) {
+    if (isAlive(pid)) process.kill(pid);
+    await vi.waitFor(() => expect(isAlive(pid)).toBe(false));
+  }
   for (const pid of pids) if (isAlive(pid)) await killTree(pid);
   const root = path.resolve(cwd);
   if (path.dirname(root) !== path.resolve(tmpdir()) || !path.basename(root).startsWith('fleet runner with spaces-')) {
     throw new Error(`Unexpected cleanup path: ${root}`);
   }
-  await rm(root, { recursive: true, force: true });
+  await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 });
 
 function attempt(brief: string, overrides: Partial<Parameters<typeof runAttempt>[0]> = {}) {
@@ -57,6 +63,28 @@ function scriptAdapter(script: string): AgentAdapter {
 }
 
 describe('runAttempt', () => {
+  test('child exit completes within five seconds even when a detached grandchild inherits stdout', async () => {
+    const adapter = scriptAdapter(`
+      const child = require('node:child_process').spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
+        detached: true, stdio: ['ignore', process.stdout, process.stderr], windowsHide: true,
+      });
+      require('node:fs').writeFileSync('grandchild.pid', String(child.pid));
+      child.unref();
+    `);
+    const start = Date.now();
+    const pending = attempt('', { adapter, timeouts: { totalMs: 15_000, idleMs: 10_000 } });
+    const pid = await vi.waitFor(() => Number(readFileSync(path.join(cwd, 'grandchild.pid'), 'utf8')));
+    grandchildren.push(pid);
+    expect((await pending).status).toBe('done');
+    expect(Date.now() - start).toBeLessThan(5_000);
+  });
+
+  test('rejects an oversized positional brief with a system error before spawning', async () => {
+    const adapter = getAdapter('opencode');
+    expect(await attempt('x'.repeat(30_001), { adapter })).toMatchObject({ status: 'failed', errorCategory: 'system' });
+    expect(pids).toEqual([]);
+    expect(events).toContainEqual({ kind: 'error', category: 'system', text: 'Brief quá dài cho dòng lệnh của opencode (giới hạn ~32k ký tự trên Windows)' });
+  });
   test('success writes fake.txt and returns the brief as its final message', async () => {
     const outcome = await attempt('do x');
     expect(outcome).toEqual({

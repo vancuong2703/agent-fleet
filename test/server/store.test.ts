@@ -66,7 +66,7 @@ describe('plans', () => {
       baseBranch: 'main',
     });
 
-    expect(plan.id).toMatch(/^p-[0-9a-z]{4}$/);
+    expect(plan.id).toMatch(/^p-[0-9a-z]{6}$/);
     expect(plan.slug).toBe('plan-2-editor-viet');
     expect(plan.createdAt).toBeGreaterThanOrEqual(before);
     expect(store.getPlan(plan.id)).toEqual(plan);
@@ -89,7 +89,7 @@ describe('tasks', () => {
     const plan = newPlan(store);
     const task = newTask(store, plan.id);
 
-    expect(task.id).toMatch(/^t-[0-9a-z]{4}$/);
+    expect(task.id).toMatch(/^t-[0-9a-z]{6}$/);
     expect(task.status).toBe('queued');
     expect(task.finishedAt).toBeNull();
     expect(task.checkCmd).toBeNull();

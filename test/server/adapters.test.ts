@@ -213,6 +213,7 @@ describe('headless command lines', () => {
         'auto',
         '-w',
         'C:\\wt\\repo',
+        '--',
         headlessInput.brief,
       ],
     });
@@ -250,6 +251,7 @@ describe('headless command lines', () => {
         '--auto',
         '-m',
         'harbor-pool/deepseek-v4.1-flash:free',
+        '--',
         headlessInput.brief,
       ],
     });

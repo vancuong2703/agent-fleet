@@ -6,7 +6,7 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../server/config.js';
-import { files } from '../server/paths.js';
+import { dataDir, files } from '../server/paths.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -22,7 +22,7 @@ async function healthy(baseUrl: string, timeoutMs: number): Promise<boolean> {
 
 export async function ensureServer(): Promise<string> {
   const baseUrl = `http://127.0.0.1:${loadConfig().port}`;
-  if (await healthy(baseUrl, 500)) return baseUrl;
+  if (await healthy(baseUrl, 3_000)) return baseUrl;
 
   const child = spawn(process.execPath, [
     require.resolve('tsx/cli', { paths: [root] }),
@@ -42,6 +42,20 @@ export async function ensureServer(): Promise<string> {
     if (remaining > 0 && await healthy(baseUrl, Math.min(500, remaining))) return baseUrl;
   }
   throw new Error(`Fleet server did not become healthy at ${baseUrl} within 10 seconds`);
+}
+
+export async function stopServer(): Promise<void> {
+  const pidFile = path.win32.join(dataDir(), 'server.pid');
+  const pid = Number((await readFile(pidFile, 'utf8')).trim());
+  if (!Number.isInteger(pid) || pid <= 0) throw new Error(`Invalid server PID in ${pidFile}`);
+  const baseUrl = `http://127.0.0.1:${loadConfig().port}`;
+  await apiRequest(baseUrl, '/api/shutdown', {});
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    if (!await healthy(baseUrl, Math.min(500, deadline - Date.now()))) return;
+    await delay(Math.min(200, Math.max(0, deadline - Date.now())));
+  }
+  throw new Error('Fleet server did not stop within 10 seconds');
 }
 
 export class ApiError extends Error {

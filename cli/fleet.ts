@@ -6,7 +6,7 @@ import { Command, InvalidArgumentError, Option } from 'commander';
 import type { DiffFile, Plan, Run, StoredEvent, Task, TaskResult } from '../shared/types.js';
 import type { MergeResult } from '../server/worktree.js';
 import { files } from '../server/paths.js';
-import { ApiError, apiRequest, ensureServer } from './client.js';
+import { ApiError, apiRequest, ensureServer, stopServer } from './client.js';
 
 const program = new Command().name('fleet').description('Dispatch and manage local coding agents')
   .option('--json', 'Print the API JSON');
@@ -192,8 +192,12 @@ program.command('ui').action(async () => {
   output({ url }, () => console.log(url));
 });
 
-program.command('server').description('Run the server in the foreground').action(async () => {
+const server = program.command('server').description('Run the server in the foreground').action(async () => {
   await import('../server/main.js');
+});
+server.command('stop').description('Stop the running server').action(async () => {
+  await stopServer();
+  output({ stopped: true }, () => console.log('stopped'));
 });
 
 try {

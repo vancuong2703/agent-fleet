@@ -1,7 +1,8 @@
 import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import * as gitModule from '../../server/git.js';
 import { git, withRepoLock } from '../../server/git.js';
 import {
   commitAll, createWorktree, currentBranch, diffWorktree, mergeBranch, removeWorktree,
@@ -34,6 +35,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   // Unregister linked worktrees, then prune metadata before removing temp roots.
   for (const wt of created.splice(0)) {
     await checkedGit(repo, ['worktree', 'remove', '--force', wt.path]);
@@ -66,6 +68,47 @@ describe('git worktree manager', () => {
     expect(diff.patch).toContain('-Original line');
     expect(diff.patch).toContain('+Changed line');
     expect(diff.patch).toContain('+Xin chào');
+    expect(await checkedGit(wt.path, ['status', '--porcelain', '--untracked-files=all'])).toContain('?? "new file.txt"');
+    expect(await checkedGit(wt.path, ['diff', '--cached', '--name-only'])).toBe('');
+  });
+
+  test('diffWorktree preserves staged changes and the real index bytes', async () => {
+    const wt = await create();
+    await writeFile(path.join(wt.path, 'README.md'), 'staged\n');
+    await checkedGit(wt.path, ['add', 'README.md']);
+    await writeFile(path.join(wt.path, 'README.md'), 'unstaged\n');
+    const index = path.resolve(wt.path, await checkedGit(wt.path, ['rev-parse', '--git-path', 'index']));
+    const before = await readFile(index);
+    expect((await diffWorktree(wt.path, 'main')).patch).toContain('+unstaged');
+    expect(await readFile(index)).toEqual(before);
+    expect(await checkedGit(wt.path, ['show', ':README.md'])).toBe('staged');
+  });
+
+  test('non-conflict merge failure returns an error and stderr', async () => {
+    const result = await mergeBranch({ repoPath: repo, baseBranch: 'main', branch: 'missing-branch' });
+    expect(result).toEqual({ ok: false, reason: 'error', files: [], message: expect.stringContaining('missing-branch') });
+  });
+
+  test('removeWorktree deletes the branch when the directory is already missing', async () => {
+    const wt = await create();
+    await rm(wt.path, { recursive: true, force: true });
+    await removeWorktree({ repoPath: repo, ...wt, deleteBranch: true });
+    created.splice(created.indexOf(wt), 1);
+    expect((await git(repo, ['show-ref', '--verify', '--quiet', `refs/heads/${wt.branch}`])).code).toBe(1);
+  });
+
+  test('removeWorktree prunes and deletes the directory and branch after git removal fails', async () => {
+    const wt = await create();
+    const original = gitModule.git;
+    const calls = vi.spyOn(gitModule, 'git').mockImplementation((cwd, args, env) => {
+      if (args[0] === 'worktree' && args[1] === 'remove') return Promise.resolve({ code: 1, stdout: '', stderr: 'cannot remove worktree' });
+      return original(cwd, args, env);
+    });
+    await removeWorktree({ repoPath: repo, ...wt, deleteBranch: true });
+    created.splice(created.indexOf(wt), 1);
+    expect(calls).toHaveBeenCalledWith(repo, ['worktree', 'prune']);
+    await expect(access(wt.path)).rejects.toThrow();
+    expect((await git(repo, ['show-ref', '--verify', '--quiet', `refs/heads/${wt.branch}`])).code).toBe(1);
   });
 
   test('diffWorktree ignores commits added to the base after the fork', async () => {

@@ -1,6 +1,7 @@
 import type {
   AgentId,
   DiffFile,
+  MergeResult,
   Plan,
   Run,
   StoredEvent,
@@ -29,10 +30,8 @@ export interface AgentStats {
   costUsd: number | null;
 }
 
-/** Result of `POST /api/tasks/:id/merge`. Mirrors `server/worktree.ts`. */
-export type MergeResult =
-  | { ok: true }
-  | { ok: false; reason: 'dirty' | 'wrong_branch' | 'conflict'; files?: string[] };
+/** Result of `POST /api/tasks/:id/merge`. */
+export type { MergeResult } from '../../shared/types.js';
 
 /** `GET /api/tasks/:id/diff`. */
 export interface DiffResult {
@@ -61,11 +60,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 function jsonInit(method: string, body?: unknown): RequestInit {
-  if (body === undefined) return { method };
   return {
     method,
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body ?? {}),
   };
 }
 

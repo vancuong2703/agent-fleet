@@ -297,6 +297,8 @@ export function taskActions(status: TaskStatus): TaskAction[] {
 export function mergeErrorMessage(result: MergeResult, baseBranch: string): string {
   if (result.ok) return '';
   switch (result.reason) {
+    case 'error':
+      return `Merge lỗi: ${result.message ?? ''}`;
     case 'dirty':
       return 'Repo gốc còn thay đổi chưa commit';
     case 'wrong_branch':
