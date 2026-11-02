@@ -26,6 +26,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
   for (const controller of controllers) controller.abort();
   for (const pid of pids) if (isAlive(pid)) await killTree(pid);
   const root = path.resolve(cwd);
@@ -72,6 +73,14 @@ describe('runAttempt', () => {
     const brief = 'Sửa "lỗi" ở \'đây\'\nDòng 2 — ✓';
     expect((await attempt(brief)).finalMessage).toBe(brief);
     expect(await readFile(path.join(cwd, 'brief.md'), 'utf8')).toBe(brief);
+  });
+
+  test('agent sees PWD equal to its working directory, not the server PWD', async () => {
+    // opencode trusts PWD over the real cwd; a stale one made it write into the main repo.
+    vi.stubEnv('PWD', 'C:\\somewhere\\else');
+    const script = 'console.log(JSON.stringify({ type: "message", text: process.env.PWD }))';
+    const outcome = await attempt('x', { adapter: scriptAdapter(script) });
+    expect(outcome.finalMessage).toBe(path.win32.resolve(cwd));
   });
 
   test('writes the brief before asking the adapter to build its command', async () => {

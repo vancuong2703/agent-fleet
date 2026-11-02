@@ -45,7 +45,8 @@ class NodePtySession implements PtySession {
       cols,
       rows,
       name: 'xterm-256color',
-      env: process.env,
+      // Some CLIs (opencode) take PWD over the real cwd; keep it on the task's worktree.
+      env: { ...process.env, PWD: target.cwd },
     });
 
     this.pty.onData((chunk) => {

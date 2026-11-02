@@ -98,7 +98,8 @@ export async function runAttempt(o: {
     let childError: Error | null = null;
     const child = spawn(spec.cmd, spec.args, {
       cwd: path.win32.resolve(o.cwd),
-      env: { ...process.env, ...spec.env },
+      // Some CLIs (opencode) take PWD over the real cwd; the server's own PWD would point elsewhere.
+      env: { ...process.env, ...spec.env, PWD: path.win32.resolve(o.cwd) },
       shell: false,
       windowsHide: true,
       windowsVerbatimArguments: verbatimArguments,
