@@ -19,3 +19,8 @@ export interface Task { id: string; planId: string; title: string; agent: AgentI
 export interface Run { id: string; taskId: string; attempt: number; agent: AgentId; brief: string; note: string | null; status: RunStatus; pid: number | null; exitCode: number | null; startedAt: number | null; endedAt: number | null; durationMs: number | null; checkPassed: boolean | null; inputTokens: number | null; outputTokens: number | null; costUsd: number | null; finalMessage: string | null; errorCategory: ErrorCategory | null; sessionId: string | null }
 export interface DiffFile { path: string; added: number; removed: number }
 export interface TaskResult { task: Task; run: Run | null; files: DiffFile[] }
+export type BusMsg =
+  | { type: 'event'; taskId: string; stored: StoredEvent }
+  | { type: 'task'; task: Task }
+  | { type: 'run'; run: Run }
+  | { type: 'plan'; plan: Plan };
