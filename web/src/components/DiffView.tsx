@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { DiffFile } from '../../../shared/types.js';
 import { splitPatch, type DiffSection } from '../diff.js';
@@ -29,19 +29,12 @@ function lineMarker(kind: DiffSection['lines'][number]['kind']): string {
  */
 export function DiffView({ files, patch, error }: DiffViewProps) {
   const sections = useMemo(() => splitPatch(patch), [patch]);
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (files.length === 0) {
-      setSelectedPath(null);
-      return;
-    }
-    setSelectedPath((current) =>
-      current !== null && files.some((file) => file.path === current)
-        ? current
-        : files[0]!.path,
-    );
-  }, [files]);
+  const [chosenPath, setSelectedPath] = useState<string | null>(null);
+  // Derived, not synced in an effect: the first file is shown until the user picks another.
+  const selectedPath =
+    chosenPath !== null && files.some((file) => file.path === chosenPath)
+      ? chosenPath
+      : files[0]?.path ?? null;
 
   if (error !== undefined && error !== null) {
     return <div className="banner banner-error">{error}</div>;
