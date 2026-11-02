@@ -4,6 +4,7 @@
   "description": "",
   "scripts": {
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "dev:server": "tsx watch server/main.ts",
     "dev:web": "vite web",
     "build:web": "vite build web",

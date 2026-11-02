@@ -108,11 +108,13 @@ describe('buildCompareRows', () => {
     expect(rows[0]).toMatchObject({ agent: 'opencode', ok: false, reason: 'chưa cài' });
   });
 
-  test('ignores stats for agents the server does not list', () => {
-    const rows = buildCompareRows([makeAgent('codex')], [makeStats('fake', { runs: 9 })]);
+  test('adds a row for agents with stats that the server does not list', () => {
+    const fake = makeStats('fake', { runs: 9 });
+    const rows = buildCompareRows([makeAgent('codex')], [fake]);
 
-    expect(rows).toHaveLength(1);
+    expect(rows.map((row) => row.agent)).toEqual(['codex', 'fake']);
     expect(rows[0]?.stats).toBeNull();
+    expect(rows[1]).toMatchObject({ agent: 'fake', ok: true, stats: fake });
   });
 });
 
