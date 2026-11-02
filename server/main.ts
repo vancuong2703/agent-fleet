@@ -1,9 +1,10 @@
 import { rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildServer } from './api.js';
+import { buildServer, createPtyResolver } from './api.js';
 import { Bus } from './bus.js';
 import { loadConfig, readOrCreateToken } from './config.js';
 import { dataDir, files } from './paths.js';
+import { PtyManager } from './pty.js';
 import { TaskService } from './service.js';
 import { Store } from './store.js';
 
@@ -12,12 +13,14 @@ const token = readOrCreateToken();
 const store = new Store(files.db());
 const bus = new Bus();
 const service = new TaskService({ store, bus, config });
-const app = buildServer({ service, store, bus, token });
+const ptyManager = new PtyManager(createPtyResolver(store));
+const app = buildServer({ service, store, bus, token, ptyManager });
 const pidFile = path.win32.join(dataDir(), 'server.pid');
 let shuttingDown = false;
 let wrotePid = false;
 
 async function close(): Promise<void> {
+  ptyManager.killAll();
   try {
     await service.close();
     await app.close();

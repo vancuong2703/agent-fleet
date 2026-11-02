@@ -68,7 +68,10 @@ test.each(['SIGINT', 'SIGTERM'] as const)('server entry starts on loopback, writ
   vi.spyOn(process, 'exit').mockImplementation(((code?: number) => { order.push(`exit:${code}`); }) as typeof process.exit);
   const log = vi.spyOn(console, 'log').mockImplementation(() => {});
   const build = vi.fn(() => entryApp);
-  vi.doMock('../../server/api.js', () => ({ buildServer: build }));
+  vi.doMock('../../server/api.js', () => ({
+    buildServer: build,
+    createPtyResolver: () => () => ({ cmd: 'cmd.exe', args: [], cwd: '.' }),
+  }));
   vi.doMock('../../server/config.js', () => ({ loadConfig: () => ({ port: 4567 }), readOrCreateToken: () => token }));
   vi.doMock('../../server/store.js', () => ({ Store: class { constructor() { return entryStore; } } }));
   vi.doMock('../../server/service.js', () => ({ TaskService: class { constructor() { return entryService; } } }));
@@ -77,7 +80,7 @@ test.each(['SIGINT', 'SIGTERM'] as const)('server entry starts on loopback, writ
     await import('../../server/main.js');
     expect(entryService.recover).toHaveBeenCalledOnce();
     expect(entryApp.listen).toHaveBeenCalledWith({ port: 4567, host: '127.0.0.1' });
-    expect(build).toHaveBeenCalledWith({ service: entryService, store: entryStore, bus: expect.any(Object), token });
+    expect(build).toHaveBeenCalledWith({ service: entryService, store: entryStore, bus: expect.any(Object), token, ptyManager: expect.any(Object) });
     expect(log).toHaveBeenCalledExactlyOnceWith('Agent fleet server on http://127.0.0.1:4567');
     expect(await readFile(path.join(root, 'server.pid'), 'utf8')).toBe(String(process.pid));
     expect(order).toEqual(['recover', 'listen']);
@@ -134,7 +137,7 @@ async function connect(suffix = `?token=${token}`, authHeaders?: Record<string, 
 describe('HTTP and WebSocket API', () => {
   test('health is public; API requires a matching header or cookie, including unknown API paths', async () => {
     expect((await app.inject('/api/health')).json()).toEqual({ ok: true });
-    for (const url of ['/api/plans', '/api/tasks', '/api/stats', '/api/missing', '/ws']) {
+    for (const url of ['/api/plans', '/api/tasks', '/api/stats', '/api/missing', '/ws', '/ws/pty']) {
       expect((await app.inject(url)).statusCode).toBe(401);
     }
     for (const value of ['wrong', 'x'.repeat(token.length), '✓'.repeat(token.length)]) {
