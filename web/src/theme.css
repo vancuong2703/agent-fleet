@@ -562,6 +562,46 @@ button {
   font-size: 12.5px;
 }
 
+/* ── terminal takeover ─────────────────────────────────────────────────── */
+
+.task-actions-wrap {
+  flex: 0 0 auto;
+}
+
+.terminal-panel {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--log-bg);
+}
+
+.terminal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.terminal-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.terminal-host {
+  height: 320px;
+  padding: 4px 6px;
+  overflow: hidden;
+}
+
+.terminal-host .xterm {
+  height: 100%;
+}
+
 /* ── confirm dialog ────────────────────────────────────────────────────── */
 
 .modal-overlay {

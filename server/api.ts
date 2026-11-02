@@ -9,6 +9,7 @@ import type { AgentId, TaskStatus } from '../shared/types.js';
 import { getAdapter, getAdapterConfig } from './adapters/index.js';
 import type { Bus } from './bus.js';
 import { loadConfig } from './config.js';
+import type { PtyManager, PtyResolver } from './pty.js';
 import { FleetError, type TaskService } from './service.js';
 import { computeStats } from './stats.js';
 import type { Store } from './store.js';
@@ -25,6 +26,34 @@ const objectSchema = (properties: Record<string, object>, required: string[] = [
 });
 type IdParams = { Params: { id: string } };
 
+/**
+ * Resolves the command a task's terminal runs: the adapter's interactive form
+ * for the task's agent, or a plain `cmd.exe` when the agent has no binary (or
+ * is the test `fake` agent). `main.ts` feeds this into a `PtyManager`.
+ */
+export function createPtyResolver(store: Store): PtyResolver {
+  return (taskId) => {
+    const task = store.getTask(taskId);
+    if (!task) throw new FleetError('not_found', `Task not found: ${taskId}`);
+    const run = store.latestRun(taskId) ?? null;
+    const cfg = getAdapterConfig(task.agent, loadConfig());
+    if (task.agent === 'fake' || !cfg.bin) {
+      return { cmd: 'cmd.exe', args: [], cwd: task.worktreePath };
+    }
+    const spec = getAdapter(task.agent).interactive({
+      bin: cfg.bin,
+      cwd: task.worktreePath,
+      sessionId: run?.sessionId ?? null,
+    });
+    return { cmd: spec.cmd, args: spec.args, cwd: task.worktreePath };
+  };
+}
+
+function dimension(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= 5_000 ? parsed : fallback;
+}
+
 function cookieToken(cookie: string | undefined): string | undefined {
   const value = cookie?.split(';').map((part) => part.trim()).find((part) => part.startsWith('fleet_token='));
   if (!value) return undefined;
@@ -33,7 +62,7 @@ function cookieToken(cookie: string | undefined): string | undefined {
 }
 
 export function buildServer(o: {
-  service: TaskService; store: Store; bus: Bus; token: string; webDist?: string;
+  service: TaskService; store: Store; bus: Bus; token: string; webDist?: string; ptyManager?: PtyManager;
 }): FastifyInstance {
   const { service, store, bus } = o;
   const app = fastify({ ajv: { customOptions: { coerceTypes: true } } });
@@ -150,6 +179,59 @@ export function buildServer(o: {
       socket.once('close', off);
       socket.once('error', off);
     });
+
+    // Terminal takeover: one PTY per task, reused across re-connects. The
+    // upgrade is authenticated by the same hook (`?token=` or cookie).
+    routes.get<{ Querystring: { taskId?: string; cols?: string; rows?: string } }>(
+      '/ws/pty',
+      { websocket: true },
+      (socket, request) => {
+        const manager = o.ptyManager;
+        const taskId = request.query.taskId;
+        if (!manager || !taskId) {
+          socket.close(1008, 'Thiếu task hoặc terminal không khả dụng');
+          return;
+        }
+        let session;
+        try {
+          session = manager.open(
+            taskId,
+            dimension(request.query.cols, 80),
+            dimension(request.query.rows, 24),
+          );
+        } catch (error) {
+          request.log.error(error);
+          if (socket.readyState === 1) socket.send(JSON.stringify({ t: 'exit', code: 1 }));
+          socket.close(1011, 'Không mở được terminal');
+          return;
+        }
+        const offData = session.onData((data) => {
+          if (socket.readyState === 1) socket.send(JSON.stringify({ t: 'out', d: data }));
+        });
+        const offExit = session.onExit((code) => {
+          if (socket.readyState === 1) socket.send(JSON.stringify({ t: 'exit', code }));
+          socket.close();
+        });
+        socket.on('message', (raw: Buffer) => {
+          let message: { t?: string; d?: string; cols?: number; rows?: number };
+          try {
+            message = JSON.parse(raw.toString()) as typeof message;
+          } catch {
+            return;
+          }
+          if (message.t === 'in' && typeof message.d === 'string') session.write(message.d);
+          else if (message.t === 'resize' && typeof message.cols === 'number' && typeof message.rows === 'number') {
+            session.resize(message.cols, message.rows);
+          }
+        });
+        const detach = (): void => {
+          offData();
+          offExit();
+        };
+        socket.once('close', detach);
+        socket.once('error', detach);
+      },
+    );
   });
 
   const webDist = path.resolve(o.webDist ?? fileURLToPath(new URL('../web/dist/', import.meta.url)));
