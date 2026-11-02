@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Run } from '../../shared/types.js';
 import { api, type DiffResult } from './api.js';
 import { BriefView } from './components/BriefView.js';
+import { ComparePage } from './components/ComparePage.js';
 import { DiffView } from './components/DiffView.js';
 import { LogView } from './components/LogView.js';
 import { Sidebar } from './components/Sidebar.js';
@@ -129,8 +130,7 @@ export function App() {
 
       {view === 'compare' ? (
         <main className="main standalone">
-          <h2>So sánh agent</h2>
-          <p className="muted">Trang so sánh agent sẽ có ở bước sau.</p>
+          <ComparePage plans={plans} />
         </main>
       ) : (
         <div className="body">
