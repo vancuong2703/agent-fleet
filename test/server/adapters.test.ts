@@ -210,7 +210,7 @@ describe('headless command lines', () => {
         '-o',
         'stream-json',
         '--permission-mode',
-        'accept_edits',
+        'auto',
         '-w',
         'C:\\wt\\repo',
         headlessInput.brief,
@@ -244,6 +244,7 @@ describe('headless command lines', () => {
       cmd: 'C:\\bin\\agent.exe',
       args: [
         'run',
+        '--standalone',
         '--format',
         'json',
         '--auto',

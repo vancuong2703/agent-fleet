@@ -104,7 +104,7 @@ export const qodercliAdapter: AgentAdapter = {
         '-o',
         'stream-json',
         '--permission-mode',
-        'accept_edits',
+        'auto',
         '-w',
         i.cwd,
         ...i.extraArgs,
