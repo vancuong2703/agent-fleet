@@ -8,7 +8,9 @@ import {
   formatElapsed,
   groupByRepo,
   initialFleetState,
+  mergeErrorMessage,
   reduceFleet,
+  taskActions,
   taskCounts,
   taskProgress,
 } from '../../web/src/store.js';
@@ -277,5 +279,40 @@ describe('eventText', () => {
     expect(eventText({ kind: 'check', cmd: 'npm test', passed: true, output: '' })).toContain(
       'npm test',
     );
+  });
+});
+
+describe('taskActions', () => {
+  test('maps each status to the actions the task supports', () => {
+    expect(taskActions('running')).toEqual(['stop']);
+    expect(taskActions('taken_over')).toEqual(['markDone']);
+    expect(taskActions('done')).toEqual(['merge', 'discard']);
+    expect(taskActions('failed')).toEqual(['merge', 'discard']);
+    expect(taskActions('timeout')).toEqual(['merge', 'discard']);
+    expect(taskActions('interrupted')).toEqual(['merge', 'discard']);
+  });
+
+  test('offers no actions while queued or once the task is final', () => {
+    expect(taskActions('queued')).toEqual([]);
+    expect(taskActions('merged')).toEqual([]);
+    expect(taskActions('discarded')).toEqual([]);
+  });
+});
+
+describe('mergeErrorMessage', () => {
+  test('renders each failure reason in Vietnamese', () => {
+    expect(mergeErrorMessage({ ok: false, reason: 'dirty' }, 'main')).toBe(
+      'Repo gốc còn thay đổi chưa commit',
+    );
+    expect(mergeErrorMessage({ ok: false, reason: 'wrong_branch' }, 'main')).toBe(
+      'Repo gốc không ở nhánh main',
+    );
+    expect(
+      mergeErrorMessage({ ok: false, reason: 'conflict', files: ['README.md', 'a.ts'] }, 'main'),
+    ).toBe('Xung đột: README.md, a.ts');
+  });
+
+  test('handles a conflict without a file list', () => {
+    expect(mergeErrorMessage({ ok: false, reason: 'conflict' }, 'main')).toBe('Xung đột');
   });
 });

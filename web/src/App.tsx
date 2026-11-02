@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import type { Run } from '../../shared/types.js';
+import { api, type DiffResult } from './api.js';
+import { BriefView } from './components/BriefView.js';
+import { DiffView } from './components/DiffView.js';
 import { LogView } from './components/LogView.js';
 import { Sidebar } from './components/Sidebar.js';
+import { TaskActions } from './components/TaskActions.js';
 import { TaskHeader } from './components/TaskHeader.js';
 import { taskCounts, useFleet } from './store.js';
 
@@ -17,6 +21,8 @@ export function App() {
   const [tab, setTab] = useState<Tab>('log');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [diff, setDiff] = useState<DiffResult | null>(null);
+  const [diffError, setDiffError] = useState<string | null>(null);
 
   const { plans, tasks } = state;
   const counts = useMemo(() => taskCounts(tasks), [tasks]);
@@ -28,6 +34,10 @@ export function App() {
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
     [tasks, selectedTaskId],
+  );
+  const plan = useMemo(
+    () => (selectedTask ? plans.find((entry) => entry.id === selectedTask.planId) ?? null : null),
+    [plans, selectedTask],
   );
   const runs = selectedTask ? state.runsByTask[selectedTask.id] ?? EMPTY_RUNS : EMPTY_RUNS;
   const latestRun = runs.length > 0 ? runs[runs.length - 1]! : null;
@@ -46,7 +56,35 @@ export function App() {
     if (selectedRunId !== null) loadEvents(selectedRunId);
   }, [selectedRunId, loadEvents]);
 
+  // Diff is not part of the live store; refetch it whenever the selected task
+  // or its status changes so the file list follows the agent's edits.
+  const selectedStatus = selectedTask?.status ?? null;
+  useEffect(() => {
+    if (selectedTaskId === null) {
+      setDiff(null);
+      setDiffError(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .diff(selectedTaskId)
+      .then((result) => {
+        if (cancelled) return;
+        setDiff(result);
+        setDiffError(null);
+      })
+      .catch((cause: unknown) => {
+        if (cancelled) return;
+        setDiff(null);
+        setDiffError(cause instanceof Error ? cause.message : String(cause));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTaskId, selectedStatus]);
+
   const events = selectedRunId !== null ? state.eventsByRun[selectedRunId] ?? [] : [];
+  const fileCount = diff?.files.length ?? 0;
 
   return (
     <div className="app">
@@ -115,6 +153,7 @@ export function App() {
             ) : (
               <>
                 <TaskHeader task={selectedTask} run={latestRun} />
+                <TaskActions task={selectedTask} baseBranch={plan?.baseBranch ?? ''} />
                 <div className="task-tabs">
                   <button
                     type="button"
@@ -128,7 +167,7 @@ export function App() {
                     className={`tab${tab === 'diff' ? ' active' : ''}`}
                     onClick={() => setTab('diff')}
                   >
-                    Diff
+                    Diff ({fileCount})
                   </button>
                   <button
                     type="button"
@@ -145,12 +184,14 @@ export function App() {
                     runId={selectedRunId}
                     onSelectRun={setSelectedRunId}
                   />
+                ) : tab === 'diff' ? (
+                  <DiffView
+                    files={diff?.files ?? []}
+                    patch={diff?.patch ?? ''}
+                    error={diffError}
+                  />
                 ) : (
-                  <div className="placeholder">
-                    {tab === 'diff'
-                      ? 'Diff sẽ có ở bước sau.'
-                      : 'Brief sẽ có ở bước sau.'}
-                  </div>
+                  <BriefView runs={runs} />
                 )}
               </>
             )}

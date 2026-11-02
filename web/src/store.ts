@@ -9,7 +9,7 @@ import type {
   Task,
   TaskStatus,
 } from '../../shared/types.js';
-import { api } from './api.js';
+import { api, type MergeResult } from './api.js';
 import { connectBus } from './ws.js';
 
 // ── state ───────────────────────────────────────────────────────────────────
@@ -265,6 +265,47 @@ export function statusLabel(status: TaskStatus): string {
 
 export function statusIcon(status: TaskStatus): string {
   return STATUS_META[status].icon;
+}
+
+// ── task actions ────────────────────────────────────────────────────────────
+
+/** Action buttons the detail panel offers for a task status. */
+export type TaskAction = 'stop' | 'markDone' | 'merge' | 'discard';
+
+/**
+ * Which actions apply to a status:
+ * running → Dừng; taken_over → Đánh dấu xong; done/failed/timeout/interrupted
+ * → Merge + Huỷ; everything else (queued/merged/discarded) → none.
+ */
+export function taskActions(status: TaskStatus): TaskAction[] {
+  switch (status) {
+    case 'running':
+      return ['stop'];
+    case 'taken_over':
+      return ['markDone'];
+    case 'done':
+    case 'failed':
+    case 'timeout':
+    case 'interrupted':
+      return ['merge', 'discard'];
+    default:
+      return [];
+  }
+}
+
+/** Vietnamese message for a rejected merge, including the base branch name. */
+export function mergeErrorMessage(result: MergeResult, baseBranch: string): string {
+  if (result.ok) return '';
+  switch (result.reason) {
+    case 'dirty':
+      return 'Repo gốc còn thay đổi chưa commit';
+    case 'wrong_branch':
+      return `Repo gốc không ở nhánh ${baseBranch}`;
+    case 'conflict': {
+      const files = result.files ?? [];
+      return files.length > 0 ? `Xung đột: ${files.join(', ')}` : 'Xung đột';
+    }
+  }
 }
 
 // ── hook ────────────────────────────────────────────────────────────────────
