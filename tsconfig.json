@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": [
+      "ES2024",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": [
+    "shared/**/*.ts",
+    "server/**/*.ts",
+    "cli/**/*.ts",
+    "web/**/*.ts",
+    "web/**/*.tsx",
+    "test/**/*.ts",
+    "vitest.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "web/dist"
+  ]
+}
