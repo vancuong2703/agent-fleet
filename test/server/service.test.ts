@@ -11,6 +11,8 @@ import { Bus } from '../../server/bus.js';
 import type { FleetConfig } from '../../server/config.js';
 import { git } from '../../server/git.js';
 import { files } from '../../server/paths.js';
+import * as ids from '../../server/ids.js';
+import * as worktree from '../../server/worktree.js';
 import { isAlive } from '../../server/process.js';
 import { FleetError, TaskService } from '../../server/service.js';
 import { Store } from '../../server/store.js';
@@ -51,6 +53,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await service.close();
   store.close();
   // Both roots were created by this test; close processes and SQLite first.
@@ -72,6 +75,64 @@ async function finished(task: Task) {
 }
 
 describe('TaskService', () => {
+  test('regenerates a colliding task id before creating the worktree', async () => {
+    const first = await run();
+    await finished(first);
+    const id = vi.spyOn(ids, 'newId').mockReturnValueOnce(first.id).mockReturnValueOnce('t-unique');
+    const second = await run();
+    expect(second.id).toBe('t-unique');
+    expect(id).toHaveBeenCalledWith('t');
+    expect(store.getTask(first.id)?.branch).toBe(first.branch);
+    await finished(second);
+  });
+
+  test('stops generating colliding task ids after five retries', async () => {
+    const first = await run();
+    await finished(first);
+    const id = vi.spyOn(ids, 'newId').mockReturnValue(first.id);
+    await expect(run()).rejects.toThrow(/id/i);
+    expect(id).toHaveBeenCalledTimes(6);
+    expect(store.listTasks()).toHaveLength(1);
+  });
+
+  test.each(['merge', 'discard', 'retry'] as const)('%s awaits the terminal hook before changing the worktree', async (action) => {
+    await service.close();
+    const calls: string[] = [];
+    service = new TaskService({ store, bus, config, onBeforeWorktreeChange: async (id) => {
+      await Promise.resolve();
+      calls.push(id);
+    } });
+    const task = await run();
+    await finished(task);
+    const check = vi.fn(() => expect(calls).toEqual([task.id]));
+    if (action === 'merge') {
+      const original = worktree.commitAll;
+      vi.spyOn(worktree, 'commitAll').mockImplementation((...args) => { check(); return original(...args); });
+    } else if (action === 'discard') {
+      const original = worktree.removeWorktree;
+      vi.spyOn(worktree, 'removeWorktree').mockImplementation((...args) => { check(); return original(...args); });
+    } else {
+      const original = store.createRun.bind(store);
+      vi.spyOn(store, 'createRun').mockImplementation((...args) => { check(); return original(...args); });
+    }
+    if (action === 'retry') { await service.retry(task.id, { note: 'again' }); await finished(task); }
+    else await service[action](task.id);
+    expect(calls).toEqual([task.id]);
+    expect(check).toHaveBeenCalled();
+  });
+
+  test('merge stays successful and merged when worktree cleanup fails', async () => {
+    const task = await run();
+    await finished(task);
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(worktree, 'removeWorktree').mockImplementationOnce(async () => {
+      expect(store.getTask(task.id)?.status).toBe('merged');
+      throw new Error('locked worktree');
+    });
+    expect(await service.merge(task.id)).toEqual({ ok: true });
+    expect(store.getTask(task.id)?.status).toBe('merged');
+    expect(log).toHaveBeenCalled();
+  });
   test('creates a plan with the current branch, normalized path and bus message', () => {
     expect(plan).toMatchObject({ slug: 'editor-viet', repoPath: path.win32.resolve(repo), baseBranch: 'main' });
     expect(messages).toContainEqual({ type: 'plan', plan });
@@ -205,6 +266,23 @@ describe('TaskService', () => {
     expect(store.latestRun(task.id)).toMatchObject({ status: 'interrupted', endedAt: expect.any(Number) });
     expect(store.getTask(task.id)?.status).toBe('interrupted');
     expect(store.readEvents(result.run!.id)).toContainEqual(expect.objectContaining({ event: { kind: 'message', text: result.run!.brief } }));
+  });
+
+  test('recover leaves a reused pid alone when it belongs to another executable', async () => {
+    config.maxParallelTotal = 0;
+    const task = await run('[[hang]]');
+    // cmd.exe stands in for an unrelated program that got the old agent pid after a reboot.
+    const stranger = spawn('cmd.exe', ['/d', '/c', 'ping -n 30 127.0.0.1 >nul'], { stdio: 'ignore', windowsHide: true });
+    try {
+      store.updateRun(store.latestRun(task.id)!.id, { status: 'running', pid: stranger.pid! });
+      store.updateTask(task.id, { status: 'running' });
+      service.recover();
+      expect(store.getTask(task.id)?.status).toBe('interrupted');
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(isAlive(stranger.pid!)).toBe(true);
+    } finally {
+      stranger.kill();
+    }
   });
 
   test('recover kills a surviving orphan, marks it interrupted, and schedules queued work once', async () => {

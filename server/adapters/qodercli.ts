@@ -108,6 +108,7 @@ export const qodercliAdapter: AgentAdapter = {
         '-w',
         i.cwd,
         ...i.extraArgs,
+        '--',
         i.brief,
       ],
     };

@@ -27,6 +27,9 @@ function tempDir(): string {
 }
 
 describe('slugify', () => {
+  test.each(['', '!!!', '日本語'])('uses plan when the slug is empty for %s', (name) => {
+    expect(slugify(name)).toBe('plan');
+  });
   test('strips Vietnamese diacritics and punctuation to [a-z0-9-]', () => {
     expect(slugify('Plan 2 – Editor Việt')).toBe('plan-2-editor-viet');
   });
@@ -43,12 +46,12 @@ describe('slugify', () => {
 });
 
 describe('newId', () => {
-  test('task ids match t- plus four base36 chars', () => {
-    expect(newId('t')).toMatch(/^t-[0-9a-z]{4}$/);
+  test('task ids match t- plus six base36 chars', () => {
+    expect(newId('t')).toMatch(/^t-[0-9a-z]{6}$/);
   });
 
   test('plan and run ids use their prefix and length', () => {
-    expect(newId('p')).toMatch(/^p-[0-9a-z]{4}$/);
+    expect(newId('p')).toMatch(/^p-[0-9a-z]{6}$/);
     expect(newId('r')).toMatch(/^r-[0-9a-z]{6}$/);
   });
 });

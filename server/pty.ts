@@ -130,6 +130,16 @@ export class PtyManager {
     return this.sessions.get(taskId);
   }
 
+  async kill(taskId: string): Promise<void> {
+    const session = this.sessions.get(taskId);
+    if (!session) return;
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(() => { off(); resolve(); }, 5_000);
+      const off = session.onExit(() => { clearTimeout(timer); off(); resolve(); });
+      session.kill();
+    });
+  }
+
   /** Kill every open terminal; used on server shutdown and in tests. */
   killAll(): void {
     const sessions = [...this.sessions.values()];

@@ -9,9 +9,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': { target: 'http://127.0.0.1:4500', changeOrigin: false },
-      '/auth': { target: 'http://127.0.0.1:4500', changeOrigin: false },
-      '/ws': { target: 'ws://127.0.0.1:4500', ws: true },
+      // The server rejects foreign Host/Origin headers, so the dev proxy presents itself as the server's origin.
+      '/api': { target: 'http://127.0.0.1:4500', changeOrigin: true, headers: { origin: 'http://127.0.0.1:4500' } },
+      '/auth': { target: 'http://127.0.0.1:4500', changeOrigin: true, headers: { origin: 'http://127.0.0.1:4500' } },
+      '/ws': { target: 'ws://127.0.0.1:4500', ws: true, changeOrigin: true, headers: { origin: 'http://127.0.0.1:4500' } },
     },
   },
   build: {

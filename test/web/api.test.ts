@@ -17,6 +17,21 @@ function okJson(body: unknown): Response {
 }
 
 describe('api', () => {
+  test('every POST sends JSON including an empty object for bodyless actions', async () => {
+    const fetchMock = vi.fn(async () => okJson({ ok: true }));
+    vi.stubGlobal('fetch', fetchMock);
+    await api.createPlan({ name: 'p', repoPath: 'C:\\repo' });
+    await api.createTask({ planId: 'p', agent: 'fake', title: 't', brief: 'hi' });
+    await api.wait(['t'], 100);
+    await api.retry('t', { note: 'again' });
+    for (const action of ['stop', 'takeover', 'markDone', 'merge', 'discard'] as const) await api[action]('t');
+    for (const [, init] of fetchMock.mock.calls as unknown as [string, RequestInit][]) {
+      expect(init.method).toBe('POST');
+      expect(init.headers).toEqual({ 'content-type': 'application/json' });
+      expect(() => JSON.parse(init.body as string)).not.toThrow();
+    }
+    expect((fetchMock.mock.calls as unknown as [string, RequestInit][]).slice(-5).map(([, init]) => init.body)).toEqual(Array(5).fill('{}'));
+  });
   test('reads plans with same-origin credentials', async () => {
     const fetchMock = vi.fn(async () => okJson([]));
     vi.stubGlobal('fetch', fetchMock);

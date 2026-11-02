@@ -11,6 +11,7 @@ import { buildServer } from '../../server/api.js';
 import { Bus } from '../../server/bus.js';
 import type { FleetConfig } from '../../server/config.js';
 import { files } from '../../server/paths.js';
+import type { PtyManager } from '../../server/pty.js';
 import { FleetError, TaskService } from '../../server/service.js';
 import { Store } from '../../server/store.js';
 import { makeTempRepo } from '../helpers/repo.js';
@@ -49,7 +50,7 @@ beforeEach(async () => {
   sockets = [];
 });
 
-test.each(['SIGINT', 'SIGTERM'] as const)('server entry starts on loopback, writes PID and closes in order on %s', async (signal) => {
+test.each(['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK', 'EADDRINUSE'] as const)('server entry listens before recovery and handles %s', async (signal) => {
   const order: string[] = [];
   const entryStore = { close: vi.fn(() => { order.push('store.close'); }) };
   const entryService = {
@@ -57,16 +58,21 @@ test.each(['SIGINT', 'SIGTERM'] as const)('server entry starts on loopback, writ
     close: vi.fn(async () => { order.push('service.close'); }),
   };
   const entryApp = {
-    listen: vi.fn(async () => { order.push('listen'); return 'http://127.0.0.1:4567'; }),
+    listen: vi.fn(async () => {
+      order.push('listen');
+      if (signal === 'EADDRINUSE') throw Object.assign(new Error('busy'), { code: 'EADDRINUSE' });
+      return 'http://127.0.0.1:4567';
+    }),
     close: vi.fn(async () => { order.push('app.close'); }),
   };
   const handlers = new Map<string, () => void>();
   vi.spyOn(process, 'once').mockImplementation((event, listener) => {
-    if (event === 'SIGINT' || event === 'SIGTERM') handlers.set(event, listener);
+    if (typeof event === 'string' && ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK'].includes(event)) handlers.set(event, listener);
     return process;
   });
   vi.spyOn(process, 'exit').mockImplementation(((code?: number) => { order.push(`exit:${code}`); }) as typeof process.exit);
   const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => {});
   const build = vi.fn(() => entryApp);
   vi.doMock('../../server/api.js', () => ({
     buildServer: build,
@@ -76,19 +82,27 @@ test.each(['SIGINT', 'SIGTERM'] as const)('server entry starts on loopback, writ
   vi.doMock('../../server/store.js', () => ({ Store: class { constructor() { return entryStore; } } }));
   vi.doMock('../../server/service.js', () => ({ TaskService: class { constructor() { return entryService; } } }));
   vi.resetModules();
+  if (signal === 'EADDRINUSE') await writeFile(path.join(root, 'server.pid'), 'original-server');
   try {
     await import('../../server/main.js');
+    if (signal === 'EADDRINUSE') {
+      expect(entryService.recover).not.toHaveBeenCalled();
+      expect(await readFile(path.join(root, 'server.pid'), 'utf8')).toBe('original-server');
+      expect(process.exitCode).toBe(1);
+      return;
+    }
     expect(entryService.recover).toHaveBeenCalledOnce();
     expect(entryApp.listen).toHaveBeenCalledWith({ port: 4567, host: '127.0.0.1' });
-    expect(build).toHaveBeenCalledWith({ service: entryService, store: entryStore, bus: expect.any(Object), token, ptyManager: expect.any(Object) });
+    expect(build).toHaveBeenCalledWith({ service: entryService, store: entryStore, bus: expect.any(Object), token, ptyManager: expect.any(Object), port: 4567, shutdown: expect.any(Function) });
     expect(log).toHaveBeenCalledExactlyOnceWith('Agent fleet server on http://127.0.0.1:4567');
     expect(await readFile(path.join(root, 'server.pid'), 'utf8')).toBe(String(process.pid));
-    expect(order).toEqual(['recover', 'listen']);
+    expect(order).toEqual(['listen', 'recover']);
     await handlers.get(signal)!();
-    expect(order).toEqual(['recover', 'listen', 'service.close', 'app.close', 'store.close', 'exit:0']);
+    expect(order).toEqual(['listen', 'recover', 'service.close', 'app.close', 'store.close', 'exit:0']);
     await handlers.get(signal === 'SIGINT' ? 'SIGTERM' : 'SIGINT')!();
     expect(entryService.close).toHaveBeenCalledOnce();
   } finally {
+    process.exitCode = 0;
     for (const module of ['api', 'config', 'store', 'service']) vi.doUnmock(`../../server/${module}.js`);
     vi.resetModules();
   }
@@ -135,6 +149,85 @@ async function connect(suffix = `?token=${token}`, authHeaders?: Record<string, 
 }
 
 describe('HTTP and WebSocket API', () => {
+  test('rejects wrong Host and Origin on all paths except GET health', async () => {
+    await app.close();
+    app = buildServer({ service, store, bus, token, port: 4500 });
+    for (const url of ['/api/plans', '/auth', '/', '/ws', '/ws/pty']) {
+      for (const host of ['evil.test:4500', 'localhost:4501', '127.0.0.1', 'localhost:4500.evil.test']) {
+        const response = await app.inject({ url, headers: { ...headers, host } });
+        expect(response.statusCode).toBe(403);
+        expect(response.json()).toEqual({ error: 'forbidden' });
+      }
+      expect((await app.inject({ url, headers: { ...headers, host: 'localhost:4500', origin: 'http://evil.test:4500' } })).statusCode).toBe(403);
+    }
+    expect((await app.inject({ url: '/api/health', headers: { host: 'evil.test', origin: 'http://evil.test' } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/api/health', headers: { host: 'evil.test' } })).statusCode).toBe(403);
+  });
+
+  test('cookie mutations require JSON while same-origin cookies and header tokens work', async () => {
+    const task = await createTask();
+    await wait(task);
+    const cookie = `fleet_token=${token}`;
+    const url = `/api/tasks/${task.id}/discard`;
+    const headerTask = await createTask();
+    await wait(headerTask);
+    for (const contentType of [undefined, 'text/plain']) {
+      const response = await app.inject({ method: 'POST', url, headers: { cookie, ...(contentType ? { 'content-type': contentType } : {}) }, ...(contentType ? { payload: '{}' } : {}) });
+      expect(response.statusCode).toBe(415);
+      expect(store.getTask(task.id)?.status).toBe('done');
+    }
+    await app.close();
+    app = buildServer({ service, store, bus, token, port: 4500 });
+    for (const host of ['localhost:4500', '127.0.0.1:4500']) {
+      expect((await app.inject({ url: '/api/plans', headers: { cookie, host, origin: `http://${host}` } })).statusCode).toBe(200);
+    }
+    expect((await app.inject({ method: 'POST', url, headers: { cookie, host: 'localhost:4500', origin: 'http://localhost:4500', 'content-type': 'application/json; charset=utf-8' }, payload: '{}' })).statusCode).toBe(204);
+    // The header token is sufficient even without JSON or a cookie.
+    expect((await app.inject({ method: 'POST', url: `/api/tasks/${headerTask.id}/discard`, headers: { ...headers, host: 'localhost:4500' } })).statusCode).toBe(204);
+  });
+
+  test.each(['', '/pty'])('cross-origin WS /ws%s is rejected before upgrade', async (suffix) => {
+    const socket = await connect(`${suffix}?token=${token}`, { origin: 'http://evil.test' });
+    const status = await new Promise<number | undefined>((resolve, reject) => {
+      socket.once('unexpected-response', (request, response) => { response.resume(); request.destroy(); resolve(response.statusCode); });
+      socket.once('open', () => { socket.close(); reject(new Error('Cross-origin WS opened')); });
+      socket.on('error', () => {});
+    });
+    expect(status).toBe(403);
+  });
+
+  test.each(['queued', 'running', 'merged', 'discarded', 'taken_over', 'done', 'failed', 'timeout', 'interrupted'] as const)('PTY checks task status %s before opening', async (status) => {
+    const plan = store.createPlan({ name: 'pty', repoPath: repo, baseBranch: 'main' });
+    const task = store.createTask({ planId: plan.id, title: 'pty', agent: 'fake', branch: 'unused', worktreePath: repo, checkCmd: null });
+    store.updateTask(task.id, { status });
+    const open = vi.fn(() => ({ onData: () => () => {}, onExit: () => () => {} }));
+    await app.close();
+    app = buildServer({ service, store, bus, token, ptyManager: { open } as unknown as PtyManager });
+    const socket = await connect(`/pty?taskId=${task.id}&token=${token}`);
+    const allowed = ['taken_over', 'done', 'failed', 'timeout', 'interrupted'].includes(status);
+    if (allowed) {
+      await new Promise<void>((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject); });
+      expect(open).toHaveBeenCalledWith(task.id, 80, 24);
+    } else {
+      const closed = await new Promise<{ code: number; reason: string }>((resolve) => {
+        socket.once('close', (code, reason) => resolve({ code, reason: reason.toString() }));
+      });
+      expect(closed.code).toBe(1008);
+      expect(closed.reason).toContain(status);
+      expect(open).not.toHaveBeenCalled();
+    }
+  });
+
+  test('shutdown requires authentication and replies 202 before calling shutdown', async () => {
+    const shutdown = vi.fn();
+    await app.close();
+    app = buildServer({ service, store, bus, token, shutdown });
+    expect((await app.inject({ method: 'POST', url: '/api/shutdown' })).statusCode).toBe(401);
+    expect(shutdown).not.toHaveBeenCalled();
+    const response = await app.inject({ method: 'POST', url: '/api/shutdown', headers });
+    expect(response.statusCode).toBe(202);
+    await vi.waitFor(() => expect(shutdown).toHaveBeenCalledOnce());
+  });
   test('health is public; API requires a matching header or cookie, including unknown API paths', async () => {
     expect((await app.inject('/api/health')).json()).toEqual({ ok: true });
     for (const url of ['/api/plans', '/api/tasks', '/api/stats', '/api/missing', '/ws', '/ws/pty']) {

@@ -1,4 +1,14 @@
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+
+/** Executable name of a running process (e.g. `codex.exe`), lowercased, or null if it is gone. */
+export function processImage(pid: number): string | null {
+  if (!Number.isInteger(pid) || pid <= 0) return null;
+  const result = spawnSync('tasklist.exe', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], {
+    encoding: 'utf8', shell: false, windowsHide: true, timeout: 5000,
+  });
+  const match = /^"([^"]+)","(\d+)"/m.exec(result.stdout ?? '');
+  return match && Number(match[2]) === pid ? match[1]!.toLowerCase() : null;
+}
 
 export function isAlive(pid: number): boolean {
   if (!Number.isInteger(pid) || pid <= 0) return false;

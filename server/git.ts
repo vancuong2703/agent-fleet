@@ -1,10 +1,11 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 
-export function git(cwd: string, args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+export function git(cwd: string, args: string[], env?: NodeJS.ProcessEnv): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn('git', args, {
       cwd: path.win32.resolve(cwd),
+      env: { ...process.env, ...env },
       shell: false,
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],

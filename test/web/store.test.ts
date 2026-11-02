@@ -1,4 +1,9 @@
-import { describe, expect, test } from 'vitest';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, test, vi } from 'vitest';
+import { TaskActions } from '../../web/src/components/TaskActions.js';
+
+vi.mock('../../web/src/components/TerminalPanel.js', () => ({ TerminalPanel: () => null }));
 
 import {
   addEvents,
@@ -283,6 +288,10 @@ describe('eventText', () => {
 });
 
 describe('taskActions', () => {
+  test.each(['queued', 'merged', 'discarded', 'running', 'taken_over', 'done', 'failed', 'timeout', 'interrupted'] as const)('terminal button visibility for %s', (status) => {
+    const html = renderToStaticMarkup(createElement(TaskActions, { task: taskWith(status), baseBranch: 'main' }));
+    expect(html.includes('Mở terminal')).toBe(!['queued', 'merged', 'discarded'].includes(status));
+  });
   test('maps each status to the actions the task supports', () => {
     expect(taskActions('running')).toEqual(['stop']);
     expect(taskActions('taken_over')).toEqual(['markDone']);
@@ -300,6 +309,9 @@ describe('taskActions', () => {
 });
 
 describe('mergeErrorMessage', () => {
+  test('shows the stderr of a non-conflict merge error', () => {
+    expect(mergeErrorMessage({ ok: false, reason: 'error', message: 'hook failed' }, 'main')).toBe('Merge lỗi: hook failed');
+  });
   test('renders each failure reason in Vietnamese', () => {
     expect(mergeErrorMessage({ ok: false, reason: 'dirty' }, 'main')).toBe(
       'Repo gốc còn thay đổi chưa commit',

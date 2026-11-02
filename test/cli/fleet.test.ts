@@ -5,7 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { ensureServer } from '../../cli/client.js';
 import type { Plan, Run, StoredEvent, Task, TaskResult } from '../../shared/types.js';
 import { makeTempRepo } from '../helpers/repo.js';
 
@@ -99,9 +100,29 @@ afterEach(async () => {
 }, 15_000);
 
 describe('fleet CLI', { timeout: 30_000 }, () => {
+  test('initial health probe allows three seconds before starting another server', async () => {
+    vi.stubEnv('FLEET_DATA_DIR', dataDir);
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"ok":true}'));
+    try {
+      expect(await ensureServer()).toBe(`http://127.0.0.1:${port}`);
+      expect(timeout).toHaveBeenCalledExactlyOnceWith(3_000);
+    } finally {
+      vi.restoreAllMocks();
+      vi.unstubAllEnvs();
+    }
+  });
+  test('server stop shuts down the existing server and prints stopped', async () => {
+    await createPlan();
+    const response = await cli('server', 'stop');
+    expect(response.code, response.stderr).toBe(0);
+    expect(response.stdout.trim()).toBe('stopped');
+    await expect(readFile(path.join(dataDir, 'server.pid'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(fetch(`http://127.0.0.1:${port}/api/health`)).rejects.toThrow();
+  });
   test('plan create --json returns an id and subsequent commands reuse the server', async () => {
     const plan = await createPlan();
-    expect(plan.id).toMatch(/^p-[a-z0-9]{4}$/);
+    expect(plan.id).toMatch(/^p-[a-z0-9]{6}$/);
     const pid = await readFile(path.join(dataDir, 'server.pid'), 'utf8');
     expect(await json<Plan[]>('plan', 'list')).toEqual([plan]);
     expect(await readFile(path.join(dataDir, 'server.pid'), 'utf8')).toBe(pid);
@@ -109,7 +130,7 @@ describe('fleet CLI', { timeout: 30_000 }, () => {
 
   test('run --agent fake --brief-text hi --json returns a task id', async () => {
     const task = await run();
-    expect(task.id).toMatch(/^t-[a-z0-9]{4}$/);
+    expect(task.id).toMatch(/^t-[a-z0-9]{6}$/);
     expect(task.agent).toBe('fake');
   });
 

@@ -6,7 +6,7 @@ import type { Bus } from './bus.js';
 import type { FleetConfig } from './config.js';
 import { newId } from './ids.js';
 import { files } from './paths.js';
-import { isAlive, killTree } from './process.js';
+import { isAlive, killTree, processImage } from './process.js';
 import { runAttempt, type RunOutcome } from './runner.js';
 import type { Store } from './store.js';
 import {
@@ -34,16 +34,18 @@ export class TaskService {
   private readonly bus: Bus;
   private readonly config: FleetConfig;
   private readonly adapters: (id: AgentId) => AgentAdapter;
+  private readonly onBeforeWorktreeChange?: (taskId: string) => Promise<void> | void;
   // Reserve capacity before the runner's asynchronous brief write/spawn.
   private readonly active = new Map<string, ActiveAttempt>();
   private readonly taskLocks = new Map<string, Promise<void>>();
   private closed = false;
 
-  constructor(o: { store: Store; bus: Bus; config: FleetConfig; adapters?: (id: AgentId) => AgentAdapter }) {
+  constructor(o: { store: Store; bus: Bus; config: FleetConfig; adapters?: (id: AgentId) => AgentAdapter; onBeforeWorktreeChange?: (taskId: string) => Promise<void> | void }) {
     this.store = o.store;
     this.bus = o.bus;
     this.config = o.config;
     this.adapters = o.adapters ?? getAdapter;
+    this.onBeforeWorktreeChange = o.onBeforeWorktreeChange;
   }
 
   async createPlan(i: { name: string; repoPath: string; baseBranch?: string }): Promise<Plan> {
@@ -66,7 +68,11 @@ export class TaskService {
     const plan = this.plan(i.planId);
     await this.available(i.agent);
     this.assertOpen();
-    const id = newId('t');
+    let id = newId('t');
+    for (let attempt = 0; this.store.getTask(id); attempt++) {
+      if (attempt === 5) throw new FleetError('conflict', 'Could not generate a unique task id');
+      id = newId('t');
+    }
     const branch = `fleet/${plan.slug}/${id}`;
     const worktreePath = files.worktree(path.basename(plan.repoPath), id);
     // A failed git operation must never leave a task visible in the store.
@@ -80,6 +86,7 @@ export class TaskService {
 
   retry(taskId: string, i: { agent?: AgentId; note: string }): Promise<Run> {
     return this.withTask(taskId, async () => {
+      await this.onBeforeWorktreeChange?.(taskId);
       this.assertOpen();
       const task = this.task(taskId);
       this.requireState(task, retryable);
@@ -118,14 +125,16 @@ export class TaskService {
 
   merge(taskId: string): Promise<MergeResult> {
     return this.withTask(taskId, async () => {
+      await this.onBeforeWorktreeChange?.(taskId);
       const task = this.task(taskId);
       this.requireState(task, new Set(['done']));
       const plan = this.plan(task.planId);
       await commitAll(task.worktreePath, `fleet: ${task.title}`);
       const result = await mergeBranch({ repoPath: plan.repoPath, baseBranch: plan.baseBranch, branch: task.branch });
       if (result.ok) {
-        await this.remove(task, plan);
         this.updateTask(taskId, { status: 'merged' });
+        try { await this.remove(task, plan); }
+        catch (error) { console.error(`Could not remove worktree for ${taskId}`, error); }
       }
       return result;
     });
@@ -133,6 +142,7 @@ export class TaskService {
 
   discard(taskId: string): Promise<void> {
     return this.withTask(taskId, async () => {
+      await this.onBeforeWorktreeChange?.(taskId);
       const task = this.task(taskId);
       if (task.status === 'merged' || task.status === 'discarded') throw new FleetError('invalid_state', `Task is ${task.status}`);
       if (pending(task)) await this.stopAttempt(task);
@@ -166,8 +176,9 @@ export class TaskService {
     this.assertOpen();
     for (const run of this.store.listRuns({ status: 'running' })) {
       if (this.active.has(run.id)) continue;
-      // Nobody reads an orphan's output after a restart, so a live one is killed too.
-      if (run.pid !== null && isAlive(run.pid)) void killTree(run.pid).catch(() => {});
+      // Nobody reads an orphan's output after a restart, so a live one is killed too, but only if the
+      // pid still belongs to the agent's executable: Windows reuses pids after a reboot.
+      if (run.pid !== null && isAlive(run.pid) && this.ownsPid(run)) void killTree(run.pid).catch(() => {});
       this.finish(run, { status: 'interrupted' });
     }
     this.schedule();
@@ -301,6 +312,11 @@ export class TaskService {
     const detected = await adapter.detect(cfg);
     if (!detected.ok) throw new FleetError('agent_unavailable', detected.reason ?? `Agent ${id} is unavailable`);
     return adapter;
+  }
+
+  private ownsPid(run: Run): boolean {
+    const bin = getAdapterConfig(run.agent, this.config).bin;
+    return bin !== null && processImage(run.pid!) === path.win32.basename(bin).toLowerCase();
   }
 
   private requireState(task: Task, allowed: ReadonlySet<string>): void {
