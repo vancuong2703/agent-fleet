@@ -51,13 +51,19 @@ export function buildCompareRows(agents: AgentInfo[], stats: AgentStats[]): Comp
   const statsByAgent = new Map<AgentId, AgentStats>();
   for (const entry of stats) statsByAgent.set(entry.agent, entry);
 
-  return agents.map((agent) => ({
+  const rows: CompareRow[] = agents.map((agent) => ({
     agent: agent.id,
     ok: agent.ok,
     ...(agent.version !== undefined ? { version: agent.version } : {}),
     ...(agent.reason !== undefined ? { reason: agent.reason } : {}),
     stats: statsByAgent.get(agent.id) ?? null,
   }));
+  // Agents with history but no config entry (e.g. removed later, or the test agent) still get a row.
+  const listed = new Set(agents.map((agent) => agent.id));
+  for (const entry of stats) {
+    if (!listed.has(entry.agent)) rows.push({ agent: entry.agent, ok: true, stats: entry });
+  }
+  return rows;
 }
 
 /** Distinct repo paths from the plans, sorted, for the repo filter. */
