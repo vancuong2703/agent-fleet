@@ -1,0 +1,72 @@
+[
+  {
+    "name": "HARBOR_STATS_KEY_ALPHA",
+    "outputInWindow": 45829,
+    "inputUncached": 130774,
+    "cached": 7923584,
+    "requests": 51,
+    "failures": 0,
+    "status": "ok",
+    "percent": 0.119,
+    "outputLimit": 385000,
+    "requestLimit": 0,
+    "addedAt": "2026-11-02T17:00:00.000Z",
+    "resetAt": "2026-11-09T17:00:00.000Z"
+  },
+  {
+    "name": "HARBOR_STATS_KEY_BRAVO",
+    "outputInWindow": 86531,
+    "inputUncached": 461103,
+    "cached": 11846656,
+    "requests": 86,
+    "failures": 1,
+    "status": "exhausted until 2026-11-08T15:51:17.344Z",
+    "percent": 1,
+    "outputLimit": 385000,
+    "requestLimit": 0,
+    "addedAt": "2026-11-01T15:51:17.344Z",
+    "resetAt": "2026-11-08T15:51:17.344Z"
+  },
+  {
+    "name": "HARBOR_STATS_KEY_CHARLIE",
+    "outputInWindow": 103659,
+    "inputUncached": 438412,
+    "cached": 13097856,
+    "requests": 129,
+    "failures": 2,
+    "status": "ok",
+    "percent": 0.269,
+    "outputLimit": 385000,
+    "requestLimit": 0,
+    "addedAt": "2026-11-01T15:51:17.344Z",
+    "resetAt": "2026-11-09T17:00:00.000Z"
+  },
+  {
+    "name": "HARBOR_STATS_KEY_DELTA",
+    "outputInWindow": 77000,
+    "inputUncached": 407281,
+    "cached": 8988800,
+    "requests": 91,
+    "failures": 2,
+    "status": "ok",
+    "percent": 0.2,
+    "outputLimit": 385000,
+    "requestLimit": 0,
+    "addedAt": "2026-11-02T08:12:31.120Z",
+    "resetAt": "2026-11-09T17:00:00.000Z"
+  },
+  {
+    "name": "HARBOR_STATS_KEY_ECHO",
+    "outputInWindow": 19250,
+    "inputUncached": 120040,
+    "cached": 1186000,
+    "requests": 12,
+    "failures": 0,
+    "status": "ok",
+    "percent": 0.05,
+    "outputLimit": 385000,
+    "requestLimit": 0,
+    "addedAt": "2026-11-03T02:40:11.000Z",
+    "resetAt": "2026-11-09T17:00:00.000Z"
+  }
+]
