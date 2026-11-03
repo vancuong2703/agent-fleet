@@ -5,6 +5,36 @@ import '@xterm/xterm/css/xterm.css';
 import { Icon } from './Icon.js';
 import { ResizeHandle } from './ResizeHandle.js';
 
+export const TERMINAL_FONT_KEY = 'fleet.terminal.fontSize';
+export const TERMINAL_FONT_DEFAULT = 15;
+const TERMINAL_FONT_MIN = 10;
+const TERMINAL_FONT_MAX = 22;
+
+export function clampTerminalFontSize(value: number): number {
+  if (!Number.isFinite(value)) return TERMINAL_FONT_DEFAULT;
+  return Math.min(TERMINAL_FONT_MAX, Math.max(TERMINAL_FONT_MIN, Math.round(value)));
+}
+
+/** localStorage throws in private mode and locked-down webviews; the size is a convenience only. */
+function terminalStorage(): Storage | null {
+  try { return typeof window === 'undefined' ? null : window.localStorage; } catch { return null; }
+}
+
+export function readTerminalFontSize(storage: Storage | null = terminalStorage()): number {
+  if (!storage) return TERMINAL_FONT_DEFAULT;
+  try {
+    const raw = storage.getItem(TERMINAL_FONT_KEY);
+    if (raw === null) return TERMINAL_FONT_DEFAULT;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? clampTerminalFontSize(parsed) : TERMINAL_FONT_DEFAULT;
+  } catch { return TERMINAL_FONT_DEFAULT; }
+}
+
+function saveTerminalFontSize(value: number, storage: Storage | null = terminalStorage()): void {
+  if (!storage) return;
+  try { storage.setItem(TERMINAL_FONT_KEY, String(value)); } catch { /* Blocked storage: ignore. */ }
+}
+
 export interface TerminalPanelProps {
   taskId?: string;
   /** WebSocket path override for dashboard sessions; defaults to the task PTY socket. */
@@ -28,7 +58,7 @@ const cmdTheme: ITheme = {
   brightBlack: '#767676', brightRed: '#e74856', brightGreen: '#16c60c', brightYellow: '#f9f1a5', brightBlue: '#3b78ff', brightMagenta: '#b4009e', brightCyan: '#61d6d6', brightWhite: '#f2f2f2',
 };
 
-export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = false, closeLabel = 'Đóng', height, onHeightChange, onInputReady, onClose }: TerminalPanelProps) {
+export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = false, closeLabel = 'Ẩn', height, onHeightChange, onInputReady, onClose }: TerminalPanelProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -36,12 +66,15 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
   const inputReadyRef = useRef(onInputReady);
   inputReadyRef.current = onInputReady;
   const [connection, setConnection] = useState('Đang kết nối');
-  const [fontSize, setFontSize] = useState(15);
+  const [fontSize, setFontSize] = useState(readTerminalFontSize);
+  const [socketError, setSocketError] = useState<string | null>(null);
+  const [reconnectKey, setReconnectKey] = useState(0);
   const [maximized, setMaximized] = useState(false);
   const [query, setQuery] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const searchFrom = useRef(0);
   const heightBeforeMax = useRef<number | null>(null);
+  const applyFontSize = (next: number) => { const size = clampTerminalFontSize(next); setFontSize(size); saveTerminalFontSize(size); };
   const copy = async () => { const text = terminalRef.current?.getSelection(); if (!text) { setNotice('Chọn nội dung terminal trước khi sao chép.'); return; } try { await navigator.clipboard.writeText(text); setNotice('Đã sao chép.'); } catch { setNotice('Không truy cập được clipboard.'); } };
   const paste = async () => { try { const text = await navigator.clipboard.readText(); terminalRef.current?.paste(text); terminalRef.current?.focus(); } catch { setNotice('Không đọc được clipboard. Dùng Ctrl+Shift+V trong terminal.'); } };
   const find = () => { const term = terminalRef.current; if (!term || !query) return; const buffer = term.buffer.active; for (let offset = 0; offset < buffer.length; offset++) { const row = (searchFrom.current + offset) % buffer.length; const text = buffer.getLine(row)?.translateToString(true) ?? ''; const index = text.toLocaleLowerCase().indexOf(query.toLocaleLowerCase()); if (index >= 0) { term.select(index, row, query.length); term.scrollToLine(Math.max(0, row - 3)); searchFrom.current = row + 1; setNotice(null); return; } } setNotice('Không tìm thấy nội dung.'); };
@@ -49,7 +82,11 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
     const container = containerRef.current; if (!container) return;
     const path = socketPath ?? (taskId ? `/ws/pty?taskId=${encodeURIComponent(taskId)}` : null);
     if (!path) { setConnection('Thiếu phiên terminal'); return; }
-    const term = new Terminal({ convertEol: true, cursorBlink: true, fontSize: 15, fontFamily: '"Cascadia Mono", "Cascadia Code", Consolas, monospace', lineHeight: 1.25, scrollback: 10_000, theme: cmdTheme, drawBoldTextInBrightColors: true, allowProposedApi: false });
+    setSocketError(null);
+    let finished = false;
+    // A socket can still dispatch a queued event after unmount or reconnect.
+    let disposed = false;
+    const term = new Terminal({ convertEol: true, cursorBlink: true, fontSize: readTerminalFontSize(), fontFamily: '"Cascadia Mono", "Cascadia Code", Consolas, monospace', lineHeight: 1.25, scrollback: 10_000, theme: cmdTheme, drawBoldTextInBrightColors: true, allowProposedApi: false });
     const fit = new FitAddon(); term.loadAddon(fit); term.open(container); fit.fit(); terminalRef.current = term; fitRef.current = fit;
     const socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}${path}${path.includes('?') ? '&' : '?'}cols=${term.cols}&rows=${term.rows}`);
     let resizeFrame = 0;
@@ -89,15 +126,15 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
       } else term.scrollLines(lines);
       return false;
     });
-    socket.onopen = () => { setConnection('Đã kết nối'); resize(); term.focus(); inputReadyRef.current?.(write); };
-    socket.onmessage = (event) => { try { const message = JSON.parse(String(event.data)) as ServerMessage; if (message.t === 'out') term.write(message.d); else if (message.t === 'exit') { setConnection(`Đã kết thúc · ${message.code}`); term.write(`\r\n\x1b[90m[phiên đã kết thúc, mã ${message.code}]\x1b[0m\r\n`); } } catch { /* Invalid frames never tear down a working PTY. */ } };
-    socket.onerror = () => setConnection('Lỗi kết nối');
-    socket.onclose = () => { inputReadyRef.current?.(null); setConnection((current) => current.startsWith('Đã kết thúc') ? current : 'Đã ngắt kết nối'); };
+    socket.onopen = () => { if (disposed) return; setSocketError(null); setConnection('Đã kết nối'); resize(); term.focus(); inputReadyRef.current?.(write); };
+    socket.onmessage = (event) => { if (disposed) return; try { const message = JSON.parse(String(event.data)) as ServerMessage; if (message.t === 'out') term.write(message.d); else if (message.t === 'exit') { finished = true; setConnection(`Đã kết thúc · ${message.code}`); term.write(`\r\n\x1b[90m[phiên đã kết thúc, mã ${message.code}]\x1b[0m\r\n`); } } catch { /* Invalid frames never tear down a working PTY. */ } };
+    socket.onerror = () => { if (disposed) return; setConnection('Lỗi kết nối'); setSocketError('Mất kết nối tới tiến trình terminal.'); };
+    socket.onclose = () => { if (disposed) return; inputReadyRef.current?.(null); setConnection((current) => current.startsWith('Đã kết thúc') ? current : 'Đã ngắt kết nối'); if (!finished) setSocketError('Mất kết nối tới tiến trình terminal.'); };
     const input = term.onData(write);
     term.attachCustomKeyEventHandler((event) => { if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') { const text = term.getSelection(); if (text) void navigator.clipboard.writeText(text).catch(() => {}); return false; } if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyV') { void navigator.clipboard.readText().then((text) => term.paste(text)).catch(() => setNotice('Clipboard không khả dụng.')); return false; } return true; });
     const observer = new ResizeObserver(resize); observer.observe(container);
-    return () => { cancelAnimationFrame(resizeFrame); observer.disconnect(); input.dispose(); inputReadyRef.current?.(null); socket.onclose = null; socket.close(); term.dispose(); terminalRef.current = null; fitRef.current = null; resizeRef.current = null; };
-  }, [taskId, socketPath]);
+    return () => { disposed = true; cancelAnimationFrame(resizeFrame); observer.disconnect(); input.dispose(); inputReadyRef.current?.(null); socket.onclose = null; socket.close(); term.dispose(); terminalRef.current = null; fitRef.current = null; resizeRef.current = null; };
+  }, [taskId, socketPath, reconnectKey]);
   useEffect(() => { if (terminalRef.current) { terminalRef.current.options.fontSize = fontSize; resizeRef.current?.(); } }, [fontSize]);
   useEffect(() => { resizeRef.current?.(); }, [height]);
   const maxHeight = Math.max(350, window.innerHeight - 250);
@@ -108,8 +145,9 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
   });
   return <div className={`terminal-panel${fill?' terminal-fill':''}`} style={fill ? {height:'100%'} : height != null ? { height } : undefined}>
     {onHeightChange && <ResizeHandle orientation="horizontal" reverse label="Điều chỉnh chiều cao terminal" value={currentHeight} min={240} max={maxHeight} onChange={onHeightChange} />}
-    <div className="terminal-head"><span className="terminal-title"><Icon name="terminal" size={15} /><span className="terminal-caption" title={subtitle}>{title ?? 'Terminal'}{subtitle && <small>{subtitle}</small>}</span><span className={`terminal-connection ${connection === 'Đã kết nối' ? 'on' : ''}`}>{connection}</span></span><div className="terminal-tools"><button className="icon-button" title="Giảm cỡ chữ" aria-label="Giảm cỡ chữ terminal" onClick={() => setFontSize((size) => Math.max(10, size - 1))}>−</button><span>{fontSize}</span><button className="icon-button" title="Tăng cỡ chữ" aria-label="Tăng cỡ chữ terminal" onClick={() => setFontSize((size) => Math.min(22, size + 1))}>+</button>{onHeightChange && <button className="text-button" aria-label={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} title={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} onClick={toggleMaximize}>{maximized ? 'Khôi phục' : 'Phóng to'}</button>}<button className="text-button" onClick={() => void copy()} title="Ctrl+Shift+C">Copy</button><button className="text-button" onClick={() => void paste()} title="Ctrl+Shift+V">Paste</button><button className="action-btn" onClick={onClose}>{closeLabel}</button></div></div>
+    <div className="terminal-head"><span className="terminal-title"><Icon name="terminal" size={15} /><span className="terminal-caption" title={subtitle}>{title ?? 'Terminal'}{subtitle && <small>{subtitle}</small>}</span><span className={`terminal-connection ${connection === 'Đã kết nối' ? 'on' : ''}`}>{connection}</span></span><div className="terminal-tools"><button className="icon-button" title="Giảm cỡ chữ" aria-label="Giảm cỡ chữ terminal" onClick={() => applyFontSize(fontSize - 1)}>−</button><span>{fontSize}</span><button className="icon-button" title="Tăng cỡ chữ" aria-label="Tăng cỡ chữ terminal" onClick={() => applyFontSize(fontSize + 1)}>+</button>{onHeightChange && <button className="text-button" aria-label={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} title={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} onClick={toggleMaximize}>{maximized ? 'Khôi phục' : 'Phóng to'}</button>}<button className="text-button" onClick={() => void copy()} title="Ctrl+Shift+C">Sao chép</button><button className="text-button" onClick={() => void paste()} title="Ctrl+Shift+V">Dán</button><button className="action-btn" onClick={onClose}>{closeLabel}</button></div></div>
     <div className="terminal-search"><Icon name="search" size={14} /><input aria-label="Tìm trong terminal" value={query} onChange={(event) => { setQuery(event.target.value); searchFrom.current = 0; }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); find(); } }} placeholder="Tìm trong terminal…" /><button className="text-button" onClick={find} disabled={!query}>Tìm tiếp</button>{notice && <span role="status">{notice}</span>}</div>
+    {socketError && <div className="terminal-reconnect banner banner-error" role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, margin: '0 0 10px' }}><span>{socketError}</span><button className="action-btn" type="button" onClick={() => { setSocketError(null); setConnection('Đang kết nối'); setReconnectKey((key) => key + 1); }}>Kết nối lại</button></div>}
     <div className="terminal-host" ref={containerRef} />
   </div>;
 }

@@ -100,7 +100,7 @@ test('finished fake task opens a working cmd terminal', async ({ page }) => {
   await input.pressSequentially('exit');
   await input.press('Enter');
   await expect(rows).toContainText('phiên đã kết thúc');
-  await page.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await page.getByRole('button', { name: 'Ẩn', exact: true }).click();
   await expect(terminal).toHaveCount(0);
 });
 

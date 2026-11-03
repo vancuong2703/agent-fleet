@@ -67,8 +67,8 @@ test('terminal session launch and explicit close call the documented API', async
   await expect(page.locator('.terminal-workspace-host')).toBeHidden();
   await page.getByRole('button', {name:'Terminal',exact:true}).click();
   await expect(page.locator('.terminal-workspace-host .terminal-panel')).toBeVisible();
-  await page.getByRole('button', { name: 'Kết thúc OpenCode · workspace',exact:true }).click();
-  await page.getByRole('button', { name: 'Kết thúc', exact: true }).click();
+  await page.getByRole('button', { name: 'Kết thúc tiến trình OpenCode · workspace',exact:true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Kết thúc tiến trình', exact: true }).click();
   await expect.poll(() => deleted).toEqual(['DELETE']);
   await expect(page.getByRole('tab', {name:'OpenCode · workspace'})).toHaveCount(0);
 });
@@ -150,9 +150,10 @@ test('AGY composer defaults to auto, sends policy per run, and omits it for othe
   const openComposer = async (agent: string, title: string, extra?: () => Promise<void>) => {
     await page.getByRole('button', { name: /Task mới/ }).click();
     const dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Tên công việc', { exact: true }).fill(title);
     await dialog.getByLabel('Dự án / plan', { exact: true }).selectOption(plan.id);
     await dialog.getByLabel('Agent', { exact: true }).selectOption(agent);
+    await dialog.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
+    await dialog.getByLabel('Tên công việc', { exact: true }).fill(title);
     await dialog.getByLabel('Nội dung giao việc', { exact: true }).fill('Policy smoke');
     if (extra) await extra();
     await dialog.getByRole('button', { name: 'Giao việc', exact: true }).click();

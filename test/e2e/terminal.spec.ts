@@ -72,8 +72,8 @@ test('a tab can be closed after its CLI has already exited on the server',async(
  await setup(page);
  await page.route('**/api/terminal-sessions/session-codex',route=>route.fulfill({status:404,json:{message:'Terminal session not found'}}));
  await page.getByRole('button',{name:'Mở Codex',exact:true}).click();
- await page.getByRole('button',{name:'Kết thúc codex workspace',exact:true}).click();
- await page.getByRole('button',{name:'Kết thúc',exact:true}).click();
+ await page.getByRole('button',{name:'Kết thúc tiến trình codex workspace',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'Kết thúc tiến trình',exact:true}).click();
  await expect(page.getByRole('tab')).toHaveCount(0);
  await expect(page.getByRole('heading',{name:'Mở một phiên terminal'})).toBeVisible();
 });
