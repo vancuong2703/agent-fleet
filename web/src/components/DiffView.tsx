@@ -4,12 +4,16 @@ import type { DiffFile } from '../../../shared/types.js';
 import { splitPatch, type DiffSection } from '../diff.js';
 import { isDesktop, openLocation } from '../desktop.js';
 import { Icon } from './Icon.js';
+import { Skeleton } from './Skeleton.js';
 
 export interface DiffViewProps {
   files: DiffFile[];
   patch: string;
   error?: string | null;
   taskId?: string;
+  /** True while the patch is being read; the empty copy must wait for it. */
+  loading?: boolean;
+  onRetry?: () => void;
 }
 
 function lineMarker(kind: DiffSection['lines'][number]['kind']): string {
@@ -30,7 +34,7 @@ function lineMarker(kind: DiffSection['lines'][number]['kind']): string {
  * one string and is split per file by `splitPatch`; each line is colored by
  * its kind (add/del/ctx/hunk).
  */
-export function DiffView({ files, patch, error, taskId }: DiffViewProps) {
+export function DiffView({ files, patch, error, taskId, loading = false, onRetry }: DiffViewProps) {
   const sections = useMemo(() => splitPatch(patch), [patch]);
   const [chosenPath, setSelectedPath] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -40,8 +44,18 @@ export function DiffView({ files, patch, error, taskId }: DiffViewProps) {
       ? chosenPath
       : files[0]?.path ?? null;
 
+  // A failed read must offer a way out instead of an empty panel.
   if (error !== undefined && error !== null) {
-    return <div className="banner banner-error">{error}</div>;
+    return (
+      <div className="banner banner-error" role="alert">
+        Không tải được thay đổi: {error}
+        {onRetry && <button type="button" className="banner-retry" onClick={onRetry}>Thử lại</button>}
+      </div>
+    );
+  }
+
+  if (loading && files.length === 0) {
+    return <Skeleton className="diff-skeleton" label="Đang tải thay đổi…" lines={6} />;
   }
 
   if (files.length === 0) {

@@ -4,7 +4,7 @@
 // The brief is read from stdin; the scenario is chosen by the adapter from a
 // `[[name]]` prefix on the brief (default `success`).
 //
-// Scenarios: success | fail | hang | spawn-child-hang | quota | slow
+// Scenarios: success | fail | hang | spawn-child-hang | quota | slow | raw
 
 import { spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
@@ -69,6 +69,15 @@ switch (scenario) {
       emit({ type: 'message', text: `slow ${i}` });
       await sleep(200);
     }
+    process.exit(0);
+  }
+
+  // Non-JSON lines land in the log as `raw` events, which the UI groups behind
+  // a toggle. Kept synthetic so the fixture never carries real CLI output.
+  case 'raw': {
+    const brief = await readBrief();
+    process.stdout.write('raw line one\nraw line two\n');
+    emit({ type: 'message', text: brief });
     process.exit(0);
   }
 

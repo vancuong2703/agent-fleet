@@ -36,6 +36,8 @@ export function ComparePage({ plans }: ComparePageProps) {
   const [error, setError] = useState<string | null>(null);
   // Agent detection runs each CLI's --version, so the first load can take a few seconds.
   const [loaded, setLoaded] = useState(false);
+  // Bumped by the retry button; the polling timer alone cannot rescue a failed first read.
+  const [attempt, setAttempt] = useState(0);
 
   const repos = useMemo(() => repoOptions(plans), [plans]);
 
@@ -43,7 +45,8 @@ export function ComparePage({ plans }: ComparePageProps) {
     let cancelled = false;
     void api.agents().then((list) => { if (!cancelled) setAgents(list); }).catch(() => {});
     return () => { cancelled = true; };
-  }, []);
+  // Retry re-reads the agent list as well: a failed first sweep must not leave the table empty.
+  }, [attempt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +62,9 @@ export function ComparePage({ plans }: ComparePageProps) {
       })
       .catch((cause: unknown) => {
         if (cancelled) return;
+        // Keep the error: the table must not sit on "Đang tải..." forever.
         setError(cause instanceof Error ? cause.message : String(cause));
+        setLoaded(false);
       }).finally(() => { if (!cancelled) timer = window.setTimeout(refresh, document.hidden ? 15_000 : 5_000); });
     };
     refresh();
@@ -67,7 +72,13 @@ export function ComparePage({ plans }: ComparePageProps) {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [repo, period]);
+  }, [repo, period, attempt]);
+
+  const retry = (): void => {
+    setError(null);
+    setLoaded(false);
+    setAttempt((value) => value + 1);
+  };
 
   const rows = useMemo(() => buildCompareRows(agents, stats), [agents, stats]);
 
@@ -103,7 +114,10 @@ export function ComparePage({ plans }: ComparePageProps) {
       </div>
 
       {error !== null && (
-        <div className="banner banner-error">Không tải được số liệu: {error}</div>
+        <div className="banner banner-error" role="alert">
+          Không tải được số liệu: {error}
+          <button type="button" className="banner-retry" onClick={retry}>Thử lại</button>
+        </div>
       )}
 
       <table className="compare-table">
@@ -122,7 +136,7 @@ export function ComparePage({ plans }: ComparePageProps) {
           {rows.length === 0 ? (
             <tr>
               <td className="compare-empty" colSpan={7}>
-                {loaded ? 'Chưa có agent nào.' : 'Đang tải…'}
+                {error !== null ? 'Không tải được số liệu.' : loaded ? 'Chưa có agent nào.' : 'Đang tải…'}
               </td>
             </tr>
           ) : (

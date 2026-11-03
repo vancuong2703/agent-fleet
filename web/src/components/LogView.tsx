@@ -2,12 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Run, StoredEvent } from '../../../shared/types.js';
 import { buildLogRows, eventText, formatClock } from '../store.js';
+import { Skeleton } from './Skeleton.js';
 
 export interface LogViewProps {
   runs: Run[];
   events: StoredEvent[];
   runId: string | null;
   onSelectRun: (runId: string) => void;
+  /** True while the run's stored events are still being fetched. */
+  loading?: boolean;
+  /** Failed read of the run's log; the error must not be swallowed. */
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 const BOTTOM_THRESHOLD = 24;
@@ -15,8 +21,9 @@ const BOTTOM_THRESHOLD = 24;
 /**
  * Live event log: monospace, colored by kind, `raw` runs collapsed behind a
  * toggle. Autoscroll follows the tail until the user scrolls up, then pauses.
+ * Raw rows are real `<button>`s so they can be toggled from the keyboard.
  */
-export function LogView({ runs, events, runId, onSelectRun }: LogViewProps) {
+export function LogView({ runs, events, runId, onSelectRun, loading = false, error = null, onRetry }: LogViewProps) {
   const rows = useMemo(() => buildLogRows(events), [events]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [pinned, setPinned] = useState(true);
@@ -57,7 +64,14 @@ export function LogView({ runs, events, runId, onSelectRun }: LogViewProps) {
         </div>
       )}
       <div className="log-scroll" ref={scrollRef} onScroll={handleScroll}>
-        {rows.length === 0 && <div className="log-empty">Chưa có sự kiện.</div>}
+        {error !== null && (
+          <div className="banner banner-error" role="alert">
+            Không tải được nhật ký: {error}
+            {onRetry && <button type="button" className="banner-retry" onClick={onRetry}>Thử lại</button>}
+          </div>
+        )}
+        {rows.length === 0 && loading && error === null && <Skeleton className="log-skeleton" label="Đang tải nhật ký…" lines={5} />}
+        {rows.length === 0 && !loading && error === null && <div className="log-empty">Chưa có sự kiện.</div>}
         {rows.map((row) => {
           if (row.raw && !expanded[row.id]) {
             return (
@@ -75,17 +89,30 @@ export function LogView({ runs, events, runId, onSelectRun }: LogViewProps) {
           }
           return row.events.map((stored) => {
             const kind = stored.event.kind;
-            const raw = row.raw;
-            return (
-              <div
-                key={`${row.id}-${stored.seq}`}
-                className={`log-line kind-line-${kind}`}
-                onClick={raw ? () => toggle(row.id, false) : undefined}
-                role={raw ? 'button' : undefined}
-              >
+            const content = (
+              <>
                 <span className="log-ts">{formatClock(stored.ts)}</span>
                 <span className={`log-kind kind-${kind}`}>{kind}</span>
                 <span className="log-text">{eventText(stored.event)}</span>
+              </>
+            );
+            // A grouped raw line is clickable, so it must be a real button:
+            // the previous `div role="button"` could not be reached by keyboard.
+            if (row.raw) {
+              return (
+                <button
+                  key={`${row.id}-${stored.seq}`}
+                  type="button"
+                  className={`log-line kind-line-${kind}`}
+                  onClick={() => toggle(row.id, false)}
+                >
+                  {content}
+                </button>
+              );
+            }
+            return (
+              <div key={`${row.id}-${stored.seq}`} className={`log-line kind-line-${kind}`}>
+                {content}
               </div>
             );
           });
