@@ -300,7 +300,8 @@ describe('eventText', () => {
 describe('taskActions', () => {
   test.each(['queued', 'merged', 'discarded', 'running', 'taken_over', 'done', 'failed', 'timeout', 'interrupted'] as const)('terminal button visibility for %s', (status) => {
     const html = renderToStaticMarkup(createElement(TaskActions, { task: taskWith(status), baseBranch: 'main' }));
-    expect(html.includes('Mở terminal')).toBe(!['queued', 'merged', 'discarded'].includes(status));
+    const label = status === 'running' ? 'Tiếp quản terminal' : 'Mở terminal';
+    expect(html.includes(label)).toBe(!['queued', 'merged', 'discarded'].includes(status));
   });
   test('maps each status to the actions the task supports', () => {
     expect(taskActions('running')).toEqual(['stop']);

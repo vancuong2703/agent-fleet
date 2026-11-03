@@ -1,0 +1,12 @@
+.task-actions-wrap .task-actions { justify-content: space-between; gap: var(--space-3); }
+.task-actions-secondary, .task-actions-primary { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); min-width: 0; }
+.task-actions-primary { margin-left: auto; }
+.task-overflow { position: relative; }
+.task-overflow-trigger { min-width: 36px; }
+.task-overflow-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; width: max-content; max-width: min(280px, calc(100vw - 48px)); padding: var(--space-1); border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); box-shadow: 0 8px 24px #0002; }
+.task-overflow-menu .action-btn { width: 100%; justify-content: flex-start; white-space: normal; border: 0; padding: var(--space-2) var(--space-3); }
+.task-overflow-menu .action-danger { color: var(--red); }
+.task-overflow-menu .action-danger:hover { background: var(--bad-soft); }
+.merge-control { display: inline-flex; border-radius: var(--radius-sm); }
+.task-merge-help { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); color: var(--muted); font-size: var(--text-sm); }
+.task-actions-wrap .action-message { margin: var(--space-2) 0 0; }

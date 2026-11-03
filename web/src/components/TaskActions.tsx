@@ -1,9 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { MoreHorizontal } from 'lucide-react';
 
 import type { CommandPolicy, Run, Task } from '../../../shared/types.js';
 import { api } from '../api.js';
 import { mergeErrorMessage, taskActions } from '../store.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
+import '../styles/actions.css';
 const TerminalPanel = lazy(() => import('./TerminalPanel.js').then((module) => ({ default: module.TerminalPanel })));
 
 export interface TaskActionsProps {
@@ -31,15 +33,55 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
   const [retryNote, setRetryNote] = useState('Hoàn tất công việc và chạy lại kiểm tra.');
   const [retryPolicy, setRetryPolicy] = useState<CommandPolicy>(run?.commandPolicy ?? 'ask');
   const [retryAllowed, setRetryAllowed] = useState((run?.allowedCommands ?? []).join('\n'));
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const mergeReasonId = useId();
+  const [diffRevision, setDiffRevision] = useState(0);
+  const [mergeDiff, setMergeDiff] = useState<{ taskId: string; runId?: string; count: number | null; failed: boolean } | null>(null);
 
   // Switching tasks never leaves the previous task's terminal mounted.
   useEffect(() => {
     setTerminalOpen(false);
     setRetryOpen(false);
+    setPending(null);
+    setMenuOpen(false);
     setMessage(null);
     setRetryPolicy(run?.commandPolicy ?? 'ask');
     setRetryAllowed((run?.allowedCommands ?? []).join('\n'));
   }, [task.id, run?.id]);
+
+  useEffect(() => {
+    let active = true;
+    setMergeDiff(null);
+    if (task.status === 'done') void api.diff(task.id).then(
+      diff => { if (active) setMergeDiff({ taskId: task.id, runId: run?.id, count: diff.files.length, failed: false }); },
+      () => { if (active) setMergeDiff({ taskId: task.id, runId: run?.id, count: null, failed: true }); },
+    );
+    return () => { active = false; };
+  }, [task.id, task.status, run?.id, terminalOpen, diffRevision]);
+
+  useLayoutEffect(() => {
+    if (!menuOpen) return;
+    menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    const dismiss = (event: PointerEvent) => {
+      if (!menu.current?.contains(event.target as Node) && !menuButton.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMenuOpen(false);
+        menuButton.current?.focus();
+      }
+    };
+    document.addEventListener('pointerdown', dismiss);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', dismiss);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [menuOpen]);
 
   const fail = (cause: unknown): void => {
     setMessage(cause instanceof Error ? cause.message : String(cause));
@@ -83,18 +125,18 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
     }
     if (pending === 'discard') {
       return {
-        title: 'Huỷ task?',
-        message: 'Worktree và nhánh của task sẽ bị xoá. Lịch sử vẫn được giữ lại.',
-        confirmLabel: 'Huỷ',
+        title: 'Xoá công việc này?',
+        message: 'Worktree, nhánh và mọi thay đổi chưa Merge của công việc sẽ bị xoá. Lịch sử vẫn được giữ lại.',
+        confirmLabel: 'Xoá worktree và thay đổi',
         danger: true,
         onConfirm: () => invoke(() => api.discard(task.id)),
       };
     }
     if (pending === 'terminal') {
       return {
-        title: 'Dừng agent đang chạy để tiếp quản?',
-        message: 'Run headless sẽ bị dừng và task chuyển sang trạng thái tiếp quản.',
-        confirmLabel: 'Tiếp quản',
+        title: 'Tiếp quản terminal?',
+        message: 'Agent đang chạy sẽ bị dừng trước khi mở terminal. Công việc chuyển sang trạng thái tiếp quản để bạn thao tác trong worktree.',
+        confirmLabel: 'Dừng agent và tiếp quản',
         danger: false,
         onConfirm: () =>
           invoke(async () => {
@@ -107,14 +149,43 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
   })();
 
   const terminalAvailable = task.status !== 'queued' && task.status !== 'merged' && task.status !== 'discarded';
+  const currentDiff = mergeDiff?.taskId === task.id && mergeDiff.runId === run?.id ? mergeDiff : null;
+  const mergeDisabledReason = busy ? 'Đang xử lý thao tác.'
+    : run?.checkPassed === false ? 'Kiểm tra chưa đạt.'
+    : run?.errorCategory ? 'Lần chạy có lỗi; hãy xử lý lỗi trước khi Merge.'
+    : task.checkCmd && run?.checkPassed !== true ? 'Chưa có kết quả kiểm tra đạt.'
+    : currentDiff?.failed ? 'Không đọc được thay đổi, chưa thể Merge.'
+    : !currentDiff ? 'Đang tải thay đổi để kiểm tra Merge.'
+    : currentDiff.count === 0 ? 'Không có thay đổi để Merge.' : null;
 
   return (
     <div className="task-actions-wrap">
       <div className="task-actions">
+        <div className="task-actions-secondary">
+          {terminalAvailable && (
+            <button type="button" className={`action-btn${terminalOpen ? ' action-primary' : ''}`} disabled={busy} onClick={openTerminal}>
+              {task.status === 'running' ? 'Tiếp quản terminal' : 'Mở terminal'}
+            </button>
+          )}
+          {['done', 'failed', 'timeout', 'interrupted'].includes(task.status) && <button type="button" className="action-btn" disabled={busy} onClick={() => setRetryOpen((open) => !open)}>Thử lại</button>}
+          {actions.includes('discard') && <div className="task-overflow">
+            <button ref={menuButton} type="button" className="action-btn task-overflow-trigger" aria-label="Thao tác khác" title="Thao tác khác" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={busy}
+              onClick={() => setMenuOpen(open => !open)} onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setMenuOpen(true); } }}>
+              <MoreHorizontal size={18} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+            {menuOpen && <div ref={menu} id={menuId} role="menu" aria-label="Thao tác khác của công việc" className="task-overflow-menu" onKeyDown={event => {
+              if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) { event.preventDefault(); menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(); }
+              if (event.key === 'Tab') { setMenuOpen(false); menuButton.current?.focus(); }
+            }}>
+              <button type="button" role="menuitem" tabIndex={-1} className="action-btn action-danger" onClick={() => { menuButton.current?.focus(); setMenuOpen(false); setPending('discard'); }}>Huỷ công việc…</button>
+            </div>}
+          </div>}
+        </div>
+        <div className="task-actions-primary">
         {actions.includes('stop') && (
           <button
             type="button"
-            className="action-btn"
+            className="action-btn action-primary"
             disabled={busy}
             onClick={() => invoke(() => api.stop(task.id))}
           >
@@ -124,7 +195,7 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
         {actions.includes('markDone') && (
           <button
             type="button"
-            className="action-btn"
+            className="action-btn action-primary"
             disabled={busy}
             onClick={() => invoke(() => api.markDone(task.id))}
           >
@@ -132,39 +203,21 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
           </button>
         )}
         {actions.includes('merge') && (
-          <button
+          <span className="merge-control" tabIndex={mergeDisabledReason ? 0 : undefined} title={mergeDisabledReason ?? undefined} aria-describedby={mergeDisabledReason ? mergeReasonId : undefined}><button
             type="button"
             className="action-btn action-primary"
-            disabled={busy || run?.checkPassed === false || Boolean(run?.errorCategory)}
+            disabled={mergeDisabledReason !== null}
+            title={mergeDisabledReason ?? 'Merge thay đổi vào nhánh gốc'}
+            aria-describedby={mergeDisabledReason ? mergeReasonId : undefined}
             onClick={() => setPending('merge')}
           >
             Merge
-          </button>
+          </button></span>
         )}
-        {actions.includes('discard') && (
-          <button
-            type="button"
-            className="action-btn action-danger"
-            disabled={busy}
-            onClick={() => setPending('discard')}
-          >
-            Huỷ
-          </button>
-        )}
-        {terminalAvailable && (
-          <button
-            type="button"
-            className={`action-btn${terminalOpen ? ' action-primary' : ''}`}
-            disabled={busy}
-            onClick={openTerminal}
-          >
-            Mở terminal
-          </button>
-        )}
-        {['done', 'failed', 'timeout', 'interrupted'].includes(task.status) && <button type="button" className="action-btn" disabled={busy} onClick={() => setRetryOpen((open) => !open)}>Thử lại</button>}
-
-        {message !== null && <span className="action-message">{message}</span>}
+        </div>
       </div>
+      {actions.includes('merge') && mergeDisabledReason && <div className="task-merge-help"><span id={mergeReasonId} role="tooltip">{mergeDisabledReason}</span>{currentDiff?.failed && !busy && <button type="button" className="text-button" onClick={() => setDiffRevision(value => value + 1)}>Tải lại thay đổi</button>}</div>}
+      {message !== null && <p className="action-message" role="alert">{message}</p>}
       {retryOpen && <form className="retry-form" onSubmit={(event) => { event.preventDefault(); const allowed = retryAllowed.split(/\r?\n/).map((line) => line.trim()).filter(Boolean); void invoke(async () => { await api.retry(task.id, { note: retryNote, ...(task.agent === 'agy' ? { commandPolicy: retryPolicy, ...(retryPolicy === 'check-only' && allowed.length > 0 ? { allowedCommands: allowed } : {}) } : {}) }); setRetryOpen(false); }); }}><label className="field">Ghi chú lần thử lại<textarea value={retryNote} required rows={2} onChange={(event) => setRetryNote(event.target.value)} /></label>{task.agent === 'agy' && <div className="command-policy"><label className="field">Quyền lệnh cho lần thử này<select aria-label="Quyền lệnh AGY khi thử lại" value={retryPolicy} onChange={(event) => setRetryPolicy(event.target.value as CommandPolicy)}><option value="ask">Hỏi quyền theo mặc định của AGY</option><option value="check-only">Chỉ lệnh kiểm tra và danh sách cho phép</option><option value="auto">Tự duyệt lệnh terminal (chỉ phiên này)</option></select></label>{retryPolicy === 'check-only' && <label className="field">Lệnh được cho phép thêm<textarea rows={3} value={retryAllowed} onChange={(event) => setRetryAllowed(event.target.value)} placeholder={'npm test\nnode check.cjs'} /></label>}<p className="small-note">Dùng “Tự duyệt” khi lần trước thất bại vì AGY bị chặn quyền chạy lệnh. Quyền chỉ áp dụng phiên này và được ghi log.</p></div>}<button className="action-btn action-primary" disabled={busy} type="submit">Chạy lại agent</button></form>}
 
       {terminalOpen && (
