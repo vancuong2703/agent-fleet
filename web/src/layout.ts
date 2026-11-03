@@ -27,3 +27,16 @@ export function useWorkspaceLayout() {
   }, [preference]);
   return { layout, updateLayout };
 }
+
+/** At or below this width the inspector covers the main column instead of sitting beside it. */
+export const INSPECTOR_OVERLAY_MAX_WIDTH = 1050;
+
+/**
+ * The inspector opens only when there is room for it beside the main column.
+ * Narrow windows start closed so the first screen is the work, not the
+ * resource panel; the topbar toggle and the panel's own close button control it
+ * from there.
+ */
+export function inspectorDefaultOpen(viewportWidth: number): boolean {
+  return viewportWidth > INSPECTOR_OVERLAY_MAX_WIDTH;
+}

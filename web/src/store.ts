@@ -9,7 +9,7 @@ import type {
   Task,
   TaskStatus,
 } from '../../shared/types.js';
-import { api, type MergeResult } from './api.js';
+import { api, type DiffResult, type MergeResult } from './api.js';
 import { connectBus } from './ws.js';
 
 // ── state ───────────────────────────────────────────────────────────────────
@@ -327,27 +327,78 @@ export function mergeErrorMessage(result: MergeResult, baseBranch: string): stri
   }
 }
 
+// ── load state ──────────────────────────────────────────────────────────────
+
+/**
+ * Whether one async read finished, and why it failed. A screen must tell the
+ * three states apart: loading shows a skeleton, an error shows a banner with a
+ * retry button, and only a finished read may show the empty copy.
+ */
+export interface LoadState {
+  loaded: boolean;
+  error: string | null;
+}
+
+export const NOT_LOADED: LoadState = { loaded: false, error: null };
+export const LOADED: LoadState = { loaded: true, error: null };
+
+export function loadError(cause: unknown): LoadState {
+  return { loaded: false, error: cause instanceof Error ? cause.message : String(cause) };
+}
+
+/**
+ * "Diff (n)" only once the patch was read. While the read is in flight the tab
+ * must not claim `Diff (0)`, which reads as "no changes". The Vietnamese label
+ * for this tab belongs to the shared glossary pass, so keep "Diff" here.
+ */
+export function diffBadgeLabel(loaded: boolean, fileCount: number): string {
+  return loaded ? `Diff (${fileCount})` : 'Diff';
+}
+
+/** Keep per-run load bookkeeping bounded like the event buffers themselves. */
+export function withLoadState(
+  states: Record<string, LoadState>,
+  key: string,
+  next: LoadState,
+): Record<string, LoadState> {
+  // Re-insert the key so the newest entry is last and the cap drops old runs.
+  const merged: Record<string, LoadState> = { ...states };
+  delete merged[key];
+  merged[key] = next;
+  for (const stale of Object.keys(merged).slice(0, Math.max(0, Object.keys(merged).length - 30))) {
+    delete merged[stale];
+  }
+  return merged;
+}
+
 // ── hook ────────────────────────────────────────────────────────────────────
 
 export interface FleetStore {
   state: FleetState;
   connected: boolean;
   error: string | null;
+  /** True once the initial plans/tasks sweep succeeded. */
+  tasksLoaded: boolean;
+  /** Load state of one run's log; a task without runs is "nothing to load". */
+  logState: (runId: string | null) => LoadState;
   /** Re-run the initial GET sweep (plans, tasks, runs). */
   reload: () => void;
-  /** Fetch a run's stored events once; safe to call repeatedly. */
-  loadEvents: (runId: string) => void;
+  /** Fetch a run's stored events once; `retry` bypasses the loaded bookmark. */
+  loadEvents: (runId: string, retry?: boolean) => void;
 }
 
 /**
  * Live fleet store: an initial GET sweep seeds plans/tasks/runs, then every
  * `BusMsg` from `WS /ws` is reduced into the same state. Event logs load lazily
- * per run via `loadEvents` and stream in afterwards.
+ * per run via `loadEvents` and stream in afterwards. A failed log read is kept
+ * as an error instead of being swallowed, so the log can offer a retry.
  */
 export function useFleet(): FleetStore {
   const [state, setState] = useState<FleetState>(initialFleetState);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
+  const [logStates, setLogStates] = useState<Record<string, LoadState>>({});
   const stateRef = useRef(state);
   stateRef.current = state;
   const mounted = useRef(true);
@@ -356,10 +407,10 @@ export function useFleet(): FleetStore {
   const buffered = useRef<BusMsg[] | null>(null);
   const hydrating = useRef(false);
 
-  const fetchEvents = useCallback(async (runId: string, catchUp = false): Promise<void> => {
+  const fetchEvents = useCallback(async (runId: string, catchUp = false, retry = false): Promise<void> => {
     if (loadingRuns.current.has(runId)) return;
     const existing = stateRef.current.eventsByRun[runId];
-    if (!catchUp && loadedRuns.current.has(runId) && existing) return;
+    if (!catchUp && !retry && loadedRuns.current.has(runId) && existing) return;
     loadingRuns.current.add(runId);
     try {
       const afterSeq = catchUp && existing?.length ? existing[existing.length - 1]!.seq : undefined;
@@ -369,8 +420,11 @@ export function useFleet(): FleetStore {
       // Bound bookkeeping as well as the actual event buffers.
       for (const key of [...loadedRuns.current].slice(0, -30)) loadedRuns.current.delete(key);
       setState((current) => addEvents(current, runId, events));
-    } catch {
+      setLogStates((current) => withLoadState(current, runId, LOADED));
+    } catch (cause) {
       loadedRuns.current.delete(runId);
+      // Dropping this error used to leave the log showing "Chưa có sự kiện".
+      if (mounted.current) setLogStates((current) => withLoadState(current, runId, loadError(cause)));
     } finally {
       loadingRuns.current.delete(runId);
     }
@@ -403,6 +457,7 @@ export function useFleet(): FleetStore {
           return next;
         });
         setError(null);
+        setTasksLoaded(true);
         await Promise.all([...loadedRuns.current].map((runId) => fetchEvents(runId, true)));
       } catch (cause) {
         if (mounted.current) setError(cause instanceof Error ? cause.message : String(cause));
@@ -439,9 +494,79 @@ export function useFleet(): FleetStore {
     };
   }, [hydrate]);
 
-  const loadEvents = useCallback((runId: string) => {
-    void fetchEvents(runId);
+  const loadEvents = useCallback((runId: string, retry = false) => {
+    if (retry) {
+      loadedRuns.current.delete(runId);
+      setLogStates((current) => withLoadState(current, runId, NOT_LOADED));
+    }
+    void fetchEvents(runId, false, retry);
   }, [fetchEvents]);
 
-  return { state, connected, error, reload: hydrate, loadEvents };
+  const logState = useCallback(
+    (runId: string | null): LoadState => (runId === null ? LOADED : logStates[runId] ?? NOT_LOADED),
+    [logStates],
+  );
+
+  return { state, connected, error, tasksLoaded, logState, reload: hydrate, loadEvents };
 }
+
+/**
+ * The worktree patch of one task. Kept in the store so the Diff tab can tell
+ * loading, an error with a retry, and a real "no changes" apart.
+ */
+export interface TaskDiff {
+  diff: DiffResult | null;
+  loaded: boolean;
+  error: string | null;
+  reload: () => void;
+}
+
+interface DiffEntry {
+  taskId: string | null;
+  diff: DiffResult | null;
+  loaded: boolean;
+  error: string | null;
+}
+
+const EMPTY_DIFF: Omit<DiffEntry, 'taskId'> = { diff: null, loaded: false, error: null };
+
+/**
+ * Read `/api/tasks/:id/diff` for the selected task, refreshing every few
+ * seconds while the task runs and the Diff tab is open. `reload` retries a
+ * failed read immediately instead of waiting for the next poll.
+ */
+export function useTaskDiff(taskId: string | null, status: TaskStatus | null, active: boolean): TaskDiff {
+  const [entry, setEntry] = useState<DiffEntry>({ taskId: null, ...EMPTY_DIFF });
+  const [attempt, setAttempt] = useState(0);
+  // The render of a newly selected task must not expose the previous patch.
+  const current: DiffEntry = entry.taskId === taskId ? entry : { taskId, ...EMPTY_DIFF };
+
+  useEffect(() => {
+    if (!taskId) return;
+    let cancelled = false;
+    let timer: number | undefined;
+    const refresh = async (): Promise<void> => {
+      try {
+        const result = await api.diff(taskId);
+        if (cancelled) return;
+        setEntry({ taskId, diff: result, loaded: true, error: null });
+      } catch (cause) {
+        if (cancelled) return;
+        setEntry({ taskId, diff: null, ...loadError(cause) });
+      } finally {
+        const polling = active && (status === 'running' || status === 'taken_over');
+        if (!cancelled && polling) timer = window.setTimeout(refresh, document.hidden ? 10_000 : 3_000);
+      }
+    };
+    void refresh();
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [taskId, status, active, attempt]);
+
+  const reload = useCallback(() => {
+    setEntry({ taskId, ...EMPTY_DIFF });
+    setAttempt((value) => value + 1);
+  }, [taskId]);
+
+  return { diff: current.diff, loaded: current.loaded, error: current.error, reload };
+}
+
