@@ -1,0 +1,59 @@
+>_ OpenAI Codex (v0.166.0)
+     C:\Qoder\agent-fleet-upgrade\.tmp\dashboard-fix\profile\status-workspaces\codex
+
+/status
+
+  >_ OpenAI Codex (v0.166.0)
+
+  Visit https://chatgpt.com/settings/usage for up-to-date
+  information on rate limits and credits
+
+  Server:              Local background server
+
+  Model:               GPT-6.1-Sol (reasoning high)
+  Model provider:      openai
+  Directory:           C:\Qoder\agent-fleet-upgrade\.tmp\dashboard-fix\profile\status-workspaces\codex
+  Permissions:         Workspace (Ask for approval)
+  Agents.md:           <none>
+  Account:             user@example.invalid (Plus)
+  ChatGPT workspace:   b20d6b28-9316-4c88-83d2-5ac70de828df
+  Collaboration mode:  Default
+  Session:             01a1a119-d151-7011-bc8e-7971d5e465be
+
+  5h limit:            [████████░░░░░░░░░░░░] 38% left (resets 8:30 PM)
+  Weekly limit:        [███████░░░░░░░░░░░░░] 36% left (resets 3:17 PM on 4 Nov)
+
+⚠ Heads up, you have less than 50% of your 5h limit left. Run /status for a breakdown.
+
+/status
+
+  >_ OpenAI Codex (v0.166.0)
+
+  Visit https://chatgpt.com/settings/usage for up-to-date
+  information on rate limits and credits
+
+  Server:              Local background server
+
+  Model:               GPT-6.1-Sol (reasoning high)
+  Model provider:      openai
+  Directory:           C:\Qoder\agent-fleet-upgrade\.tmp\dashboard-fix\profile\status-workspaces\codex
+  Permissions:         Workspace (Ask for approval)
+  Agents.md:           <none>
+  Account:             user@example.invalid (Plus)
+  ChatGPT workspace:   b20d6b28-9316-4c88-83d2-5ac70de828df
+  Collaboration mode:  Default
+  Session:             01a1a119-d151-7011-bc8e-7971d5e465be
+
+  5h limit:            [████████░░░░░░░░░░░░] 38% left (resets 8:30 PM)
+  Weekly limit:        [███████░░░░░░░░░░░░░] 36% left (resets 3:17 PM on 4 Nov)
+
+
+
+
+
+                                                                                                             ⚠ 5h limit: 38% left · resets at 8:30 PM · /status
+
+› Ask Codex to do anything
+
+  GPT-6.1-Sol high · C:\Qoder\agent-fleet-upgrade\.tmp\dashboard-fix\profile\status-workspaces\codex
+  ← for agents · ? for shortcuts                                                                                                       ⚠ 1 warning · f2 to view

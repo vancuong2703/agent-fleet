@@ -1,0 +1,165 @@
+▄▀▀▄        Antigravity CLI 1.4.12
+     ▀▀▀▀▀▀       user@example.invalid
+    ▀▀▀▀▀▀▀▀      C:/Qoder/agent-fleet-upgrade/.tmp/dashboard-fix/profile/status-workspaces/agy
+   ▄▀▀    ▀▀▄
+  ▄▀▀      ▀▀▄
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+>
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Antigravity CLI   general    commands    shortcuts   (←/→ or tab to cycle)
+Antigravity CLI understands your codebase, makes edits with your permission,
+and executes commands — right from your terminal.
+
+Version 1.4.12
+user@example.invalid
+Workspace:      C:/Qoder/agent-fleet-upgrade/.tmp/dashboard-fix/profile/status-workspaces/agy
+Project Config: ~/.gemini/config/projects/default-cli-project.json
+Log File:       ~/.gemini/antigravity-cli/log/cli-20261103_180953.log
+
+Quick Reference
+  /  Type / to see available commands
+
+Keyboard: ↑/↓ Navigate  ←/→ Switch View  esc Close
+
+▄▀▀▄        Antigravity CLI 1.4.12
+     ▀▀▀▀▀▀       user@example.invalid
+    ▀▀▀▀▀▀▀▀      Gemini 4 Argon (Medium)
+   ▄▀▀    ▀▀▄     C:/Qoder/agent-fleet-upgrade/.tmp/dashboard-fix/profile/status-workspaces/agy
+  ▄▀▀      ▀▀▄
+
+> /help
+  ⎿  Exited /help command
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+>
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+└ Models & Quota
+
+  Account: user@example.invalid
+
+GEMINI MODELS
+  Models within this group: Gemini Flash, Gemini Pro
+
+  Weekly Limit Remaining
+    [████████████████████████████████████████████████░░] 96.85%
+    Refreshes in 74h 12m
+
+  Five Hour Limit Remaining
+    [██████████████████████████████████████████████████] 100.00%
+    Quota available
+
+
+CLAUDE AND GPT MODELS
+  Models within this group: Claude Opus, Claude Sonnet, GPT-OSS
+
+  Weekly Limit Remaining
+    [█████████████████████████████████████████████████░] 99.00%
+    Refreshes in 65h 46m
+
+  Five Hour Limit Remaining
+    [██████████████████████████████████████████████████] 100.00%
+    Quota available
+
+
+GEMINI 4 ARGON
+  For paid Pro plans, Argon quota is separate. Higher Argon quota (included as part of the larger Gemini quota bucket) is available on Ultra plans.
+
+  Gemini 4 Argon Weekly Limit
+    [███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 6.16%
+    Refreshes in 67h 50m
+
+
+  │Within each group, models share a weekly limit and a 5-hour limit. Quota is
+  │consumed proportionally to the cost of the tokens. Thus, limits will last
+  │longer with shorter tasks or using more cost-effective models. The 5-hour
+  │limit smooths out aggregate demand to fairly distribute global capacity
+  │across all users, while your weekly limit is tied directly to your individual
+  │tier.
+
+  ↑/↓ Scroll · pgup/pgdown Page · ctrl+end Bottom · ctrl+home Top · esc Close
+                                                                                                                                         Gemini 4 Argon · medium
+
+▄▀▀▄        Antigravity CLI 1.4.12
+     ▀▀▀▀▀▀       user@example.invalid
+    ▀▀▀▀▀▀▀▀      Gemini 4 Argon (Medium)
+   ▄▀▀    ▀▀▄     C:/Qoder/agent-fleet-upgrade/.tmp/dashboard-fix/profile/status-workspaces/agy
+  ▄▀▀      ▀▀▄
+
+> /help
+  ⎿  Exited /help command
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+>
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+└ Models & Quota
+
+  Account: user@example.invalid
+
+GEMINI MODELS
+  Models within this group: Gemini Flash, Gemini Pro
+
+  Weekly Limit Remaining
+    [████████████████████████████████████████████████░░] 96.85%
+    Refreshes in 74h 12m
+
+  Five Hour Limit Remaining
+    [██████████████████████████████████████████████████] 100.00%
+    Quota available
+
+
+CLAUDE AND GPT MODELS
+  Models within this group: Claude Opus, Claude Sonnet, GPT-OSS
+
+  Weekly Limit Remaining
+    [█████████████████████████████████████████████████░] 99.00%
+    Refreshes in 65h 46m
+
+  Five Hour Limit Remaining
+    [██████████████████████████████████████████████████] 100.00%
+    Quota available
+
+
+GEMINI 4 ARGON
+  For paid Pro plans, Argon quota is separate. Higher Argon quota (included as part of the larger Gemini quota bucket) is available on Ultra plans.
+
+  Gemini 4 Argon Weekly Limit
+    [███░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 6.16%
+    Refreshes in 67h 50m
+
+
+  │Within each group, models share a weekly limit and a 5-hour limit. Quota is
+  │consumed proportionally to the cost of the tokens. Thus, limits will last
+  │longer with shorter tasks or using more cost-effective models. The 5-hour
+  │limit smooths out aggregate demand to fairly distribute global capacity
+  │across all users, while your weekly limit is tied directly to your individual
+  │tier.
+
+  ↑/↓ Scroll · pgup/pgdown Page · ctrl+end Bottom · ctrl+home Top · esc Close
+                                                                                                                                         Gemini 4 Argon · medium
+
+▄▀▀▄        Antigravity CLI 1.4.12
+     ▀▀▀▀▀▀       user@example.invalid (Google AI Pro)
+    ▀▀▀▀▀▀▀▀      Gemini 4 Argon (Medium)
+   ▄▀▀    ▀▀▄     C:/Qoder/agent-fleet-upgrade/.tmp/dashboard-fix/profile/status-workspaces/agy
+  ▄▀▀      ▀▀▄
+
+> /help
+  ⎿  Exited /help command
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+>
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Antigravity CLI  credits
+Model AI Credits
+
+Remaining AI Credits: AI Credits not enabled (enable in /settings)
+
+Actions
+
+> Get More AI Credits
+  See Activity
+
+Keyboard: ↑/↓ Navigate  enter Select / Toggle  esc Close
+
+                                                                                                                                         Gemini 4 Argon · medium
