@@ -153,7 +153,7 @@ button:disabled { cursor:default; opacity:.45; }
 .workspace-nav { flex-direction:column; display:flex; }
 .workspace-nav button { text-align:left; color:var(--muted); background:0 0; border:0; align-items:center; display:flex; }
 .workspace-nav button:hover { background:var(--surface-3); color:var(--text); }
-.workspace-nav button>span { font-variant-numeric:tabular-nums; margin-left:auto; }
+.workspace-nav button>.nav-count { font-variant-numeric:tabular-nums; margin-left:auto; }
 .sidebar-divider { border-top:1px solid var(--border); margin:20px 3px 13px; }
 .sidebar-search { color:var(--muted); align-items:center; gap:7px; padding:7px; display:flex; }
 .sidebar-search input { background:0 0; border:0; outline:0; width:100%; min-width:0; }
@@ -479,7 +479,7 @@ body.resizing * { cursor:inherit!important; }
 .workspace-nav button { border-radius:10px; gap:12px; min-height:45px; padding:11px 13px; font-size:14px; font-weight:500; }
 .workspace-nav button>svg { stroke-width:1.8px; opacity:.88; flex-shrink:0; width:20px; height:20px; }
 .workspace-nav button.active { background:var(--accent-soft); color:var(--accent); }
-.workspace-nav button>span { font-size:12px; }
+.workspace-nav button>.nav-count { font-size:12px; }
 .new-task-button { border-radius:10px; min-height:43px; font-size:14px; }
 .sidebar-search input,.sidebar-label,.task-row-title { font-size:13px; }
 .sidebar-search kbd,.local-badge { font-size:11px; }

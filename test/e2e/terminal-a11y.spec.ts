@@ -170,7 +170,9 @@ test('composer and terminal screenshots are readable in both themes', async ({ p
   }
 
   await page.setViewportSize({ width: 375, height: 720 });
-  await page.getByRole('button', { name: /Task mới/ }).click();
+  await page.keyboard.press('Control+k');
+  await page.getByRole('combobox', { name: 'Tìm lệnh' }).fill('Tạo công việc mới');
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.screenshot({ path: `${shots}/composer-375-light.png`, fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

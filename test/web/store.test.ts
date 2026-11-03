@@ -177,7 +177,7 @@ describe('addEvents', () => {
 });
 
 describe('taskCounts', () => {
-  test('counts running, waiting and finished tasks', () => {
+  test('counts running, waiting, failed and finished tasks', () => {
     const counts = taskCounts([
       taskWith('running', 't-a'),
       taskWith('running', 't-b'),
@@ -191,7 +191,9 @@ describe('taskCounts', () => {
       taskWith('discarded', 't-j'),
     ]);
 
-    expect(counts).toEqual({ running: 2, waiting: 1, done: 2 });
+    // The Lỗi chip covers the three statuses a person has to act on; taken_over
+    // and discarded need no attention, so they are only ever visible under "all".
+    expect(counts).toEqual({ running: 2, waiting: 1, failed: 3, done: 2 });
   });
 });
 

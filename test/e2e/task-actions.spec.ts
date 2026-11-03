@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { setTheme } from './nav-helpers.js';
 import type { Plan, Task, TaskResult } from '../../shared/types.js';
 
 let repoPath: string;
@@ -22,7 +23,7 @@ async function selectedTask(page: Page, title: string, brief = 'Task action regr
     const response = await page.request.post('/api/wait', { data: { ids: [task.id], timeoutMs: 10_000 } });
     expect((await response.json() as TaskResult[])[0]?.task.status).toBe('done');
   }
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: title, exact: false }).click();
   return task;
 }
@@ -77,7 +78,7 @@ test('focus containment recalculates when dialog controls become disabled', asyn
   await expect(dialog).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await expect(dialog).toBeFocused();
-  await page.getByRole('button', { name: 'Tasks', exact: true }).evaluate(element => (element as HTMLButtonElement).focus());
+  await page.getByRole('button', { name: 'Công việc', exact: true }).evaluate(element => (element as HTMLButtonElement).focus());
   await expect(dialog).toBeFocused();
   await dialog.locator('button').evaluateAll(buttons => buttons.forEach(button => { (button as HTMLButtonElement).disabled = false; }));
   await expect(dialog.getByRole('button', { name: 'Huỷ bỏ', exact: true })).toBeFocused();
@@ -158,7 +159,7 @@ test('actions and confirmation fit three widths in both themes', async ({ page }
   await page.getByRole('button', { name: 'Ẩn hoặc hiện thông tin workspace', exact: true }).click();
   for (const width of [375, 768, 1440]) for (const theme of ['light', 'dark'] as const) {
     await page.setViewportSize({ width, height: 900 });
-    await page.getByRole('button', { name: theme === 'light' ? 'Giao diện sáng' : 'Giao diện tối', exact: true }).click();
+    await setTheme(page, theme);
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole('button', { name: 'Thao tác khác', exact: true }).click();

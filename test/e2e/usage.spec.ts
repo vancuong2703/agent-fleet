@@ -304,7 +304,7 @@ test('inspector resource chart shows guidance instead of an axis line when nothi
   const task = await (await page.request.post('/api/tasks', { data: { planId: plan.id, agent: 'fake', title: 'Inspector empty task', brief: 'T7 inspector smoke' } })).json();
   await page.request.post('/api/wait', { data: { ids: [task.id], timeoutMs: 10_000 } });
   await page.reload();
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: /Inspector empty task/ }).click();
 
   const chart = page.locator('.inspector .chart-empty.compact');
