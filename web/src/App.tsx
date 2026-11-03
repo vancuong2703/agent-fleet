@@ -82,7 +82,7 @@ export function App() {
 
   const viewLabel = view === 'dashboard' ? 'Bảng điều khiển' : view === 'terminal' ? 'Terminal' : view === 'tasks' ? plan?.name ?? 'Không gian làm việc' : view === 'compare' ? 'So sánh agent' : 'Tài nguyên & mức sử dụng';
 
-  return <div className="app" style={{ ['--sidebar-width' as string]: `${layout.sidebarWidth}px`, ['--inspector-width' as string]: `${layout.inspectorWidth}px` }}>
+  return <div className="app" style={{ ['--sidebar-user-width' as string]: `${layout.sidebarWidth}px`, ['--inspector-width' as string]: `${layout.inspectorWidth}px` }}>
     <aside className="workspace-sidebar">
       <div className="sidebar-brand"><div><strong>Agent Fleet</strong><span>Không gian làm việc AI</span></div><span className="version-tag">2.2.0</span></div>
       <button className="new-task-button" onClick={() => setComposer(true)}><Icon name="plus" size={18} />Task mới</button>
