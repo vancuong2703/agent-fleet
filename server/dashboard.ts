@@ -18,7 +18,7 @@ import { dataDir } from './paths.js';
 import type { PtySession, PtyTarget } from './pty.js';
 import { FleetError } from './service.js';
 import { terminalStatus } from './terminal-status.js';
-import { parseCliStatus } from './dashboard-status.js';
+import { parseCliStatus, enrichDashboardStatus } from './dashboard-status.js';
 import type { Store } from './store.js';
 
 export const DASHBOARD_AGENTS: readonly DashboardAgent[] = ['codex', 'qodercli', 'agy', 'opencode'];
@@ -60,6 +60,8 @@ export interface DashboardOptions {
   config?: FleetConfig;
   loadConfig?: () => FleetConfig;
   probe?: DashboardProbe;
+  /** Inject enrichment with custom probes; default enrichment only accompanies real probes. */
+  enrich?: typeof enrichDashboardStatus;
   now?: () => number;
   directory?: string;
   /** Reuse a terminal manager (e.g. to clean sessions by task from the integrator). */
@@ -233,6 +235,7 @@ export function buildDashboardCheck(agent: DashboardAgent, installed: boolean, r
   else status = 'unknown';
 
   return {
+    ...parsed,
     checkedAt, status, version, account,
     quota: parsed.quota,
     credits: parsed.credits,
@@ -545,6 +548,11 @@ export function registerDashboardRoutes(routes: FastifyInstance, options: Dashbo
         const installed = bin !== null && existsSync(bin);
         const results = installed ? await probe(agent, bin!) : [];
         const check = buildDashboardCheck(agent, installed, results, now());
+        const enrich = deps.enrich ?? (probe === defaultDashboardProbe ? enrichDashboardStatus : undefined);
+        if (installed && enrich) Object.assign(check, await enrich(agent, {
+          agent, bin: bin!, directory, config: config(), check, results, redact: redactSensitive,
+          runCommand: (args, kind = 'status') => runCommand(bin!, { args, kind }),
+        }));
         checks.set(agent, check);
         persist();
         return check;

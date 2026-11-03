@@ -18,6 +18,7 @@ export interface FleetConfig {
   agents: Record<Exclude<AgentId, 'fake'>, AgentConfig>;
   maxParallelTotal: number;
   timeouts: { totalMin: number; idleMin: number };
+  dashboard?: { opencode: { keyPoolConfig: string } };
 }
 
 type ConfigurableAgent = Exclude<AgentId, 'fake'>;
@@ -35,6 +36,7 @@ interface RawConfig {
   agents?: Record<string, { bin?: unknown; maxParallel?: unknown; extraArgs?: unknown } | undefined>;
   maxParallelTotal?: unknown;
   timeouts?: { totalMin?: unknown; idleMin?: unknown };
+  dashboard?: { opencode?: { keyPoolConfig?: unknown } };
 }
 
 /**
@@ -70,6 +72,12 @@ function withDefaults(raw: RawConfig): FleetConfig {
     timeouts: {
       totalMin: asNumber(raw.timeouts?.totalMin, DEFAULT_TOTAL_MIN),
       idleMin: asNumber(raw.timeouts?.idleMin, DEFAULT_IDLE_MIN),
+    },
+    dashboard: {
+      opencode: {
+        keyPoolConfig: asStringOrNull(raw.dashboard?.opencode?.keyPoolConfig)
+          ?? path.win32.join(process.env.USERPROFILE ?? homedir(), '.config', 'opencode', 'key-pool.json'),
+      },
     },
   };
 }

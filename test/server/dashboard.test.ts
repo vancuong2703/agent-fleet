@@ -198,6 +198,24 @@ describe('POST /api/dashboard/check', () => {
     expect(execFile).not.toHaveBeenCalled();
   });
 
+  test('enriches only explicit checks and persists structured fields through the compatibility API', async () => {
+    const directory = temporary();
+    const custom = config();
+    const enrich = vi.fn(async () => ({ models: [{ id: 'free', label: 'Free', multiplier: 0, source: 'cli' as const }],
+      quotaWindows: [{ group: 'main', window: 'week' as const, remainingPct: null, unit: 'percent' as const }] }));
+    const { app } = await makeApp({ store: store(), dashboard: { config: custom, directory, probe: readyProbe, enrich } });
+    await app.inject({ method: 'GET', url: '/api/dashboard' });
+    expect(enrich).not.toHaveBeenCalled();
+    const response = await app.inject({ method: 'POST', url: '/api/dashboard/check', payload: { agent: 'codex' } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().lastCheck.models[0].multiplier).toBe(0);
+    expect(response.json().lastCheck.quotaWindows[0].remainingPct).toBeNull();
+    expect(enrich).toHaveBeenCalledWith('codex', expect.objectContaining({ bin: process.execPath, directory, config: custom, runCommand: expect.any(Function) }));
+    const { app: restarted } = await makeApp({ store: store(), dashboard: { config: custom, directory, probe: readyProbe, enrich } });
+    expect((await restarted.inject({ method: 'GET', url: '/api/dashboard' })).json().tools[0].lastCheck.models[0].id).toBe('free');
+    expect(enrich).toHaveBeenCalledTimes(1);
+  });
+
   test('masks account identifiers and secrets in labels and probe summaries', async () => {
     const probe: DashboardProbe = async () => ([
       { command: 'qodercli --version', kind: 'version', ok: true, exitCode: 0, stdout: '1.0.0', stderr: '' },

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { dataDir, files } from '../../server/paths.js';
@@ -85,6 +85,18 @@ describe('paths', () => {
 });
 
 describe('loadConfig', () => {
+  test('defaults the dashboard key-pool config and preserves an explicit override', () => {
+    process.env.FLEET_DATA_DIR = tempDir();
+    expect(loadConfig().dashboard?.opencode.keyPoolConfig).toBe(
+      path.win32.join(process.env.USERPROFILE ?? homedir(), '.config', 'opencode', 'key-pool.json'),
+    );
+    writeFileSync(files.config(), JSON.stringify({ dashboard: { opencode: { keyPoolConfig: 'C:\\pool config\\pools.json' } } }));
+    expect(loadConfig().dashboard?.opencode.keyPoolConfig).toBe('C:\\pool config\\pools.json');
+    writeFileSync(files.config(), JSON.stringify({ dashboard: { opencode: { keyPoolConfig: 123 } } }));
+    expect(loadConfig().dashboard?.opencode.keyPoolConfig).toBe(
+      path.win32.join(process.env.USERPROFILE ?? homedir(), '.config', 'opencode', 'key-pool.json'),
+    );
+  });
   test('writes a config with detected bins and defaults when missing', () => {
     const dir = tempDir();
     process.env.FLEET_DATA_DIR = dir;
