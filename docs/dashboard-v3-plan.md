@@ -103,36 +103,102 @@ T1   Codex  Hợp đồng v3 + tách parser theo agent + rankPicks ─┐ │   
                ├─ T2 Qoder    Dữ liệu Qoder (/model, catalog) ─┤ │          │
                ├─ T3 OpenCode Dữ liệu OpenCode + harbor-key ───┼─┴─ T5 Qoder   ToolCard v3 + Dashboard
                └─ T4 Codex    Dữ liệu Codex + AGY ─────────────┘        └─ T6 OpenCode Dải "Nên dùng ngay" + chuỗi tiếng Việt
-                                                                      T7 Qoder    Trang Tài nguyên & sử dụng
+                                                                      T7 OpenCode Trang Tài nguyên & sử dụng
                                                                       T8 OpenCode E2E ảnh chụp + tài liệu 2.3.0
                                                                       T9 Codex    Tích hợp, build desktop, smoke CLI thật
 ```
 
-Các nhóm chạy song song: {T0.1, T0.2, T1}, rồi {T2, T3, T4}, rồi {T5 → T6}, rồi {T7, T8}, rồi
-chuỗi sửa phần còn lại của app {T10, T13} → T11 → T14 → T12 (mục 4b), **cuối cùng T9**.
 Không có hai task nào cùng sửa một file. Lý do: T1 tách `server/dashboard-status.ts` thành
 `server/dashboard/parsers/{codex,qoder,agy,opencode}.ts` để T2–T4 mỗi task sở hữu một file riêng.
-Worktree mới chỉ chứa những gì **đã commit**, vì vậy leader phải merge xong nhóm trước rồi mới tạo task cho nhóm sau.
+Worktree mới chỉ chứa những gì **đã commit**. Vì vậy một task chỉ được tạo khi mọi task nó phụ thuộc đã được **merge**.
 
 Vì sao chia như vậy:
-- **Codex** nhận phần lõi: hợp đồng dữ liệu, build, tích hợp. Đây là phần cần suy luận nhiều nhất.
-- **Qoder** làm UI, và làm luôn parser `/model` của chính Qoder vì nó hiểu màn hình của mình nhất.
-- **OpenCode** chạy bằng pool key miễn phí, hợp với task có spec rõ: harbor-key, test, tài liệu, chuỗi giao diện.
+- **Codex** nhận phần lõi: hợp đồng dữ liệu, build, tích hợp, hộp xác nhận, ô lệnh nhanh. Đây là phần cần suy luận nhiều nhất.
+- **Qoder** chỉ giữ 2 task: T2 (parser `/model` của chính Qoder) và T5 (ToolCard, task UI lớn nhất, cần bám mockup).
+- **OpenCode** dùng model `tokenharbor/deepseek-v4.1-flash-1017` (DeepSeek V4.1 Flash 1017, gói Token Harbor, context 1M).
+  Nhận các task có spec rõ: T3, T6, T7, T8, T11, T12, T13.
+  T7, T11 và T13 trước đây giao cho Qoder, nay chuyển sang OpenCode.
+
+### 3a. Tự chạy task kế tiếp (không chờ cả nhóm)
+
+Nguyên tắc: **task nào đủ điều kiện thì chạy ngay**. Chỉ chờ khi còn ít nhất một task phụ thuộc chưa merge.
+
+| Task | Agent | Chạy ngay khi đã merge |
+|---|---|---|
+| T0.1 | codex | — (chạy từ đầu) |
+| T0.2 | codex | — (chạy từ đầu) |
+| T1 | codex | — (chạy từ đầu) |
+| T2 | qodercli | T1 |
+| T3 | opencode | T1 |
+| T4 | codex | T1 |
+| T5 | qodercli | T0.2, T2, T3, T4 |
+| T6 | opencode | T5 |
+| T7 | opencode | T0.2, T1 |
+| T8 | opencode | T5, T6, T7 |
+| T10 | codex | T0.2 |
+| T13 | opencode | T0.2 |
+| T11 | opencode | T7, T10 |
+| T14 | codex | T11 |
+| T12 | opencode | T6, T8, T10, T11, T13, T14 |
+| T9 | codex | tất cả các task trên |
+
+Lưu ý: T7, T10 và T13 không phụ thuộc vào chuỗi dữ liệu dashboard. Chúng chạy ngay sau T0.2/T1, song song với T2–T5.
+
+Vòng lặp của leader:
+1. Giao mọi task có đủ điều kiện mà chưa chạy, nhưng không vượt `maxParallel` của từng agent.
+2. Cứ khoảng 60 giây chạy `fleet list --plan <id> --json` một lần.
+   **Không** dùng `fleet wait` với nhiều id, vì lệnh đó chờ đến khi *tất cả* xong.
+3. Task chuyển sang `done` và check pass: review (mục 5), rồi `fleet merge`, rồi quay lại bước 1.
+   - Mỗi lần chỉ merge một task.
+   - Nếu merge bị từ chối do conflict: `fleet retry <id> --note "rebase lên main mới, conflict ở <file>"`.
+4. Task `failed` hoặc `timeout`: xem `fleet result`, rồi `fleet retry` kèm note cụ thể.
+   Các task phụ thuộc vào nó vẫn chờ; những nhánh khác tiếp tục chạy bình thường.
+5. Dừng khi T9 đã merge, hoặc khi mọi task còn lại đều bị chặn bởi một task đã hỏng 2 lần. Trường hợp sau thì báo người dùng.
+
+Bản PowerShell mẫu (leader tự review trước bước merge, không merge tự động khi chưa xem diff):
+
+```powershell
+$deps = @{ 'T0.1'=@(); 'T0.2'=@(); 'T1'=@(); 'T2'=@('T1'); 'T3'=@('T1'); 'T4'=@('T1');
+  'T5'=@('T0.2','T2','T3','T4'); 'T6'=@('T5'); 'T7'=@('T0.2','T1'); 'T8'=@('T5','T6','T7');
+  'T10'=@('T0.2'); 'T13'=@('T0.2'); 'T11'=@('T7','T10'); 'T14'=@('T11');
+  'T12'=@('T6','T8','T10','T11','T13','T14'); 'T9'=@('T0.1','T12') }
+$agent = @{ 'T0.1'='codex'; 'T0.2'='codex'; 'T1'='codex'; 'T2'='qodercli'; 'T3'='opencode'; 'T4'='codex';
+  'T5'='qodercli'; 'T6'='opencode'; 'T7'='opencode'; 'T8'='opencode'; 'T10'='codex'; 'T13'='opencode';
+  'T11'='opencode'; 'T14'='codex'; 'T12'='opencode'; 'T9'='codex' }
+$started = @{}; $merged = @{}
+while ($merged.Count -lt $deps.Count) {
+  foreach ($t in $deps.Keys) {
+    if ($started[$t]) { continue }
+    if (@($deps[$t] | Where-Object { -not $merged[$_] }).Count -gt 0) { continue }
+    $r = npm run -s fleet -- run --plan $plan --agent $agent[$t] --title $t --brief "docs/briefs/$t.md" --check "npx tsc --noEmit && npx vitest run" --json | ConvertFrom-Json
+    $started[$t] = $r.id
+  }
+  Start-Sleep -Seconds 60
+  $tasks = npm run -s fleet -- list --plan $plan --json | ConvertFrom-Json
+  foreach ($task in $tasks | Where-Object { $_.status -eq 'done' }) {
+    $t = ($started.GetEnumerator() | Where-Object { $_.Value -eq $task.id }).Key
+    if ($t -and -not $merged[$t]) { Write-Host "$t xong: review rồi chạy 'fleet merge $($task.id)'"; }
+    # Sau khi leader review và merge thành công: $merged[$t] = $true
+  }
+}
+```
+
+Khi một agent chạm hạn mức (`errorCategory: quota`), task đó được giao lại cho agent khác cùng nhóm năng lực:
+- opencode → `fleet retry <id> --agent qodercli`
+- qodercli → opencode
+- codex → báo người dùng, không tự hạ cấp.
 
 ### Lệnh leader (mẫu)
 
 ```powershell
 $plan = (npm run -s fleet -- plan create "Dashboard v3" --repo "C:\Qoder\agent-fleet-upgrade" --base main --json | ConvertFrom-Json).id
 npm run -s fleet -- run --plan $plan --agent codex    --title "T1 Hop dong dashboard v3" --brief docs/briefs/T1.md --check "npx tsc --noEmit && npx vitest run" --json
-npm run -s fleet -- wait <taskId> --timeout 45m --json
+npm run -s fleet -- list --plan $plan --json
 npm run -s fleet -- diff <taskId> --stat
 npm run -s fleet -- merge <taskId> --json
 ```
 
-Các lưu ý khi giao task:
-- Qoder chạy với `--permission-mode auto`.
-- AGY nếu dùng phải có `--settings` allow lệnh check.
-- OpenCode chạy `--standalone`, và `agents.opencode.bin` phải trỏ tới `opencode-cli.exe`.
+Cách gọi và cấu hình từng CLI (model, cờ, các lỗi đã gặp) xem ở [`docs/agent-cli-guide.md`](agent-cli-guide.md).
 
 Trước khi giao, mỗi brief bên dưới sẽ được copy thành `docs/briefs/Tn.md`.
 
@@ -243,7 +309,7 @@ Trước khi giao, mỗi brief bên dưới sẽ được copy thành `docs/brie
   - Bấm vào một gợi ý: tool có `Mở CLI` thì mở luôn CLI; với gợi ý model thì copy lệnh `--model`.
 - Xong khi: có test render cho 3 kịch bản.
 
-### T7 — Qoder — Trang Tài nguyên & sử dụng
+### T7 — OpenCode (DeepSeek V4.1 1017) — Trang Tài nguyên & sử dụng
 - File: `web/src/components/Inspector.tsx` (tách `UsagePage` ra `web/src/components/usage/UsagePage.tsx`), `web/src/styles/usage.css`.
 - Việc cần làm:
   - KPI tile dùng chung style với dashboard.
@@ -262,19 +328,17 @@ Trước khi giao, mỗi brief bên dưới sẽ được copy thành `docs/brie
 ## 4b. Chuỗi sửa phần còn lại của app (T10–T14)
 
 Các task này giải quyết những lỗi trong [`ui-ux-improvement-plan.md`](ui-ux-improvement-plan.md) mà Dashboard chưa đụng tới.
-Chuỗi chỉ bắt đầu khi T0.2 (tokens, lucide) và T7 đã được merge.
-
-Thứ tự chạy:
-1. T10 và T13 chạy song song vì sửa các file khác nhau.
-2. Sau đó tới T11.
-3. Rồi tới T14, vì T14 cũng sửa `App.tsx` như T11.
-4. Cuối cùng là T12. T12 chạm vào hầu hết component nên phải làm sau cùng để không gây conflict.
+Điều kiện chạy của từng task nằm ở bảng mục 3a. Tóm tắt:
+1. T10 và T13 chạy ngay khi T0.2 đã merge, vì sửa các file khác nhau.
+2. T11 chạy khi T7 và T10 đã merge.
+3. T14 chạy sau T11, vì cũng sửa `App.tsx`.
+4. T12 làm sau cùng, vì chạm vào hầu hết component.
 
 | Task | Agent | File sở hữu |
 |---|---|---|
 | T10 | Codex | `ConfirmDialog.tsx`, `TaskActions.tsx`, `TaskHeader.tsx` |
-| T13 | Qoder | `TaskComposer.tsx`, `TerminalPage.tsx`, `TerminalPanel.tsx` |
-| T11 | Qoder | `App.tsx` (vùng main/inspector), `LogView.tsx`, `DiffView.tsx`, `ComparePage.tsx`, `store.ts`, `Inspector.tsx` |
+| T13 | OpenCode | `TaskComposer.tsx`, `TerminalPage.tsx`, `TerminalPanel.tsx` |
+| T11 | OpenCode | `App.tsx` (vùng main/inspector), `LogView.tsx`, `DiffView.tsx`, `ComparePage.tsx`, `store.ts`, `Inspector.tsx` |
 | T14 | Codex | `App.tsx` (topbar, nav), `Sidebar.tsx`, `CommandPalette.tsx` (mới) |
 | T12 | OpenCode | `web/src/strings.ts` + chỉ phần chuỗi trong mọi component |
 
@@ -293,7 +357,7 @@ Thứ tự chạy:
   - "Mở terminal" trên task đang chạy đổi tên thành "Tiếp quản terminal", dialog nói rõ agent sẽ tạm dừng.
 - Xong khi: có test Playwright cho Escape, Tab vòng trong dialog, trả focus, và việc bấm nền không đóng khi discard.
 
-### T13 — Qoder — Hộp tạo task + Terminal
+### T13 — OpenCode (DeepSeek V4.1 1017) — Hộp tạo task + Terminal
 - Lỗi cần xử lý: plan UI/UX #3, mục 3.4 và 3.5.
 - TaskComposer:
   - Sửa lỗi chữ dính "CLIKiểm tra" bằng flex + gap.
@@ -310,7 +374,7 @@ Thứ tự chạy:
   - Copy/Paste đổi thành Sao chép/Dán.
 - Xong khi: có test cho việc chuyển bước của composer và Ctrl+Enter, test điều hướng tab bằng bàn phím, và ảnh chụp ở cả hai theme.
 
-### T11 — Qoder — Trạng thái đang tải / lỗi + màn Công việc
+### T11 — OpenCode (DeepSeek V4.1 1017) — Trạng thái đang tải / lỗi + màn Công việc
 - Lỗi cần xử lý: plan UI/UX #5, #6, #8, #12.
 - `store.ts`: thêm cờ `loaded` và `error` cho tasks, log và diff. Lỗi tải log không được nuốt mất nữa (hiện `store.ts:372`).
 - Trạng thái đang tải:
