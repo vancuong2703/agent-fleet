@@ -188,7 +188,7 @@ test('terminal keeps the CMD black palette in light and dark and persists its he
   await page.getByRole('button', { name: 'Mở terminal', exact: true }).click();
   await expect.poll(async () => (await panel.locator('.terminal-host').boundingBox())!.height).toBeGreaterThan(200);
   await page.screenshot({ path: '.tmp/ui-qa/terminal-dark.png', fullPage: true });
-  await panel.getByRole('button', { name: 'Đóng' }).click();
+  await panel.getByRole('button', { name: 'Ẩn' }).click();
 });
 
 test('creates work in the app, filters the sidebar and exports measured usage', async ({ page }) => {
@@ -196,13 +196,14 @@ test('creates work in the app, filters the sidebar and exports measured usage', 
   await page.route('**/api/agents', (route) => route.fulfill({ json: [{ id: 'fake', ok: true, maxParallel: 4 }] }));
   await page.getByRole('button', { name: /Task mới/ }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Tên công việc', { exact: true }).fill('Desktop composer task');
   await dialog.getByLabel('Dự án / plan', { exact: true }).selectOption('__new__');
   await dialog.getByLabel('Tên plan', { exact: true }).fill('Desktop plan');
   await dialog.getByLabel('Đường dẫn Git repository', { exact: true }).fill(repoPath);
-  await dialog.getByLabel('Nội dung giao việc', { exact: true }).fill('Desktop composer smoke test');
   await dialog.getByRole('button', { name: 'Kiểm tra agent', exact: true }).click();
   await expect(dialog.getByLabel('Agent', { exact: true })).toHaveValue('fake');
+  await dialog.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
+  await dialog.getByLabel('Tên công việc', { exact: true }).fill('Desktop composer task');
+  await dialog.getByLabel('Nội dung giao việc', { exact: true }).fill('Desktop composer smoke test');
   await dialog.getByRole('button', { name: 'Giao việc', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.locator('.task-header-title')).toHaveText('Desktop composer task');
@@ -253,5 +254,5 @@ test('native file action uses task identity and relative path, without exposing 
   await terminal.locator('textarea').pressSequentially('echo Agent Fleet Desktop');
   await terminal.locator('textarea').press('Enter');
   await expect(terminal.locator('.xterm-rows div').filter({ hasText: /^Agent Fleet Desktop\s*$/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Đóng' }).click();
+  await page.getByRole('button', { name: 'Ẩn', exact: true }).click();
 });
