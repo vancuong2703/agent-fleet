@@ -124,6 +124,18 @@ function post(url: string, payload?: object) {
   return app.inject({ method: 'POST', url, headers, ...(payload === undefined ? {} : { payload }) });
 }
 
+test('repository validation is authenticated, read-only and does not create plans or tasks', async () => {
+  const route = '/api/repositories/validate';
+  expect((await app.inject({ method: 'POST', url: route, payload: { repoPath: repo } })).statusCode).toBe(401);
+  const response = await post(route, { repoPath: repo });
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toMatchObject({ valid: true, repoPath: repo, branch: 'main' });
+  expect((await post(route, { repoPath: path.join(root, 'missing') })).json()).toMatchObject({ valid: false, repoPath: null });
+  expect((await post(route, {})).statusCode).toBe(400);
+  expect(store.listPlans()).toEqual([]);
+  expect(store.listTasks()).toEqual([]);
+});
+
 async function createTask(brief = 'Sửa "lỗi"\n✓'): Promise<Task> {
   const planResponse = await post('/api/plans', { name: 'API plan', repoPath: repo });
   expect(planResponse.statusCode).toBe(200);

@@ -17,6 +17,7 @@ import { FleetError, type TaskService } from './service.js';
 import { computeStats } from './stats.js';
 import type { Store } from './store.js';
 import { diffWorktree } from './worktree.js';
+import { validateRepository } from './repository-validation.js';
 
 const agentIds = ['codex', 'qodercli', 'agy', 'opencode', 'fake'];
 const statuses = ['queued', 'running', 'done', 'failed', 'timeout', 'interrupted', 'taken_over', 'merged', 'discarded'];
@@ -144,6 +145,9 @@ export function buildServer(o: {
       return reply.code(202).send({ ok: true });
     });
     routes.get('/api/plans', async () => store.listPlans());
+    routes.post<{ Body: { repoPath: string } }>('/api/repositories/validate', {
+      schema: { body: objectSchema({ repoPath: { type: 'string', minLength: 1, maxLength: 32_767 } }, ['repoPath']) },
+    }, async (request) => validateRepository(request.body.repoPath));
     routes.get<{ Querystring: { planId?: string } }>('/api/observability', {
       schema: { querystring: objectSchema({ planId: nonempty }) },
     }, async (request) => {

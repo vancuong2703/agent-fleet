@@ -9,6 +9,8 @@ import type {
   TaskResult,
   TaskStatus,
 } from '../../shared/types.js';
+import type { RepositoryValidation } from '../../shared/repository.js';
+export type { RepositoryValidation } from '../../shared/repository.js';
 
 /** `GET /api/agents` row. */
 export interface AgentInfo {
@@ -76,6 +78,8 @@ export const api = {
   health: (): Promise<{ ok: boolean }> => request('/api/health'),
 
   plans: (): Promise<Plan[]> => request('/api/plans'),
+  validateRepository: (repoPath: string): Promise<RepositoryValidation> =>
+    request('/api/repositories/validate', jsonInit('POST', { repoPath })),
   createPlan: (body: {
     name: string;
     repoPath: string;
