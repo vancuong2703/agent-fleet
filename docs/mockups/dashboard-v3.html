@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard v3 mockup</title>
+<!--
+  Mockup tham chiếu cho Agent Fleet 2.3 — Bảng điều khiển.
+  Số liệu là MINH HOẠ (tên model lấy từ máy thật ngày 03/11/2026, con số tự đặt).
+  Agent triển khai: giữ cấu trúc thông tin, token màu và thứ tự ưu tiên; không cần copy từng pixel.
+-->
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f2f4f7; --border: #e4e7ec; --border-strong: #d0d5dd;
+  --text: #101828; --muted: #667085; --faint: #98a2b3;
+  --accent: #4f46e5; --accent-soft: #eef2ff;
+  --ok: #12b76a; --ok-soft: #ecfdf3; --ok-text: #067647;
+  --warn: #f79009; --warn-soft: #fffaeb; --warn-text: #b54708;
+  --bad: #f04438; --bad-soft: #fef3f2; --bad-text: #b42318;
+  --free: #0e9384; --free-soft: #f0fdf9;
+  --tier-plus: #7a5af8; --tier-pro: #dd2590; --tier-trial: #f79009;
+  --bar-track: #eaecf0;
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
+  --shadow: 0 1px 2px rgba(16,24,40,.05);
+  --mono: "Cascadia Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0c111d; --surface: #161b26; --surface-2: #1f242f; --border: #2a303c; --border-strong: #333b48;
+  --text: #f5f5f6; --muted: #94969c; --faint: #6c737f;
+  --accent: #8098f9; --accent-soft: #1e2140;
+  --ok-soft: #0b2b1f; --ok-text: #47cd89; --warn-soft: #2d1f08; --warn-text: #fdb022; --bad-soft: #2d1215; --bad-text: #f97066;
+  --free-soft: #0a2a27; --bar-track: #2a303c; color-scheme: dark;
+}}
+:root[data-theme="dark"] {
+  --bg: #0c111d; --surface: #161b26; --surface-2: #1f242f; --border: #2a303c; --border-strong: #333b48;
+  --text: #f5f5f6; --muted: #94969c; --faint: #6c737f;
+  --accent: #8098f9; --accent-soft: #1e2140;
+  --ok-soft: #0b2b1f; --ok-text: #47cd89; --warn-soft: #2d1f08; --warn-text: #fdb022; --bad-soft: #2d1215; --bad-text: #f97066;
+  --free-soft: #0a2a27; --bar-track: #2a303c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+svg.i { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.page { max-width: 1320px; margin: 0 auto; padding: 24px 16px 48px; }
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.head h1 { margin: 0; font-size: 24px; letter-spacing: -.01em; }
+.head p { margin: 4px 0 0; color: var(--muted); }
+.head-actions { display: flex; gap: 8px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--text); color: var(--surface); border-color: var(--text); }
+.btn.icon { width: 34px; padding: 0; justify-content: center; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); font-size: 12px; }
+
+/* "Nên dùng ngay" — dải quyết định */
+.picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.pick { display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
+.pick .rank { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 12px; background: var(--accent-soft); color: var(--accent); flex: none; }
+.pick b { display: block; }
+.pick small { color: var(--muted); }
+.pick.warn .rank { background: var(--warn-soft); color: var(--warn-text); }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card-top { display: flex; align-items: center; gap: 12px; }
+.logo { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; flex: none; }
+.logo svg.i { width: 22px; height: 22px; }
+.card-title { flex: 1; min-width: 0; }
+.card-title h2 { margin: 0; font-size: 18px; display: flex; gap: 8px; align-items: center; }
+.card-title .mono { color: var(--muted); }
+.status { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.status.ok { background: var(--ok-soft); color: var(--ok-text); }
+.status.warn { background: var(--warn-soft); color: var(--warn-text); }
+.status.bad { background: var(--bad-soft); color: var(--bad-text); }
+
+.tier { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 5px; font-size: 11px; font-weight: 800; letter-spacing: .04em; color: #fff; }
+.tier.plus { background: var(--tier-plus); } .tier.pro { background: var(--tier-pro); } .tier.trial { background: var(--tier-trial); }
+.tier.free { background: var(--free); }
+.tier.ghost { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+
+.strip { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border); border-radius: var(--radius-md); background: linear-gradient(135deg, var(--accent-soft), transparent 70%); }
+.strip > div { padding: 10px 12px; display: flex; gap: 10px; align-items: center; min-width: 0; }
+.strip > div + div { border-left: 1px solid var(--border); }
+.strip label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.strip strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.section-h { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.meter { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+.meter + .meter { margin-top: 12px; }
+.meter .name { font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.meter .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+.meter .val small { font-weight: 400; color: var(--muted); }
+.bar { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--bar-track); overflow: hidden; }
+.bar > span { display: block; height: 100%; border-radius: inherit; background: var(--ok); }
+.bar.warn > span { background: var(--warn); } .bar.bad > span { background: var(--bad); }
+.meter .sub { grid-column: 1 / -1; font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+
+.split { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; }
+@media (max-width: 640px) { .split, .strip { grid-template-columns: 1fr; } .strip > div + div { border-left: 0; border-top: 1px solid var(--border); } }
+.panel { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; min-width: 0; }
+
+.big { font-size: 26px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.big small { font-size: 13px; font-weight: 500; color: var(--muted); }
+
+/* Bảng model kèm hệ số */
+.models { display: flex; flex-direction: column; gap: 4px; }
+.model { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: var(--radius-sm); }
+.model:hover { background: var(--surface-2); }
+.model .mname { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.model .ctx { font-size: 12px; color: var(--muted); }
+.mult { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 5px; background: var(--surface-2); }
+.mult.cheap { background: var(--ok-soft); color: var(--ok-text); }
+.mult.free { background: var(--free-soft); color: var(--free); }
+.mult s { color: var(--faint); font-weight: 400; margin-right: 4px; }
+.tag-sale { font-size: 11px; font-weight: 700; color: var(--bad-text); background: var(--bad-soft); padding: 1px 6px; border-radius: 5px; }
+
+/* Key pool (OpenCode / harbor-key) */
+.keys { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; margin: 6px 0; }
+.keys span { height: 18px; border-radius: 3px; background: var(--ok); opacity: .85; }
+.keys span.mid { background: var(--warn); } .keys span.out { background: var(--bad); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; gap: 6px; align-items: center; height: 26px; padding: 0 9px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; }
+.chip b { font-weight: 700; }
+
+.card-foot { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; margin-top: auto; }
+.card-foot .muted { flex: 1; font-size: 12px; display: flex; gap: 6px; align-items: center; }
+details summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+.note { margin-top: 20px; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Bộ icon kiểu Lucide (stroke 1.75). Bản thật: dùng lucide-react, tree-shake. -->
+  <symbol id="terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></symbol>
+  <symbol id="sparkles" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 3v4M21 5h-4"/></symbol>
+  <symbol id="orbit" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M20.2 20.2c1.9-1.9-.4-7.4-5.2-12.2S4.7 1.9 2.8 3.8s.4 7.4 5.2 12.2 10.3 6.1 12.2 4.2z"/></symbol>
+  <symbol id="code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+  <symbol id="refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+  <symbol id="key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+  <symbol id="coins" viewBox="0 0 24 24"><circle cx="8" cy="8" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18"/><path d="M7 6h1v4"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></symbol>
+  <symbol id="crown" viewBox="0 0 24 24"><path d="m2 7 5 5 5-8 5 8 5-5-2 12H4z"/></symbol>
+  <symbol id="box" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+</svg>
+
+<div class="page">
+  <header class="head">
+    <div>
+      <h1>Bảng điều khiển</h1>
+      <p>Nhìn nhanh: công cụ nào còn hạn mức, model nào rẻ hoặc miễn phí ngay lúc này.</p>
+    </div>
+    <div class="head-actions">
+      <span class="muted mono">Kiểm tra lúc 18:41</span>
+      <button class="btn"><svg class="i"><use href="#refresh"/></svg>Kiểm tra tất cả</button>
+      <button class="btn icon" aria-label="Đổi theme" onclick="const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark'"><svg class="i"><use href="#sparkles"/></svg></button>
+    </div>
+  </header>
+
+  <!-- 1. Dải quyết định: trả lời "nên dùng gì ngay" -->
+  <section class="picks" aria-label="Gợi ý dùng ngay">
+    <div class="pick"><span class="rank">1</span><div><b>Qoder · Qwen3.8-Flash <span class="tier free">FREE</span></b><small>x0.0 credit · hợp với việc nhỏ, test, tài liệu</small></div></div>
+    <div class="pick"><span class="rank">2</span><div><b>Antigravity · Gemini 4 Argon</b><small>Còn 78% hạn mức tuần · reset sau 4 ngày</small></div></div>
+    <div class="pick"><span class="rank">3</span><div><b>OpenCode · harbor-pool</b><small>12/13 key hoạt động · 74% token tuần còn lại</small></div></div>
+    <div class="pick warn"><span class="rank">!</span><div><b>Codex sắp chạm hạn mức 5h</b><small>Còn 22% · reset 20:30 hôm nay</small></div></div>
+  </section>
+
+  <div class="grid">
+
+    <!-- CODEX -->
+    <article class="card">
+      <div class="card-top">
+        <div class="logo" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)"><svg class="i"><use href="#terminal"/></svg></div>
+        <div class="card-title"><h2>Codex <span class="tier plus">PLUS</span></h2><span class="mono">codex-cli 0.166.0</span></div>
+        <span class="status ok">Sẵn sàng</span>
+        <button class="btn icon" aria-label="Thêm"><svg class="i"><use href="#more"/></svg></button>
+      </div>
+      <div class="strip">
+        <div><svg class="i"><use href="#crown"/></svg><div><label>Gói</label><strong>ChatGPT Plus</strong></div></div>
+        <div><svg class="i"><use href="#box"/></svg><div><label>Model mặc định</label><strong>GPT-6.1-Sol · reasoning high</strong></div></div>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <div class="section-h">Hạn mức <span>còn lại</span></div>
+          <div class="meter"><span class="name"><svg class="i"><use href="#clock"/></svg>Cửa sổ 5 giờ</span><span class="val">22%</span>
+            <div class="bar bad"><span style="width:22%"></span></div>
+            <span class="sub"><svg class="i"><use href="#refresh"/></svg>Reset 20:30 hôm nay (còn 1 giờ 49 phút)</span></div>
+          <div class="meter"><span class="name"><svg class="i"><use href="#calendar"/></svg>Tuần</span><span class="val">34%</span>
+            <div class="bar warn"><span style="width:34%"></span></div>
+            <span class="sub"><svg class="i"><use href="#refresh"/></svg>Reset 15:17, 04/11 (còn 6 ngày)</span></div>
+        </div>
+        <div class="panel">
+          <div class="section-h">Tài khoản</div>
+          <div style="display:flex;gap:8px;align-items:center"><svg class="i"><use href="#user"/></svg><span>***@gmail.com</span></div>
+          <div class="section-h" style="margin-top:14px">Credit</div>
+          <div class="muted">Không áp dụng cho gói ChatGPT</div>
+        </div>
+      </div>
+      <div class="card-foot"><span class="muted"><svg class="i"><use href="#refresh"/></svg>Đã kiểm tra 18:41:50</span><button class="btn"><svg class="i"><use href="#refresh"/></svg>Kiểm tra</button><button class="btn primary"><svg class="i"><use href="#terminal"/></svg>Mở CLI</button></div>
+    </article>
+
+    <!-- QODER -->
+    <article class="card">
+      <div class="card-top">
+        <div class="logo" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)"><svg class="i"><use href="#sparkles"/></svg></div>
+        <div class="card-title"><h2>Qoder <span class="tier trial">PRO TRIAL</span></h2><span class="mono">qodercli 1.1.81</span></div>
+        <span class="status ok">Sẵn sàng</span>
+        <button class="btn icon" aria-label="Thêm"><svg class="i"><use href="#more"/></svg></button>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <div class="section-h">Credit <span>còn lại</span></div>
+          <div class="big">1.240 <small>/ 2.000 credit gói</small></div>
+          <div class="meter" style="margin-top:8px"><div class="bar"><span style="width:62%"></span></div>
+            <span class="sub">+ 300 credit add-on · gói gia hạn 28/11</span></div>
+        </div>
+        <div class="panel">
+          <div class="section-h">Đang dùng</div>
+          <div><b>Auto</b> <span class="muted">· effort medium</span></div>
+          <div class="muted" style="font-size:12px;margin-top:6px">Ước tính: ~2.400 lượt Qwen3.8-Flash miễn phí, ~410 lượt Ultimate</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-h">Hệ số credit theo model <span>rẻ nhất trước</span></div>
+        <div class="models">
+          <div class="model"><span class="mname">Qwen3.8-Flash <span class="tag-sale">Đang giảm</span></span><span class="ctx">1M ctx</span><span class="mult free"><s>x0.1</s>x0.0 FREE</span></div>
+          <div class="model"><span class="mname">DeepSeek-Flash</span><span class="ctx">256K</span><span class="mult cheap">x0.1</span></div>
+          <div class="model"><span class="mname">GLM-5.3-Flash</span><span class="ctx">200K</span><span class="mult cheap">x0.2</span></div>
+          <div class="model"><span class="mname">Kimi-K3.1-Pro</span><span class="ctx">256K</span><span class="mult">x0.6</span></div>
+          <div class="model"><span class="mname">DeepSeek-V4-Pro <span class="tag-sale">-50%</span></span><span class="ctx">1M ctx</span><span class="mult"><s>x1.0</s>x0.5</span></div>
+          <div class="model"><span class="mname">Ultimate</span><span class="ctx">—</span><span class="mult">x3.0</span></div>
+        </div>
+        <details style="margin-top:6px"><summary>Xem cả 15 model</summary></details>
+      </div>
+      <div class="card-foot"><span class="muted"><svg class="i"><use href="#refresh"/></svg>Đã kiểm tra 18:40:12</span><button class="btn"><svg class="i"><use href="#refresh"/></svg>Kiểm tra</button><button class="btn primary"><svg class="i"><use href="#terminal"/></svg>Mở CLI</button></div>
+    </article>
+
+    <!-- ANTIGRAVITY -->
+    <article class="card">
+      <div class="card-top">
+        <div class="logo" style="background:linear-gradient(135deg,#4f8cff,#1d4ed8)"><svg class="i"><use href="#orbit"/></svg></div>
+        <div class="card-title"><h2>Antigravity <span class="tier pro">PRO</span></h2><span class="mono">agy 1.4.12</span></div>
+        <span class="status ok">Sẵn sàng</span>
+        <button class="btn icon" aria-label="Thêm"><svg class="i"><use href="#more"/></svg></button>
+      </div>
+      <div class="panel">
+        <div class="section-h">Hạn mức theo nhóm model <span>thanh = cửa sổ thấp hơn</span></div>
+        <div class="meter"><span class="name">Gemini 4 Argon</span><span class="val">78% <small>tuần · 5h 91%</small></span><div class="bar"><span style="width:78%"></span></div><span class="sub">Làm mới sau 2 giờ · tuần sau 4 ngày</span></div>
+        <div class="meter"><span class="name">Gemini models</span><span class="val">95% <small>tuần · 5h 100%</small></span><div class="bar"><span style="width:95%"></span></div></div>
+        <div class="meter"><span class="name">Claude & GPT models</span><span class="val">12% <small>5h · tuần 40%</small></span><div class="bar bad"><span style="width:12%"></span></div><span class="sub">Cửa sổ 5 giờ gần hết · làm mới sau 3 giờ 10 phút</span></div>
+      </div>
+      <div class="split">
+        <div class="panel"><div class="section-h">AI Credits</div><div class="big">850 <small>credit</small></div></div>
+        <div class="panel"><div class="section-h">Model hiện tại</div><b>gemini-4-argon-high</b><div class="muted" style="font-size:12px">13 model · <a href="#" style="color:var(--accent)">xem danh sách</a></div></div>
+      </div>
+      <div class="card-foot"><span class="muted"><svg class="i"><use href="#refresh"/></svg>Đã kiểm tra 18:39:03</span><button class="btn"><svg class="i"><use href="#refresh"/></svg>Kiểm tra</button><button class="btn primary"><svg class="i"><use href="#terminal"/></svg>Mở CLI</button></div>
+    </article>
+
+    <!-- OPENCODE -->
+    <article class="card">
+      <div class="card-top">
+        <div class="logo" style="background:linear-gradient(135deg,#3f3f46,#111827)"><svg class="i"><use href="#code"/></svg></div>
+        <div class="card-title"><h2>OpenCode <span class="tier ghost">BYOK</span></h2><span class="mono">opencode 2.2.5</span></div>
+        <span class="status warn">1 key cạn</span>
+        <button class="btn icon" aria-label="Thêm"><svg class="i"><use href="#more"/></svg></button>
+      </div>
+      <div class="split">
+        <div class="panel">
+          <div class="section-h">harbor-key · harbor <span>13 key</span></div>
+          <div class="keys" aria-label="12 key ổn, 1 key cạn"><span></span><span></span><span></span><span></span><span class="mid"></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="mid"></span><span class="out"></span></div>
+          <div class="meter"><span class="name"><svg class="i"><use href="#key"/></svg>Output token tuần</span><span class="val">74% <small>còn</small></span><div class="bar"><span style="width:74%"></span></div><span class="sub">Hạn 385K / key / 7 ngày · key cạn reset 06/11</span></div>
+        </div>
+        <div class="panel">
+          <div class="section-h">harbor-key · routeway</div>
+          <div class="big">640 <small>/ 800 request hôm nay</small></div>
+          <div class="meter" style="margin-top:8px"><div class="bar"><span style="width:80%"></span></div><span class="sub">200 request / ngày / key</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="section-h">Provider & model nổi bật <span>62 model</span></div>
+        <div class="chips">
+          <span class="chip"><b>harbor-pool</b> 18 model · <span class="tier pro">10M ctx</span></span>
+          <span class="chip"><b>opencode</b> Console · <span class="tier free">FREE</span></span>
+          <span class="chip"><b>groq</b> 9 model</span>
+          <span class="chip"><b>9router</b> 21 model</span>
+          <span class="chip"><b>routeway</b> 8 model</span>
+        </div>
+      </div>
+      <div class="card-foot"><span class="muted"><svg class="i"><use href="#refresh"/></svg>4 kết nối · đã kiểm tra 18:41:20</span><button class="btn"><svg class="i"><use href="#refresh"/></svg>Kiểm tra</button><button class="btn primary"><svg class="i"><use href="#terminal"/></svg>Mở CLI</button></div>
+    </article>
+  </div>
+
+  <p class="note">Số liệu minh hoạ. Tên model, số key và giới hạn pool lấy từ máy thật ngày 03/11/2026; hệ số credit Qoder và % hạn mức là giả định để trình bày bố cục.</p>
+</div>
+</body>
+</html>
