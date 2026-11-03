@@ -1,0 +1,113 @@
+██████                              ╭─ What's new (v1.1.81): ──────────────────────────────────────╮
+ ██      ██                            │ - Fixed request failures in long sessions caused by accumul… │
+ ██  ██  ██  Qoder CLI v1.1.81         │ - Fixed occasional crashes caused by race conditions when r… │
+ ██    ██                              │ - Shortened the default wait time for MCP initialization in… │
+   ████  ██  Signed in Browser Login   │ /release-notes for more                                      │
+                                       ╰──────────────────────────────────────────────────────────────╯
+
+
+ > /usage
+
+ Qoder CLI ·  Usage   Status
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  API quota and session token usage for the current conversation.
+
+  Qoder Plan                : Pro Trial
+  Plan Expires At           : Nov 10, 2026, 20:45:26 GMT+7
+  Plan Credits Used         : 300/300
+  Add-on Credits Used       : 245/800
+  Org Resource Package      : N/A
+  Total Duration (API)      : 0.0s
+  Total Duration (wall)     : 1.3s
+  Total Code Changes        : 0 lines added, 0 lines removed
+
+ Tab/←→ switch · Esc back
+
+██████                              ╭─ What's new (v1.1.81): ──────────────────────────────────────╮
+ ██      ██                            │ - Fixed request failures in long sessions caused by accumul… │
+ ██  ██  ██  Qoder CLI v1.1.81         │ - Fixed occasional crashes caused by race conditions when r… │
+ ██    ██                              │ - Shortened the default wait time for MCP initialization in… │
+   ████  ██  Signed in Browser Login   │ /release-notes for more                                      │
+                                       ╰──────────────────────────────────────────────────────────────╯
+
+ ● 3 MCP servers need authentication · run /mcp
+ 
+ > /usage
+ 
+ > /model
+ 
+ Model ·  Default (4)   New (11)   Custom (0)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Overview:
+  · Current Model     : Qwen3.8-Flash
+  · Subscription Plan : Pro Trial
+  · Available Credits : 555
+  · Codebase Security : Normal
+
+
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Press / to search models
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    Sonus                   ■■■□□ High           ▦ 200K                                                                                            8.00x Credit
+    Be first to experience a world-class model, built for the hardest end-to-end work.
+    Cantus                  ■■■□□ High           ▦ 200K                                                                                            4.00x Credit
+    Be first to experience a world-class model built for long-horizon autonomous tasks.
+    Qwen3.8-Max ◑           ■■□   Medium         ▦ 200K                                                                                      0.50x 0.20x Credit
+    Qwen's latest foundation model（Qwen3.8-Max-0902）, with 2.4T parameters, leading in software engineering, office work, and deep reasoning.
+  ❯ Qwen3.8-Flash ✓       ← ■■■   Extra High →   ▦ 1M                                                                                        0.10x 0.00x Credit
+    Qwen’s open-weight multimodal MoE model, offering an excellent balance of capability, latency, and cost.Users on individual plans receive a free daily
+    Kimi-K3.1-Pro           ■■□   High           ▦ 200K                                                                                            1.00x Credit
+    Kimi’s most powerful model: 3T-class parameters, excelling at coding, 3D creation, financial research, and long-horizon agentic tasks
+    Kimi-K2.8-Preview       ■■□   High           ▦ 200K                                                                                            0.80x Credit
+    Purpose-built for long-context coding: precise instruction following, reliable long-horizon execution
+    GLM-5.3                 ■■□   High           ▦ 200K                                                                                            0.80x Credit
+    Zhipu AI's flagship open-source model, with coding capability matching top-tier global models, plus security review and vulnerability reasoning
+    GLM-5.3-Flash           ■■    Max            ▦ 200K                                                                                            0.10x Credit
+    Zhipu AI's new native multimodal model, with deep image and video understanding, plus autonomous research analysis and document creation.
+    DeepSeek-V4-Pro         ■■    Max            ▦ 200K                                                                                            0.50x Credit
+    DeepSeek's official release (DeepSeek-V4-Pro-0813), delivering exceptional agent capabilities, world knowledge, and reasoning performance. DeepSeek offers
+  ▼ DeepSeek-Flash          ■■■   Max            ▦ 200K                                                                                            0.10x Credit
+    DeepSeek’s production model (DeepSeek-V4.1-Flash-1017), with leading agent capabilities, world knowledge, and reasoning performance.
+
+  ◉ Vision
+
+
+ Tab switch · Enter select · s session only · ←→ effort · space context · r refresh · Esc back
+
+██████                              ╭─ What's new (v1.1.81): ──────────────────────────────────────╮
+ ██      ██                            │ - Fixed request failures in long sessions caused by accumul… │
+ ██  ██  ██  Qoder CLI v1.1.81         │ - Fixed occasional crashes caused by race conditions when r… │
+ ██    ██                              │ - Shortened the default wait time for MCP initialization in… │
+   ████  ██  Signed in Browser Login   │ /release-notes for more                                      │
+                                       ╰──────────────────────────────────────────────────────────────╯
+
+ ● 3 MCP servers need authentication · run /mcp
+ 
+ > /usage
+ 
+ > /model
+ 
+ Model ·  Default (4)   New (11)   Custom (0)
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Overview:
+  · Current Model     : Qwen3.8-Flash
+  · Subscription Plan : Pro Trial
+  · Available Credits : 555
+  · Codebase Security : Normal
+
+
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Press / to search models
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ❯ Auto                                 ← ▦ 200K →                                                                                                0.50x Credit
+    Smartly select the optimal model, balancing performance and cost
+    Ultimate          ■■■□□ High           ▦ 200K                                                                                                  2.00x Credit
+    Expert-level deep reasoning and thinking with peak output quality.
+    Fast                                   ▦ 200K                                                                                                  0.80x Credit
+    Fast responses and efficient generation for a smooth, speedy experience. The Fast tier is closely tied to agent optimizations. Update to lastest version to
+    Efficient                                                                                                                                      0.30x Credit
+    Native multimodal, standard reasoning, cost-efficient. Free and unlimited for paid plans, for a limited time.
+
+  ◉ Vision
+
+ Tab switch · Enter select · s session only · ←→ context · r refresh · Esc back
