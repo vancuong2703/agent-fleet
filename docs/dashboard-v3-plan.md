@@ -108,7 +108,8 @@ T1   Codex  Hợp đồng v3 + tách parser theo agent + rankPicks ─┐ │   
                                                                       T9 Codex    Tích hợp, build desktop, smoke CLI thật
 ```
 
-Các nhóm chạy song song: {T0.1, T0.2, T1}, rồi {T2, T3, T4}, rồi {T5 → T6}, rồi {T7, T8}, cuối cùng T9.
+Các nhóm chạy song song: {T0.1, T0.2, T1}, rồi {T2, T3, T4}, rồi {T5 → T6}, rồi {T7, T8}, rồi
+chuỗi sửa phần còn lại của app {T10, T13} → T11 → T14 → T12 (mục 4b), **cuối cùng T9**.
 Không có hai task nào cùng sửa một file. Lý do: T1 tách `server/dashboard-status.ts` thành
 `server/dashboard/parsers/{codex,qoder,agy,opencode}.ts` để T2–T4 mỗi task sở hữu một file riêng.
 Worktree mới chỉ chứa những gì **đã commit**, vì vậy leader phải merge xong nhóm trước rồi mới tạo task cho nhóm sau.
@@ -258,7 +259,116 @@ Trước khi giao, mỗi brief bên dưới sẽ được copy thành `docs/brie
   - Chụp ảnh ma trận 3 độ rộng × 2 theme cho Dashboard và Tài nguyên.
 - Xong khi: `npm run test:e2e` pass và có ảnh trong `docs/images/2.3/`.
 
-### T9 — Codex — Tích hợp & phát hành
+## 4b. Chuỗi sửa phần còn lại của app (T10–T14)
+
+Các task này giải quyết những lỗi trong [`ui-ux-improvement-plan.md`](ui-ux-improvement-plan.md) mà Dashboard chưa đụng tới.
+Chuỗi chỉ bắt đầu khi T0.2 (tokens, lucide) và T7 đã được merge.
+
+Thứ tự chạy:
+1. T10 và T13 chạy song song vì sửa các file khác nhau.
+2. Sau đó tới T11.
+3. Rồi tới T14, vì T14 cũng sửa `App.tsx` như T11.
+4. Cuối cùng là T12. T12 chạm vào hầu hết component nên phải làm sau cùng để không gây conflict.
+
+| Task | Agent | File sở hữu |
+|---|---|---|
+| T10 | Codex | `ConfirmDialog.tsx`, `TaskActions.tsx`, `TaskHeader.tsx` |
+| T13 | Qoder | `TaskComposer.tsx`, `TerminalPage.tsx`, `TerminalPanel.tsx` |
+| T11 | Qoder | `App.tsx` (vùng main/inspector), `LogView.tsx`, `DiffView.tsx`, `ComparePage.tsx`, `store.ts`, `Inspector.tsx` |
+| T14 | Codex | `App.tsx` (topbar, nav), `Sidebar.tsx`, `CommandPalette.tsx` (mới) |
+| T12 | OpenCode | `web/src/strings.ts` + chỉ phần chuỗi trong mọi component |
+
+### T10 — Codex — Hộp xác nhận an toàn + nhóm hành động của task
+- Lỗi cần xử lý: plan UI/UX #7, #11.
+- ConfirmDialog:
+  - Đóng được bằng Escape.
+  - Giữ focus bên trong dialog; khi đóng, trả focus về nút đã mở dialog.
+  - Focus ban đầu đặt vào nút **an toàn** (Huỷ bỏ).
+  - Với thao tác destructive (discard, huỷ task, kết thúc phiên), bấm ra nền không đóng dialog.
+  - Nút xác nhận ghi rõ hậu quả, ví dụ "Xoá worktree và thay đổi".
+- TaskActions:
+  - Nút chính (Merge / Dừng / Đánh dấu xong) đặt bên phải.
+  - Huỷ task chuyển vào menu "⋯", hiển thị màu đỏ.
+  - Nút bị khoá phải có `title` và tooltip ghi lý do, ví dụ "Check chưa pass" hoặc "Không có thay đổi".
+  - "Mở terminal" trên task đang chạy đổi tên thành "Tiếp quản terminal", dialog nói rõ agent sẽ tạm dừng.
+- Xong khi: có test Playwright cho Escape, Tab vòng trong dialog, trả focus, và việc bấm nền không đóng khi discard.
+
+### T13 — Qoder — Hộp tạo task + Terminal
+- Lỗi cần xử lý: plan UI/UX #3, mục 3.4 và 3.5.
+- TaskComposer:
+  - Sửa lỗi chữ dính "CLIKiểm tra" bằng flex + gap.
+  - Chia thành 2 bước: Dự án → Giao việc.
+  - Nhớ agent và plan đã chọn lần trước (localStorage, có try/catch).
+  - Validate đường dẫn repo khi rời ô nhập (gọi API sẵn có, hoặc báo "không phải Git repo").
+  - Ctrl+Enter để gửi.
+  - Hiện trạng thái kiểm tra CLI của agent đã chọn bằng badge.
+- Terminal:
+  - Đổi nhãn "Đóng" thành "Ẩn" (tiến trình vẫn chạy) và "Kết thúc phiên" thành "Kết thúc tiến trình".
+  - Tablist đúng ARIA (`role=tablist/tab`, đổi tab bằng mũi tên trái/phải, Home/End).
+  - Nhớ cỡ chữ.
+  - Socket lỗi thì hiện banner kèm nút "Kết nối lại".
+  - Copy/Paste đổi thành Sao chép/Dán.
+- Xong khi: có test cho việc chuyển bước của composer và Ctrl+Enter, test điều hướng tab bằng bàn phím, và ảnh chụp ở cả hai theme.
+
+### T11 — Qoder — Trạng thái đang tải / lỗi + màn Công việc
+- Lỗi cần xử lý: plan UI/UX #5, #6, #8, #12.
+- `store.ts`: thêm cờ `loaded` và `error` cho tasks, log và diff. Lỗi tải log không được nuốt mất nữa (hiện `store.ts:372`).
+- Trạng thái đang tải:
+  - Thêm skeleton cho màn chào, Nhật ký và Thay đổi.
+  - Badge "Diff (n)" chỉ hiện khi đã tải xong.
+- ComparePage: khi lỗi thì hiện thông báo kèm nút thử lại; không được kẹt ở "Đang tải…".
+- Màn Công việc khi chưa có task:
+  - Ẩn inspector.
+  - Hiện CTA kèm 3 bước "Chọn repo → Viết yêu cầu → Duyệt thay đổi".
+- Inspector ở cửa sổ ≤1050 px:
+  - Mặc định đóng, có nút đóng thật.
+  - Icon trang trí ở `Inspector.tsx:37` phải đổi thành nút có chức năng, hoặc bỏ đi.
+- Hàng log raw (`LogView.tsx:80`) đổi thành `<button>`.
+- Xong khi: test giả lập API chậm (delay) và API lỗi xác nhận không còn hiện nội dung của trạng thái rỗng trong lúc đang tải.
+
+### T14 — Codex — Thanh trạng thái, điều hướng, ô lệnh nhanh
+- Lỗi cần xử lý: plan UI/UX #15, #16, mục 3.1 và 3.7.
+- Topbar:
+  - Chip lớn, bấm được: Đang chạy · Chờ duyệt · Lỗi.
+  - Bấm chip thì Sidebar lọc task theo trạng thái đó.
+  - Số task chờ duyệt hiện ở nav.
+- Nav:
+  - Thêm `aria-current="page"`.
+  - Sửa `aria-label="Tasks"`.
+  - Các tab Nhật ký / Thay đổi / Yêu cầu dùng đúng `role=tab`, chuyển bằng phím 1/2/3.
+- Trạng thái trong Sidebar: thay ký hiệu Unicode (◐ ○ ⑂ ⏱) bằng icon lucide có `aria-label`.
+- `CommandPalette.tsx`, mở bằng Ctrl+K, cho phép:
+  - nhảy tới task,
+  - tạo task,
+  - mở CLI theo agent,
+  - đổi theme,
+  - đi tới từng màn hình.
+- Xong khi: có test bàn phím cho palette (mở, lọc, Enter, Escape) và test lọc theo chip trạng thái.
+
+### T12 — OpenCode — Thống nhất ngôn ngữ toàn app
+- Lỗi cần xử lý: plan UI/UX #13, #14.
+- Mở rộng `web/src/strings.ts` (do T6 tạo) ra mọi component.
+- Glossary bắt buộc:
+
+  | Hiện tại | Đổi thành |
+  |---|---|
+  | task / việc | công việc |
+  | Log | Nhật ký |
+  | Diff | Thay đổi |
+  | Brief | Yêu cầu |
+  | Local workspace | Máy cục bộ |
+  | LIVE | Trực tiếp |
+  | `file_edit`… | Sửa tệp… |
+
+  Giữ nguyên tên agent, Git, Merge, CPU, RAM, GPU.
+- Thống nhất tên trang: dùng "Tài nguyên & sử dụng" ở mọi nơi.
+- Phiên bản ở `App.tsx:87` lấy từ `package.json` qua `define` của Vite.
+- Chỉ đổi chuỗi, không đổi logic hay bố cục.
+- Xong khi:
+  - Có test quét toàn bộ `web/src/components` khẳng định không còn chuỗi trong danh sách cấm ("Task mới", "Copy", "Paste", "Log", "Brief", "Tasks").
+  - Ảnh e2e không bị vỡ bố cục do chuỗi dài hơn.
+
+### T9 — Codex — Tích hợp & phát hành (chạy sau T12)
 - Việc cần làm:
   - Rebase hoặc gộp lại, chạy đủ check, `npm run desktop:build`.
   - Smoke trên 4 CLI thật: bấm "Kiểm tra tất cả" và lưu ảnh.
