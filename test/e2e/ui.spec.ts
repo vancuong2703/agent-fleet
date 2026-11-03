@@ -5,13 +5,13 @@ import type { Plan, Task, TaskResult } from '../../shared/types.js';
 
 let repoPath: string;
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, baseURL }) => {
   const dataDir = process.env.FLEET_DATA_DIR;
   if (!dataDir) throw new Error('The E2E setup must provide a temporary FLEET_DATA_DIR');
   const token = (await readFile(path.join(dataDir, 'token'), 'utf8')).trim();
   repoPath = (await readFile(path.join(dataDir, 'repo-path'), 'utf8')).trim();
   await page.goto(`/auth?token=${encodeURIComponent(token)}`);
-  await expect(page).toHaveURL('http://127.0.0.1:4610/');
+  await expect(page).toHaveURL(`${baseURL}/`);
   await expect(page.getByRole('button', { name: 'Tasks', exact: true })).toBeVisible();
   await expect(page.locator('.connection')).toHaveAttribute('title', 'Đã kết nối');
 });

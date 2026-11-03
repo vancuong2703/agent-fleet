@@ -8,6 +8,11 @@ const dataDir = process.env.FLEET_E2E_DATA_DIR
   ?? mkdtempSync(path.join(os.tmpdir(), 'agent-fleet-e2e-'));
 process.env.FLEET_E2E_DATA_DIR = dataDir;
 process.env.FLEET_DATA_DIR = dataDir;
+// Optional port override so parallel task worktrees never share one test server.
+// Default stays 4610; global-setup reads the same variable when it writes the config.
+const port = Number(process.env.FLEET_E2E_PORT ?? 4610);
+process.env.FLEET_E2E_PORT = String(port);
+const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: './test/e2e',
@@ -19,7 +24,7 @@ export default defineConfig({
   globalTeardown: './test/e2e/global-teardown.ts',
   use: {
     ...devices['Desktop Chrome'],
-    baseURL: 'http://127.0.0.1:4610',
+    baseURL,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -27,8 +32,8 @@ export default defineConfig({
     // Playwright starts webServer before globalSetup. Run the same idempotent
     // setup script here so the config/repo exist before main.ts reads them.
     command: 'npm run build:web && npx tsx test/e2e/global-setup.ts && npx tsx server/main.ts',
-    env: { FLEET_DATA_DIR: dataDir },
-    url: 'http://127.0.0.1:4610/api/health',
+    env: { FLEET_DATA_DIR: dataDir, FLEET_E2E_PORT: String(port) },
+    url: `${baseURL}/api/health`,
     reuseExistingServer: false,
     timeout: 120_000,
   },
