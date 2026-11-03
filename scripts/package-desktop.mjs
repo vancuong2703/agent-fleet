@@ -2,6 +2,8 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statS
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { build } from 'esbuild';
 
 const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('This package targets Windows x64 and must be built with Windows x64 Node.js');
@@ -53,37 +55,67 @@ for (const [name, library] of Object.entries(dotnetAssets.libraries ?? {})) {
     break;
   }
 }
-for (const source of ['server', 'shared']) cpSync(path.join(workspace, '.tmp/desktop-compiled', source), path.join(app, source), { recursive: true });
+// Keep this path aligned with FleetRuntime.cs. ESM preserves import.meta.url
+// for web/dist and app/package.json; createRequire supports bundled CommonJS.
+const bundle = await build({
+  absWorkingDir: workspace,
+  entryPoints: ['server/main.ts'],
+  outfile: path.join(app, 'server/main.js'),
+  bundle: true,
+  platform: 'node',
+  target: 'node24',
+  format: 'esm',
+  external: ['@lydell/node-pty'],
+  banner: { js: "import { createRequire as __fleetCreateRequire } from 'node:module'; const require = __fleetCreateRequire(import.meta.url);" },
+  minify: true,
+  metafile: true,
+});
 cpSync(path.join(workspace, 'web/dist'), path.join(app, 'web/dist'), { recursive: true });
-mkdirSync(path.join(app, 'test/fixtures'), { recursive: true });
-cpSync(path.join(workspace, 'test/fixtures/fake-agent.mjs'), path.join(app, 'test/fixtures/fake-agent.mjs'));
 const manifest = JSON.parse(readFileSync(path.join(workspace, 'package.json'), 'utf8'));
-writeFileSync(path.join(app, 'package.json'), JSON.stringify({ name: 'agent-fleet-desktop-runtime', version: '2.2.0', private: true, type: 'module' }, null, 2));
-const visited = new Set();
+writeFileSync(path.join(app, 'package.json'), JSON.stringify({ name: 'agent-fleet-desktop-runtime', version: manifest.version, private: true, type: 'module' }, null, 2));
 const deployed = [];
-function resolvePackage(name, from) {
-  for (let cursor = from; inside(cursor, workspace) || cursor === workspace; cursor = path.dirname(cursor)) {
-    const candidate = path.join(cursor, 'node_modules', name);
+const requireFromWorkspace = createRequire(path.join(workspace, 'package.json'));
+function resolvePackage(name) {
+  // Node resolution supports dependencies in an ancestor repository without
+  // copying any ancestor-relative paths into the release.
+  for (const modules of requireFromWorkspace.resolve.paths(name) ?? []) {
+    const candidate = path.join(modules, name);
     if (existsSync(path.join(candidate, 'package.json'))) return candidate;
-    if (cursor === workspace) break;
   }
-  return null;
+  throw new Error('Missing runtime dependency ' + name);
 }
-function copyPackage(name, from, optional = false) {
-  const source = resolvePackage(name, from);
-  if (!source) { if (optional) return; throw new Error(`Missing runtime dependency ${name} from ${from}`); }
-  if (visited.has(source)) return;
-  visited.add(source);
-  if (!inside(source, workspace)) throw new Error(`Dependency outside workspace: ${source}`);
-  const relative = path.relative(workspace, source);
-  const destination = path.join(app, relative);
-  cpSync(source, destination, { recursive: true });
+for (const name of ['@lydell/node-pty', '@lydell/node-pty-win32-x64']) {
+  const source = resolvePackage(name);
+  const relative = path.join('node_modules', name);
+  cpSync(source, path.join(app, relative), {
+    recursive: true,
+    filter: file => !['test', 'tests', 'src', 'node_modules'].includes(path.basename(file)) && !/\.(?:pdb|map|ts)$/i.test(file),
+  });
   const pkg = JSON.parse(readFileSync(path.join(source, 'package.json'), 'utf8'));
-  deployed.push({ name: pkg.name, version: pkg.version, path: relative.replaceAll('\\', '/') });
-  for (const dependency of Object.keys(pkg.dependencies ?? {})) copyPackage(dependency, source);
-  for (const dependency of Object.keys(pkg.optionalDependencies ?? {})) copyPackage(dependency, source, true);
+  deployed.push({ name: pkg.name, version: pkg.version, path: relative.replaceAll('\\', '/'), bundled: false });
 }
-for (const dependency of Object.keys(manifest.dependencies ?? {})) copyPackage(dependency, workspace);
+// Preserve notices for JS dependencies now embedded in main.js, including the
+// server's headless terminal parser. No frontend dependency tree is deployed.
+const bundledPackages = new Set();
+for (const input of Object.keys(bundle.metafile.inputs)) {
+  if (!input.replaceAll('\\', '/').includes('node_modules/')) continue;
+  let directory = path.dirname(path.resolve(workspace, input));
+  while (directory !== path.dirname(directory)) {
+    const manifestPath = path.join(directory, 'package.json');
+    if (existsSync(manifestPath) && JSON.parse(readFileSync(manifestPath, 'utf8')).name) { bundledPackages.add(directory); break; }
+    directory = path.dirname(directory);
+  }
+}
+for (const source of bundledPackages) {
+  const pkg = JSON.parse(readFileSync(path.join(source, 'package.json'), 'utf8'));
+  const relative = path.join('licenses', pkg.name.replaceAll('/', '-') + '-' + pkg.version);
+  const destination = path.join(output, relative);
+  mkdirSync(destination, { recursive: true });
+  for (const file of readdirSync(source)) {
+    if (/^(?:LICEN[CS]E|NOTICE|COPYING|THIRD[-_]PARTY[-_]NOTICES)(?:[.-].*)?$/i.test(file) && statSync(path.join(source, file)).isFile()) cpSync(path.join(source, file), path.join(destination, file));
+  }
+  deployed.push({ name: pkg.name, version: pkg.version, path: relative.replaceAll('\\', '/'), bundled: true });
+}
 const sourceSha256 = {};
 function fingerprint(directory, prefix = '') {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -94,9 +126,13 @@ function fingerprint(directory, prefix = '') {
   }
 }
 for (const source of ['server', 'shared', 'desktop', 'web/dist']) fingerprint(path.join(workspace, source), source);
-writeFileSync(path.join(output, 'runtime-manifest.json'), JSON.stringify({ app: 'Agent Fleet Desktop', version: '2.2.0', sourcePackageVersion: manifest.version, builtAt: new Date().toISOString(), node: process.version, platform: process.platform, arch: process.arch, sourceSha256, packages: deployed.sort((a, b) => a.name.localeCompare(b.name)) }, null, 2));
-writeFileSync(path.join(output, 'README.txt'), `AGENT FLEET DESKTOP 2.2.0\r\n\r\nOpen AgentFleet.exe. Keep the app/ and runtime/ folders next to it.\r\nWindows 11 x64 and Microsoft Edge WebView2 Evergreen Runtime are required.\r\nNode.js and the .NET runtime are included in the default self-contained build.\r\nData: %LOCALAPPDATA%\\AgentFleetDesktop\\\r\nLogs: desktop.log and server.log in the data directory.\r\nThe first build is unsigned; it is a local portable build, not a signed installer.\r\n\r\nTHIRD-PARTY NOTICES\r\nEach Node package includes its license in app/node_modules/.\r\nMicrosoft .NET and WebView2 are redistributed under their respective licenses.\r\n`);
-let bytes = 0;
-function size(directory) { for (const item of readdirSync(directory)) { const file = path.join(directory, item); const stat = statSync(file); if (stat.isDirectory()) size(file); else bytes += stat.size; } }
-size(output);
-console.log(JSON.stringify({ output, packages: deployed.length, sizeMiB: Math.round(bytes / 1048576 * 10) / 10 }, null, 2));
+writeFileSync(path.join(output, 'runtime-manifest.json'), JSON.stringify({ app: 'Agent Fleet Desktop', version: manifest.version, sourcePackageVersion: manifest.version, builtAt: new Date().toISOString(), node: process.version, platform: process.platform, arch: process.arch, sourceSha256, packages: deployed.sort((a, b) => a.name.localeCompare(b.name)) }, null, 2));
+writeFileSync(path.join(output, 'README.txt'), `AGENT FLEET DESKTOP ${manifest.version}\r\n\r\nOpen AgentFleet.exe. Keep the app/ and runtime/ folders next to it.\r\nWindows 11 x64 and Microsoft Edge WebView2 Evergreen Runtime are required.\r\nNode.js and the .NET runtime are included in the default self-contained build.\r\nData: %LOCALAPPDATA%\\AgentFleetDesktop\\\r\nLogs: desktop.log and server.log in the data directory.\r\nThe first build is unsigned; it is a local portable build, not a signed installer.\r\n\r\nTHIRD-PARTY NOTICES\r\nBundled Node package licenses are in licenses/. External PTY licenses are in app/node_modules/.\r\nMicrosoft .NET and WebView2 are redistributed under their respective licenses.\r\n`);
+function size(directory) {
+  return readdirSync(directory).reduce((bytes, item) => {
+    const file = path.join(directory, item);
+    const stat = statSync(file);
+    return bytes + (stat.isDirectory() ? size(file) : stat.size);
+  }, 0);
+}
+console.log(JSON.stringify({ output, packages: deployed.length, appMiB: +(size(app) / 1048576).toFixed(3), sizeMiB: +(size(output) / 1048576).toFixed(3) }, null, 2));
