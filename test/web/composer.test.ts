@@ -2,7 +2,9 @@ import { describe, expect, test } from 'vitest';
 import type { Plan } from '../../shared/types.js';
 import {
   checkRepoPath,
+  cleanRepoPath,
   readComposerPrefs,
+  repoValidationFromResponse,
   saveComposerPrefs,
   COMPOSER_PREFS_KEY,
 } from '../../web/src/components/TaskComposer.js';
@@ -55,10 +57,11 @@ describe('checkRepoPath', () => {
     expect(checkRepoPath('/usr/local/src/app', plans).status).toBe('error');
   });
 
-  test('confirms a repo that an existing plan already uses', () => {
+  test('matches an existing plan but never claims the repo is verified Git', () => {
     const result = checkRepoPath('c:/projects/agent fleet/', plans);
     expect(result.status).toBe('ok');
     expect(result.message).toContain('Agent Fleet');
+    expect(result.message).toContain('kiểm tra Git');
   });
 
   test('strips the quotes Explorer copies around a path', () => {
@@ -73,6 +76,50 @@ describe('checkRepoPath', () => {
 
   test('accepts a UNC share', () => {
     expect(checkRepoPath('\\\\server\\share\\repo', plans).status).toBe('unknown');
+  });
+});
+
+describe('repoValidationFromResponse', () => {
+  test('keeps only the canonical Git root for a valid repository', () => {
+    const result = repoValidationFromResponse(
+      { valid: true, repoPath: 'C:\\canonical\\root', branch: 'main', message: 'Kho Git hợp lệ.' },
+      'C:\\typed\\path',
+    );
+    expect(result).toEqual({ status: 'valid', message: 'Git repo hợp lệ · nhánh main.', root: 'C:\\canonical\\root', input: 'C:\\typed\\path' });
+  });
+
+  test('reports a non-repository path as invalid without a canonical root', () => {
+    const result = repoValidationFromResponse(
+      { valid: false, repoPath: null, branch: null, message: 'Đường dẫn không phải thư mục làm việc Git hoặc không tồn tại.' },
+      'C:\\missing',
+    );
+    expect(result.status).toBe('invalid');
+    expect(result.root).toBeNull();
+    expect(result.message).toContain('Git');
+  });
+
+  test('treats the server Git timeout as retryable, never as a verified repository', () => {
+    const result = repoValidationFromResponse(
+      { valid: false, repoPath: null, branch: null, message: 'Kiểm tra Git quá thời gian; hãy thử lại.' },
+      'C:\\slow',
+    );
+    expect(result.status).toBe('failed');
+    expect(result.root).toBeNull();
+    expect(result.message).toContain('thử lại');
+  });
+});
+
+describe('cleanRepoPath', () => {
+  test('trims and strips only a matching pair of Explorer quotes', () => {
+    expect(cleanRepoPath('  "C:\\Projects\\my app"  ')).toBe('C:\\Projects\\my app');
+    expect(cleanRepoPath('"C:\\Projects\\my app')).toBe('"C:\\Projects\\my app');
+    expect(cleanRepoPath('C:\\Projects\\my app"')).toBe('C:\\Projects\\my app"');
+    expect(cleanRepoPath('""')).toBe('');
+  });
+
+  test('keeps quotes in the middle of a legitimate path and normalises nothing else', () => {
+    expect(cleanRepoPath('C:\\work\\"odd"\\app')).toBe('C:\\work\\"odd"\\app');
+    expect(cleanRepoPath('C:/Projects/app/')).toBe('C:/Projects/app/');
   });
 });
 
@@ -104,6 +151,14 @@ describe('composer preferences', () => {
     const target = { ...storage(), setItem: (key: string, value: string) => { written.push(`${key}=${value}`); } } as Storage;
     saveComposerPrefs({ agent: 'qodercli', planId: 'p-one' }, target);
     expect(written).toEqual([`${COMPOSER_PREFS_KEY}=${JSON.stringify({ agent: 'qodercli', planId: 'p-one' })}`]);
+  });
+
+  test('remembers an agent while a transient new plan has no id', () => {
+    const written: string[] = [];
+    const target = { ...storage(), setItem: (key: string, value: string) => { written.push(`${key}=${value}`); } } as Storage;
+    saveComposerPrefs({ agent: 'opencode' }, target);
+    expect(written).toEqual([`${COMPOSER_PREFS_KEY}=${JSON.stringify({ agent: 'opencode' })}`]);
+    expect(readComposerPrefs(storage({ value: written[0]!.slice(COMPOSER_PREFS_KEY.length + 1) }))).toEqual({ agent: 'opencode' });
   });
 });
 

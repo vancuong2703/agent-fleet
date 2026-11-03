@@ -84,6 +84,8 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
     if (!path) { setConnection('Thiếu phiên terminal'); return; }
     setSocketError(null);
     let finished = false;
+    // A socket can still dispatch a queued event after unmount or reconnect.
+    let disposed = false;
     const term = new Terminal({ convertEol: true, cursorBlink: true, fontSize: readTerminalFontSize(), fontFamily: '"Cascadia Mono", "Cascadia Code", Consolas, monospace', lineHeight: 1.25, scrollback: 10_000, theme: cmdTheme, drawBoldTextInBrightColors: true, allowProposedApi: false });
     const fit = new FitAddon(); term.loadAddon(fit); term.open(container); fit.fit(); terminalRef.current = term; fitRef.current = fit;
     const socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}${path}${path.includes('?') ? '&' : '?'}cols=${term.cols}&rows=${term.rows}`);
@@ -124,14 +126,14 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
       } else term.scrollLines(lines);
       return false;
     });
-    socket.onopen = () => { setSocketError(null); setConnection('Đã kết nối'); resize(); term.focus(); inputReadyRef.current?.(write); };
-    socket.onmessage = (event) => { try { const message = JSON.parse(String(event.data)) as ServerMessage; if (message.t === 'out') term.write(message.d); else if (message.t === 'exit') { finished = true; setConnection(`Đã kết thúc · ${message.code}`); term.write(`\r\n\x1b[90m[phiên đã kết thúc, mã ${message.code}]\x1b[0m\r\n`); } } catch { /* Invalid frames never tear down a working PTY. */ } };
-    socket.onerror = () => { setConnection('Lỗi kết nối'); setSocketError('Mất kết nối tới tiến trình terminal.'); };
-    socket.onclose = () => { inputReadyRef.current?.(null); setConnection((current) => current.startsWith('Đã kết thúc') ? current : 'Đã ngắt kết nối'); if (!finished) setSocketError('Mất kết nối tới tiến trình terminal.'); };
+    socket.onopen = () => { if (disposed) return; setSocketError(null); setConnection('Đã kết nối'); resize(); term.focus(); inputReadyRef.current?.(write); };
+    socket.onmessage = (event) => { if (disposed) return; try { const message = JSON.parse(String(event.data)) as ServerMessage; if (message.t === 'out') term.write(message.d); else if (message.t === 'exit') { finished = true; setConnection(`Đã kết thúc · ${message.code}`); term.write(`\r\n\x1b[90m[phiên đã kết thúc, mã ${message.code}]\x1b[0m\r\n`); } } catch { /* Invalid frames never tear down a working PTY. */ } };
+    socket.onerror = () => { if (disposed) return; setConnection('Lỗi kết nối'); setSocketError('Mất kết nối tới tiến trình terminal.'); };
+    socket.onclose = () => { if (disposed) return; inputReadyRef.current?.(null); setConnection((current) => current.startsWith('Đã kết thúc') ? current : 'Đã ngắt kết nối'); if (!finished) setSocketError('Mất kết nối tới tiến trình terminal.'); };
     const input = term.onData(write);
     term.attachCustomKeyEventHandler((event) => { if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') { const text = term.getSelection(); if (text) void navigator.clipboard.writeText(text).catch(() => {}); return false; } if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyV') { void navigator.clipboard.readText().then((text) => term.paste(text)).catch(() => setNotice('Clipboard không khả dụng.')); return false; } return true; });
     const observer = new ResizeObserver(resize); observer.observe(container);
-    return () => { cancelAnimationFrame(resizeFrame); observer.disconnect(); input.dispose(); inputReadyRef.current?.(null); socket.onclose = null; socket.close(); term.dispose(); terminalRef.current = null; fitRef.current = null; resizeRef.current = null; };
+    return () => { disposed = true; cancelAnimationFrame(resizeFrame); observer.disconnect(); input.dispose(); inputReadyRef.current?.(null); socket.onclose = null; socket.close(); term.dispose(); terminalRef.current = null; fitRef.current = null; resizeRef.current = null; };
   }, [taskId, socketPath, reconnectKey]);
   useEffect(() => { if (terminalRef.current) { terminalRef.current.options.fontSize = fontSize; resizeRef.current?.(); } }, [fontSize]);
   useEffect(() => { resizeRef.current?.(); }, [height]);
