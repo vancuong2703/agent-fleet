@@ -1,91 +1,115 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FitAddon } from '@xterm/addon-fit';
-import { Terminal } from '@xterm/xterm';
+import { Terminal, type ITheme } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
+import { Icon } from './Icon.js';
+import { ResizeHandle } from './ResizeHandle.js';
 
 export interface TerminalPanelProps {
-  taskId: string;
+  taskId?: string;
+  /** WebSocket path override for dashboard sessions; defaults to the task PTY socket. */
+  socketPath?: string;
+  title?: string;
+  subtitle?: string;
+  fill?: boolean;
+  closeLabel?: string;
+  height?: number;
+  onHeightChange?: (height: number) => void;
+  onInputReady?: (write: ((text: string) => void) | null) => void;
   onClose: () => void;
 }
 
 type ServerMessage = { t: 'out'; d: string } | { t: 'exit'; code: number };
 
-/**
- * Live xterm.js terminal attached to the server's PTY for one task
- * (`WS /ws/pty`). Same-origin, so the `fleet_token` cookie authenticates the
- * upgrade. Protocol: server `{t:'out',d}` / `{t:'exit',code}`, client
- * `{t:'in',d}` / `{t:'resize',cols,rows}`.
- */
-export function TerminalPanel({ taskId, onClose }: TerminalPanelProps) {
+/** Windows CMD (Campbell) ANSI16 — fixed regardless of the app theme so agent output stays readable. */
+const cmdTheme: ITheme = {
+  background: '#0c0c0c', foreground: '#cccccc', cursor: '#ffffff', selectionBackground: '#2f5fbe',
+  black: '#0c0c0c', red: '#c50f1f', green: '#13a10e', yellow: '#c19c00', blue: '#0037da', magenta: '#881798', cyan: '#3a96dd', white: '#cccccc',
+  brightBlack: '#767676', brightRed: '#e74856', brightGreen: '#16c60c', brightYellow: '#f9f1a5', brightBlue: '#3b78ff', brightMagenta: '#b4009e', brightCyan: '#61d6d6', brightWhite: '#f2f2f2',
+};
+
+export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = false, closeLabel = 'Đóng', height, onHeightChange, onInputReady, onClose }: TerminalPanelProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-
+  const terminalRef = useRef<Terminal | null>(null);
+  const fitRef = useRef<FitAddon | null>(null);
+  const resizeRef = useRef<(() => void) | null>(null);
+  const inputReadyRef = useRef(onInputReady);
+  inputReadyRef.current = onInputReady;
+  const [connection, setConnection] = useState('Đang kết nối');
+  const [fontSize, setFontSize] = useState(15);
+  const [maximized, setMaximized] = useState(false);
+  const [query, setQuery] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const searchFrom = useRef(0);
+  const heightBeforeMax = useRef<number | null>(null);
+  const copy = async () => { const text = terminalRef.current?.getSelection(); if (!text) { setNotice('Chọn nội dung terminal trước khi sao chép.'); return; } try { await navigator.clipboard.writeText(text); setNotice('Đã sao chép.'); } catch { setNotice('Không truy cập được clipboard.'); } };
+  const paste = async () => { try { const text = await navigator.clipboard.readText(); terminalRef.current?.paste(text); terminalRef.current?.focus(); } catch { setNotice('Không đọc được clipboard. Dùng Ctrl+Shift+V trong terminal.'); } };
+  const find = () => { const term = terminalRef.current; if (!term || !query) return; const buffer = term.buffer.active; for (let offset = 0; offset < buffer.length; offset++) { const row = (searchFrom.current + offset) % buffer.length; const text = buffer.getLine(row)?.translateToString(true) ?? ''; const index = text.toLocaleLowerCase().indexOf(query.toLocaleLowerCase()); if (index >= 0) { term.select(index, row, query.length); term.scrollToLine(Math.max(0, row - 3)); searchFrom.current = row + 1; setNotice(null); return; } } setNotice('Không tìm thấy nội dung.'); };
   useEffect(() => {
-    const container = containerRef.current;
-    if (container === null) return;
-
-    const term = new Terminal({
-      convertEol: true,
-      cursorBlink: true,
-      fontSize: 12,
-      scrollback: 2_000,
+    const container = containerRef.current; if (!container) return;
+    const path = socketPath ?? (taskId ? `/ws/pty?taskId=${encodeURIComponent(taskId)}` : null);
+    if (!path) { setConnection('Thiếu phiên terminal'); return; }
+    const term = new Terminal({ convertEol: true, cursorBlink: true, fontSize: 15, fontFamily: '"Cascadia Mono", "Cascadia Code", Consolas, monospace', lineHeight: 1.25, scrollback: 10_000, theme: cmdTheme, drawBoldTextInBrightColors: true, allowProposedApi: false });
+    const fit = new FitAddon(); term.loadAddon(fit); term.open(container); fit.fit(); terminalRef.current = term; fitRef.current = fit;
+    const socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}${path}${path.includes('?') ? '&' : '?'}cols=${term.cols}&rows=${term.rows}`);
+    let resizeFrame = 0;
+    let lastSize = '';
+    const resize = () => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        if (!container.isConnected || container.clientWidth < 40 || container.clientHeight < 40) return;
+        fit.fit();
+        const size = `${term.cols}:${term.rows}`;
+        // ConPTY redraws the entire TUI on resize, even for identical dimensions.
+        // A ResizeObserver/fit feedback loop must not continuously resize it.
+        if (socket.readyState === WebSocket.OPEN && size !== lastSize) {
+          lastSize = size;
+          socket.send(JSON.stringify({ t: 'resize', cols: term.cols, rows: term.rows }));
+        }
+      });
+    };
+    resizeRef.current = resize;
+    const write = (text: string) => { if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: 'in', d: text })); };
+    let wheelRemainder = 0;
+    term.attachCustomWheelEventHandler((event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      const buffer = term.buffer.active;
+      const viewport = Array.from({length:term.rows},(_,row)=>buffer.getLine(buffer.viewportY+row)?.translateToString(true)??'').join('\n');
+      const pager = buffer.viewportY === buffer.baseY && /pgup\/pgdown\s+Page|↑\/↓\s+Scroll/i.test(viewport);
+      if (!pager && term.modes.mouseTrackingMode !== 'none') return true; // native TUI mouse protocol
+      wheelRemainder += event.deltaMode === 1 ? event.deltaY : event.deltaMode === 2 ? event.deltaY * term.rows : event.deltaY / 40;
+      const lines = Math.trunc(wheelRemainder);
+      if (!lines) return false;
+      wheelRemainder -= lines;
+      if (pager || buffer.type === 'alternate') {
+        // Pagers such as AGY /usage keep their own scroll position in the
+        // alternate screen. Translate the wheel into real PTY arrow input.
+        write((lines > 0 ? '\x1b[B' : '\x1b[A').repeat(Math.min(12, Math.abs(lines))));
+      } else term.scrollLines(lines);
+      return false;
     });
-    const fit = new FitAddon();
-    term.loadAddon(fit);
-    term.open(container);
-    fit.fit();
-
-    const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const url = `${scheme}://${window.location.host}/ws/pty?taskId=${encodeURIComponent(taskId)}&cols=${term.cols}&rows=${term.rows}`;
-    const socket = new WebSocket(url);
-
-    const sendResize = (): void => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ t: 'resize', cols: term.cols, rows: term.rows }));
-      }
-    };
-
-    socket.onopen = () => {
-      fit.fit();
-      sendResize();
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(String(event.data)) as ServerMessage;
-        if (message.t === 'out') term.write(message.d);
-        else if (message.t === 'exit') term.write(`\r\n\x1b[90m[phiên đã kết thúc, mã ${message.code}]\x1b[0m\r\n`);
-      } catch {
-        // Ignore a malformed frame; the next one still arrives.
-      }
-    };
-
-    const input = term.onData((data) => {
-      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ t: 'in', d: data }));
-    });
-
-    const observer = new ResizeObserver(() => {
-      fit.fit();
-      sendResize();
-    });
-    observer.observe(container);
-
-    return () => {
-      observer.disconnect();
-      input.dispose();
-      socket.close();
-      term.dispose();
-    };
-  }, [taskId]);
-
-  return (
-    <div className="terminal-panel">
-      <div className="terminal-head">
-        <span className="terminal-title">Terminal · {taskId}</span>
-        <button type="button" className="action-btn" onClick={onClose}>
-          Đóng
-        </button>
-      </div>
-      <div className="terminal-host" ref={containerRef} />
-    </div>
-  );
+    socket.onopen = () => { setConnection('Đã kết nối'); resize(); term.focus(); inputReadyRef.current?.(write); };
+    socket.onmessage = (event) => { try { const message = JSON.parse(String(event.data)) as ServerMessage; if (message.t === 'out') term.write(message.d); else if (message.t === 'exit') { setConnection(`Đã kết thúc · ${message.code}`); term.write(`\r\n\x1b[90m[phiên đã kết thúc, mã ${message.code}]\x1b[0m\r\n`); } } catch { /* Invalid frames never tear down a working PTY. */ } };
+    socket.onerror = () => setConnection('Lỗi kết nối');
+    socket.onclose = () => { inputReadyRef.current?.(null); setConnection((current) => current.startsWith('Đã kết thúc') ? current : 'Đã ngắt kết nối'); };
+    const input = term.onData(write);
+    term.attachCustomKeyEventHandler((event) => { if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') { const text = term.getSelection(); if (text) void navigator.clipboard.writeText(text).catch(() => {}); return false; } if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyV') { void navigator.clipboard.readText().then((text) => term.paste(text)).catch(() => setNotice('Clipboard không khả dụng.')); return false; } return true; });
+    const observer = new ResizeObserver(resize); observer.observe(container);
+    return () => { cancelAnimationFrame(resizeFrame); observer.disconnect(); input.dispose(); inputReadyRef.current?.(null); socket.onclose = null; socket.close(); term.dispose(); terminalRef.current = null; fitRef.current = null; resizeRef.current = null; };
+  }, [taskId, socketPath]);
+  useEffect(() => { if (terminalRef.current) { terminalRef.current.options.fontSize = fontSize; resizeRef.current?.(); } }, [fontSize]);
+  useEffect(() => { resizeRef.current?.(); }, [height]);
+  const maxHeight = Math.max(350, window.innerHeight - 250);
+  const currentHeight = height ?? 380;
+  const toggleMaximize = () => setMaximized((current) => {
+    if (current) { if (heightBeforeMax.current != null) onHeightChange?.(heightBeforeMax.current); heightBeforeMax.current = null; return false; }
+    heightBeforeMax.current = currentHeight; onHeightChange?.(maxHeight); return true;
+  });
+  return <div className={`terminal-panel${fill?' terminal-fill':''}`} style={fill ? {height:'100%'} : height != null ? { height } : undefined}>
+    {onHeightChange && <ResizeHandle orientation="horizontal" reverse label="Điều chỉnh chiều cao terminal" value={currentHeight} min={240} max={maxHeight} onChange={onHeightChange} />}
+    <div className="terminal-head"><span className="terminal-title"><Icon name="terminal" size={15} /><span className="terminal-caption" title={subtitle}>{title ?? 'Terminal'}{subtitle && <small>{subtitle}</small>}</span><span className={`terminal-connection ${connection === 'Đã kết nối' ? 'on' : ''}`}>{connection}</span></span><div className="terminal-tools"><button className="icon-button" title="Giảm cỡ chữ" aria-label="Giảm cỡ chữ terminal" onClick={() => setFontSize((size) => Math.max(10, size - 1))}>−</button><span>{fontSize}</span><button className="icon-button" title="Tăng cỡ chữ" aria-label="Tăng cỡ chữ terminal" onClick={() => setFontSize((size) => Math.min(22, size + 1))}>+</button>{onHeightChange && <button className="text-button" aria-label={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} title={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} onClick={toggleMaximize}>{maximized ? 'Khôi phục' : 'Phóng to'}</button>}<button className="text-button" onClick={() => void copy()} title="Ctrl+Shift+C">Copy</button><button className="text-button" onClick={() => void paste()} title="Ctrl+Shift+V">Paste</button><button className="action-btn" onClick={onClose}>{closeLabel}</button></div></div>
+    <div className="terminal-search"><Icon name="search" size={14} /><input aria-label="Tìm trong terminal" value={query} onChange={(event) => { setQuery(event.target.value); searchFrom.current = 0; }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); find(); } }} placeholder="Tìm trong terminal…" /><button className="text-button" onClick={find} disabled={!query}>Tìm tiếp</button>{notice && <span role="status">{notice}</span>}</div>
+    <div className="terminal-host" ref={containerRef} />
+  </div>;
 }

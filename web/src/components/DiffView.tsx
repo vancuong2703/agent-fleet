@@ -2,11 +2,14 @@ import { useMemo, useState } from 'react';
 
 import type { DiffFile } from '../../../shared/types.js';
 import { splitPatch, type DiffSection } from '../diff.js';
+import { isDesktop, openLocation } from '../desktop.js';
+import { Icon } from './Icon.js';
 
 export interface DiffViewProps {
   files: DiffFile[];
   patch: string;
   error?: string | null;
+  taskId?: string;
 }
 
 function lineMarker(kind: DiffSection['lines'][number]['kind']): string {
@@ -27,9 +30,10 @@ function lineMarker(kind: DiffSection['lines'][number]['kind']): string {
  * one string and is split per file by `splitPatch`; each line is colored by
  * its kind (add/del/ctx/hunk).
  */
-export function DiffView({ files, patch, error }: DiffViewProps) {
+export function DiffView({ files, patch, error, taskId }: DiffViewProps) {
   const sections = useMemo(() => splitPatch(patch), [patch]);
   const [chosenPath, setSelectedPath] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   // Derived, not synced in an effect: the first file is shown until the user picks another.
   const selectedPath =
     chosenPath !== null && files.some((file) => file.path === chosenPath)
@@ -66,7 +70,7 @@ export function DiffView({ files, patch, error }: DiffViewProps) {
           </li>
         ))}
       </ul>
-      <div className="diff-pane">
+      <div className="diff-detail"><div className="diff-toolbar"><span>{selectedPath}</span><button className="text-button" disabled={!isDesktop() || !taskId || !selectedPath} title={isDesktop() ? 'Hiện tệp trong Explorer' : 'Có trong ứng dụng Desktop'} onClick={() => { if (taskId && selectedPath) void openLocation({ taskId, relativePath: selectedPath, action: 'reveal' }).catch((cause) => setLocationError(String(cause))); }}><Icon name="folder" size={14} />Mở vị trí tệp</button></div>{locationError && <p className="banner banner-error">{locationError}</p>}<div className="diff-pane">
         {section === null ? (
           <div className="placeholder">Không có diff cho file này.</div>
         ) : (
@@ -83,6 +87,7 @@ export function DiffView({ files, patch, error }: DiffViewProps) {
             </div>
           ))
         )}
+      </div>
       </div>
     </div>
   );

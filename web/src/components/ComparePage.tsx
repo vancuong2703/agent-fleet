@@ -41,14 +41,18 @@ export function ComparePage({ plans }: ComparePageProps) {
 
   useEffect(() => {
     let cancelled = false;
+    void api.agents().then((list) => { if (!cancelled) setAgents(list); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: number | undefined;
     const sinceDays = period === 0 ? undefined : period;
-    Promise.all([
-      api.agents(),
-      api.stats({ repo: repo.length > 0 ? repo : undefined, sinceDays }),
-    ])
-      .then(([agentList, statList]) => {
+    const refresh = () => {
+      void api.stats({ repo: repo.length > 0 ? repo : undefined, sinceDays })
+      .then((statList) => {
         if (cancelled) return;
-        setAgents(agentList);
         setStats(statList);
         setError(null);
         setLoaded(true);
@@ -56,9 +60,12 @@ export function ComparePage({ plans }: ComparePageProps) {
       .catch((cause: unknown) => {
         if (cancelled) return;
         setError(cause instanceof Error ? cause.message : String(cause));
-      });
+      }).finally(() => { if (!cancelled) timer = window.setTimeout(refresh, document.hidden ? 15_000 : 5_000); });
+    };
+    refresh();
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [repo, period]);
 

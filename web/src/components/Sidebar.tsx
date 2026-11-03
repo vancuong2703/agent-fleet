@@ -1,21 +1,24 @@
 import type { Plan, Task } from '../../../shared/types.js';
 import { groupByRepo, statusIcon, statusLabel } from '../store.js';
+import { AgentMark } from './Icon.js';
 
 export interface SidebarProps {
   plans: Plan[];
   tasks: Task[];
   selectedTaskId: string | null;
   onSelect: (taskId: string) => void;
+  query?: string;
 }
 
 /** Left rail: repos → plans → task rows, 220px wide. */
-export function Sidebar({ plans, tasks, selectedTaskId, onSelect }: SidebarProps) {
-  const groups = groupByRepo(plans, tasks);
+export function Sidebar({ plans, tasks, selectedTaskId, onSelect, query = '' }: SidebarProps) {
+  const needle = query.trim().toLocaleLowerCase();
+  const groups = groupByRepo(plans, tasks).map((group) => ({ ...group, plans: group.plans.map((entry) => ({ ...entry, tasks: !needle || `${group.name} ${entry.plan.name}`.toLocaleLowerCase().includes(needle) ? entry.tasks : entry.tasks.filter((task) => `${task.title} ${task.agent} ${task.id}`.toLocaleLowerCase().includes(needle)) })).filter((entry) => !needle || entry.tasks.length > 0 || `${group.name} ${entry.plan.name}`.toLocaleLowerCase().includes(needle)) })).filter((group) => group.plans.length > 0);
 
   if (groups.length === 0) {
     return (
       <aside className="sidebar">
-        <p className="muted sidebar-empty">Chưa có plan nào.</p>
+        <p className="muted sidebar-empty">{needle ? 'Không tìm thấy task phù hợp.' : 'Chưa có dự án. Tạo task để bắt đầu.'}</p>
       </aside>
     );
   }
@@ -52,14 +55,14 @@ export function Sidebar({ plans, tasks, selectedTaskId, onSelect }: SidebarProps
                         onClick={() => onSelect(task.id)}
                         title={task.title}
                       >
+                        <span className="task-row-agent"><AgentMark agent={task.agent} /></span>
+                        <span className="task-row-title">{task.title}</span>
                         <span
                           className={`status-icon status-${task.status}`}
                           title={statusLabel(task.status)}
                         >
                           {statusIcon(task.status)}
                         </span>
-                        <span className="task-row-title">{task.title}</span>
-                        <span className="task-row-agent">{task.agent}</span>
                       </button>
                     </li>
                   ))}

@@ -1,14 +1,17 @@
 {
   "name": "agent-fleet",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.2.0",
+  "description": "Lightweight Windows workspace for local coding agents",
   "scripts": {
     "test": "vitest run",
     "test:e2e": "playwright test",
     "dev:server": "tsx watch server/main.ts",
     "dev:web": "vite web",
     "build:web": "vite build web",
-    "fleet": "tsx cli/fleet.ts"
+    "fleet": "tsx cli/fleet.ts",
+    "typecheck": "tsc --noEmit",
+    "desktop:build": "powershell -ExecutionPolicy Bypass -File scripts/package-desktop.ps1",
+    "desktop:check": "dotnet build desktop/AgentFleet.csproj -c Release"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +26,7 @@
     "@fastify/websocket": "^11.3.6",
     "@lydell/node-pty": "^1.2.0-beta.18",
     "@xterm/addon-fit": "^0.11.0",
+    "@xterm/headless": "^6.0.0",
     "@xterm/xterm": "^6.0.0",
     "commander": "^15.0.0",
     "fastify": "^5.12.8",

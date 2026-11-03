@@ -6,6 +6,7 @@ import path from 'node:path';
 import { Store } from '../../server/store.js';
 import { files } from '../../server/paths.js';
 import type { Task } from '../../shared/types.js';
+import { DatabaseSync } from 'node:sqlite';
 
 let savedDataDir: string | undefined;
 let dir: string;
@@ -55,6 +56,21 @@ function newTask(store: Store, planId: string, checkCmd: string | null = null): 
     checkCmd,
   });
 }
+
+test('upgrades a pre-policy database without losing history and persists new run permissions', () => {
+  const initial = makeStore();
+  const plan = newPlan(initial);
+  const task = newTask(initial, plan.id);
+  const oldRun = initial.createRun({ taskId: task.id, agent: 'agy', brief: 'old brief', note: null });
+  initial.close();
+  const legacy = new DatabaseSync(files.db());
+  legacy.exec('ALTER TABLE runs DROP COLUMN commandPolicy; ALTER TABLE runs DROP COLUMN allowedCommands;');
+  legacy.close();
+  const reopened = makeStore();
+  expect(reopened.getRun(oldRun.id)).toMatchObject({ brief: 'old brief', commandPolicy: 'ask', allowedCommands: [] });
+  const approved = reopened.createRun({ taskId: task.id, agent: 'agy', brief: 'new brief', note: null, commandPolicy: 'check-only', allowedCommands: ['node check.cjs'] });
+  expect(reopened.getRun(approved.id)).toMatchObject({ commandPolicy: 'check-only', allowedCommands: ['node check.cjs'] });
+});
 
 describe('plans', () => {
   test('createPlan fills id, slug and createdAt and round-trips', () => {

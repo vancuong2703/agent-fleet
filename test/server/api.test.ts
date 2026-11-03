@@ -149,6 +149,24 @@ async function connect(suffix = `?token=${token}`, authHeaders?: Record<string, 
 }
 
 describe('HTTP and WebSocket API', () => {
+  test('dashboard metadata and terminal mutations use the existing authentication boundary', async () => {
+    for (const url of ['/api/dashboard', '/api/terminal-sessions']) {
+      const response = await app.inject({ method: url.endsWith('terminal-sessions') ? 'POST' : 'GET', url, ...(url.endsWith('terminal-sessions') ? { payload: { agent: 'codex' } } : {}) });
+      expect(response.statusCode).toBe(401);
+    }
+    expect((await app.inject({ url: '/api/dashboard', headers })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/api/dashboard/check', headers: { cookie: `fleet_token=${token}`, 'content-type': 'text/plain' }, payload: '{"agent":"codex"}' })).statusCode).toBe(415);
+    expect((await app.inject({ method: 'POST', url: '/api/terminal-sessions', headers, payload: { agent: 'codex', cmd: 'arbitrary.exe', cwd: 'C:\\Windows' } })).statusCode).toBe(400);
+  });
+
+  test('run approval input is validated by API and persisted on AGY attempts', async () => {
+    const created = await post('/api/plans', { name: 'Approval API', repoPath: repo });
+    const plan = created.json<Plan>();
+    expect((await post('/api/tasks', { planId: plan.id, agent: 'agy', title: 'bad command', brief: '', commandPolicy: 'invalid' })).statusCode).toBe(400);
+    expect((await post('/api/tasks', { planId: plan.id, agent: 'agy', title: 'bad command', brief: '', commandPolicy: 'check-only', allowedCommands: ['one\ntwo'] })).statusCode).toBe(400);
+    expect(store.listTasks()).toHaveLength(0);
+  });
+
   test('rejects wrong Host and Origin on all paths except GET health', async () => {
     await app.close();
     app = buildServer({ service, store, bus, token, port: 4500 });
@@ -186,7 +204,7 @@ describe('HTTP and WebSocket API', () => {
     expect((await app.inject({ method: 'POST', url: `/api/tasks/${headerTask.id}/discard`, headers: { ...headers, host: 'localhost:4500' } })).statusCode).toBe(204);
   });
 
-  test.each(['', '/pty'])('cross-origin WS /ws%s is rejected before upgrade', async (suffix) => {
+  test.each(['', '/pty', '/terminal'])('cross-origin WS /ws%s is rejected before upgrade', async (suffix) => {
     const socket = await connect(`${suffix}?token=${token}`, { origin: 'http://evil.test' });
     const status = await new Promise<number | undefined>((resolve, reject) => {
       socket.once('unexpected-response', (request, response) => { response.resume(); request.destroy(); resolve(response.statusCode); });
@@ -404,6 +422,42 @@ describe('HTTP and WebSocket API', () => {
     expect(all).toHaveLength(2);
     const filtered = (await app.inject({ url: `/api/stats?repo=${encodeURIComponent(repo)}&sinceDays=7`, headers })).json();
     expect(filtered).toEqual([{ agent: 'fake', runs: 1, successRate: 1, avgDurationMs: 100, retryRate: 0, mergeRate: null, costUsd: null }]);
+  });
+
+  test('observability requires authentication and accepts header or HttpOnly-cookie authentication', async () => {
+    expect((await app.inject('/api/observability')).statusCode).toBe(401);
+    expect((await app.inject({ url: '/api/observability', headers: { 'x-fleet-token': 'wrong' } })).statusCode).toBe(401);
+    for (const auth of [headers, { cookie: `fleet_token=${token}` }]) {
+      const response = await app.inject({ url: '/api/observability', headers: auth });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ resource: { scope: 'server-only', processCount: 1 },
+        usage: { taskCount: 0, runCount: 0, inputTokens: null, costUsd: null, credits: null }, activeJobs: [] });
+    }
+  });
+
+  test('observability scopes usage to a plan and keeps native/app resource scope explicit', async () => {
+    const first = store.createPlan({ name: 'first', repoPath: repo, baseBranch: 'main' });
+    const second = store.createPlan({ name: 'second', repoPath: root, baseBranch: 'main' });
+    for (const [plan, inputTokens, credits] of [[first, 100, 1.5], [second, 200, 2.5]] as const) {
+      const task = store.createTask({ planId: plan.id, agent: 'qodercli', title: 'usage', branch: 'unused', worktreePath: root, checkCmd: null });
+      const run = store.createRun({ taskId: task.id, agent: 'qodercli', brief: '', note: null });
+      store.updateRun(run.id, { status: 'done', inputTokens, outputTokens: 10, costUsd: 0.1 });
+      store.appendEvent(run.id, { kind: 'usage', inputTokens, outputTokens: 10, costUsd: 0.1 });
+      store.appendEvent(run.id, { kind: 'usage', credits } as Parameters<Store['appendEvent']>[1]);
+    }
+    const all = (await app.inject({ url: '/api/observability', headers })).json();
+    expect(all.usage).toMatchObject({ taskCount: 2, runCount: 2, inputTokens: 300, outputTokens: 20, costUsd: 0.2, credits: 4 });
+    const scoped = (await app.inject({ url: `/api/observability?planId=${first.id}`, headers })).json();
+    expect(scoped.usage).toMatchObject({ planId: first.id, taskCount: 1, runCount: 1, inputTokens: 100, credits: 1.5,
+      coverage: { tokenRuns: 1, costRuns: 1, creditRuns: 1, totalRuns: 1 } });
+    expect(scoped.plans).toHaveLength(2);
+    expect(scoped.runs).toHaveLength(1);
+    expect(scoped.resource.scope).toBe('server-only');
+  });
+
+  test('observability rejects an unknown plan or empty plan identifier', async () => {
+    expect((await app.inject({ url: '/api/observability?planId=missing', headers })).statusCode).toBe(404);
+    expect((await app.inject({ url: '/api/observability?planId=', headers })).statusCode).toBe(400);
   });
 
   test('serves static assets and SPA fallback publicly, with no fallback for API or WS paths', async () => {

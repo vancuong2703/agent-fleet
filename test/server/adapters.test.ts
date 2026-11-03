@@ -127,6 +127,42 @@ describe('qodercli parser', () => {
 });
 
 describe('agy parser', () => {
+  test('surfaces a headless permission denial as an error and preserves its raw diagnostic', () => {
+    const parse = getAdapter('agy').createParser();
+    const message = 'permission check failed for unsandboxed "node check.cjs": user denied permission to run command';
+    const line = JSON.stringify({ event: 'step_update', step_update: {
+      state: 'ERROR', step_type: 'tool', tool_name: 'run_command',
+      tool_info: { error: { type: 'TOOL_ERROR', message } },
+    } });
+    expect(parse(line, 'stdout')).toEqual([
+      { kind: 'raw', stream: 'stdout', text: line },
+      { kind: 'error', category: 'permission', text: message },
+    ]);
+    const stderr = 'jetski: no output produced — a tool required the "command" permission that headless mode cannot prompt for, so it was auto-denied.';
+    expect(parse(stderr, 'stderr')).toContainEqual({ kind: 'error', category: 'permission', text: stderr });
+    // Quoted content on stdout is not a CLI permission diagnostic.
+    expect(parse(stderr, 'stdout')).toEqual([{ kind: 'raw', stream: 'stdout', text: stderr }]);
+  });
+
+  test('failed result cannot be mistaken for success even without a tool error', () => {
+    const parse = getAdapter('agy').createParser();
+    expect(parse(JSON.stringify({ event: 'result', result: {
+      status: 'ERROR', error: { message: 'Backend unavailable' },
+    } }), 'stdout')).toContainEqual({ kind: 'error', category: 'agent', text: 'Backend unavailable' });
+  });
+
+  test('keeps recoverable non-permission tool failures raw and exposes command details on completion', () => {
+    const parse = getAdapter('agy').createParser();
+    const line = JSON.stringify({ event: 'step_update', step_update: {
+      state: 'ERROR', step_type: 'tool', tool_info: { error: { message: 'File not found' } },
+    } });
+    expect(parse(line, 'stdout')).toEqual([{ kind: 'raw', stream: 'stdout', text: line }]);
+    expect(parse(JSON.stringify({ event: 'step_update', step_update: {
+      state: 'DONE', step_type: 'tool', tool_name: 'run_command',
+      tool_info: { parameters: { CommandLine: 'node check.cjs' } },
+    } }), 'stdout')).toEqual([{ kind: 'tool', name: 'run_command', detail: 'node check.cjs' }]);
+  });
+
   test('accumulates text deltas into one message and still keeps every chunk', () => {
     const events = parseAll('agy');
 

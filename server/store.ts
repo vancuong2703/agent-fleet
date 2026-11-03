@@ -54,6 +54,8 @@ const RUN_COLUMNS = [
   'finalMessage',
   'errorCategory',
   'sessionId',
+  'commandPolicy',
+  'allowedCommands',
 ] as const;
 
 /** `id` is never patched: it is the primary key used to locate the row. */
@@ -124,6 +126,10 @@ export class Store {
       CREATE INDEX IF NOT EXISTS idx_runs_taskId ON runs (taskId, attempt);
       CREATE INDEX IF NOT EXISTS idx_runs_status ON runs (status);
     `);
+    // Additive migration preserves existing task/run history on desktop upgrade.
+    const runColumns = this.db.prepare('PRAGMA table_info(runs)').all() as Row[];
+    if (!runColumns.some(column => column.name === 'commandPolicy')) this.db.exec("ALTER TABLE runs ADD COLUMN commandPolicy TEXT NOT NULL DEFAULT 'ask'");
+    if (!runColumns.some(column => column.name === 'allowedCommands')) this.db.exec("ALTER TABLE runs ADD COLUMN allowedCommands TEXT NOT NULL DEFAULT '[]'");
   }
 
   /** Close the connection (and its WAL handles). */
@@ -238,7 +244,7 @@ export class Store {
 
   // ── runs ─────────────────────────────────────────────────────────────────
 
-  createRun(r: Pick<Run, 'taskId' | 'agent' | 'brief' | 'note'>): Run {
+  createRun(r: Pick<Run, 'taskId' | 'agent' | 'brief' | 'note' | 'commandPolicy' | 'allowedCommands'>): Run {
     const maxRow = this.db
       .prepare('SELECT MAX(attempt) AS maxAttempt FROM runs WHERE taskId = ?')
       .get(r.taskId) as Row | undefined;
@@ -264,6 +270,8 @@ export class Store {
       finalMessage: null,
       errorCategory: null,
       sessionId: null,
+      commandPolicy: r.commandPolicy ?? 'ask',
+      allowedCommands: r.allowedCommands ?? [],
     };
     this.db
       .prepare(
@@ -384,6 +392,7 @@ function toDb(value: unknown): DbValue {
   if (value === null || value === undefined) return null;
   if (typeof value === 'boolean') return value ? 1 : 0;
   if (typeof value === 'number' || typeof value === 'string') return value;
+  if (Array.isArray(value) && value.every(item => typeof item === 'string')) return JSON.stringify(value);
   throw new TypeError(`cannot bind value of type ${typeof value} to SQLite`);
 }
 
@@ -434,7 +443,14 @@ function toRun(row: Row): Run {
     finalMessage: nullableString(row.finalMessage),
     errorCategory: nullableString(row.errorCategory) as ErrorCategory | null,
     sessionId: nullableString(row.sessionId),
+    commandPolicy: row.commandPolicy === 'auto' || row.commandPolicy === 'check-only' ? row.commandPolicy : 'ask',
+    allowedCommands: parseCommands(row.allowedCommands),
   };
+}
+
+function parseCommands(value: unknown): string[] {
+  try { const parsed: unknown = JSON.parse(String(value ?? '[]')); return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []; }
+  catch { return []; }
 }
 
 function nullableString(value: unknown): string | null {

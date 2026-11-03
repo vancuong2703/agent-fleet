@@ -75,6 +75,47 @@ async function finished(task: Task) {
 }
 
 describe('TaskService', () => {
+  test('waits for additional terminal owners before retrying a worktree and unregisters closed owners', async () => {
+    const task = await run();
+    await finished(task);
+    let guardCalls = 0;
+    const off = service.addWorktreeGuard(async id => {
+      expect(id).toBe(task.id);
+      expect(store.latestRun(id)?.attempt).toBe(1);
+      await new Promise(resolve => setTimeout(resolve, 10));
+      guardCalls++;
+    });
+    await service.retry(task.id, { note: 'Terminal owner cleaned' });
+    expect(guardCalls).toBe(1);
+    await finished(task);
+    off();
+    await service.retry(task.id, { note: 'Owner removed' });
+    await finished(task);
+    expect(guardCalls).toBe(1);
+  });
+
+  test('AGY approvals are audited and persisted per attempt, with explicit retry override', async () => {
+    service = new TaskService({ store, bus, config, adapters: fakeBacked });
+    const task = await service.run({ planId: plan.id, title: 'Approved command task', agent: 'agy', brief: 'tiny test', commandPolicy: 'auto' });
+    await finished(task);
+    expect(store.latestRun(task.id)).toMatchObject({ commandPolicy: 'auto', allowedCommands: [] });
+    expect(store.readEvents(store.latestRun(task.id)!.id).some(stored => stored.event.kind === 'tool' && stored.event.name === 'command_permissions' && stored.event.detail?.includes('command(*)'))).toBe(true);
+    await service.retry(task.id, { note: 'Only exact command now', commandPolicy: 'check-only', allowedCommands: ['node check.cjs'] });
+    await finished(task);
+    expect(store.latestRun(task.id)).toMatchObject({ commandPolicy: 'check-only', allowedCommands: ['node check.cjs'] });
+    await service.retry(task.id, { note: 'Keep policy' });
+    await finished(task);
+    expect(store.latestRun(task.id)?.commandPolicy).toBe('check-only');
+    await service.retry(task.id, { agent: 'codex', note: 'Agent changed' });
+    await finished(task);
+    expect(store.latestRun(task.id)).toMatchObject({ commandPolicy: 'ask', allowedCommands: [] });
+  });
+
+  test('invalid command approval input is rejected before creating a task', async () => {
+    await expect(service.run({ planId: plan.id, title: 'Bad input', agent: 'agy', brief: '', allowedCommands: ['one\ntwo'] })).rejects.toMatchObject({ code: 'bad_request' });
+    expect(store.listTasks()).toEqual([]);
+  });
+
   test('regenerates a colliding task id before creating the worktree', async () => {
     const first = await run();
     await finished(first);
@@ -344,7 +385,7 @@ describe('TaskService', () => {
     expect((await finished(await run('[[hang]]'))).run!.status).toBe('timeout');
   });
 
-  test('persists usage, session and failed check without changing done status', async () => {
+  test('persists usage, session and failed check as a failed run', async () => {
     await service.close();
     const data = [
       { type: 'usage', inputTokens: 5, outputTokens: 2, costUsd: 0.1 },
@@ -354,7 +395,18 @@ describe('TaskService', () => {
       ...fakeBacked(id), headless: () => ({ cmd: process.execPath, args: ['-e', `process.stdout.write(${JSON.stringify(data)})`] }),
     }) });
     const task = await service.run({ planId: plan.id, agent: 'fake', title: 'usage', brief: 'hi', checkCmd: 'exit 1' });
-    expect((await finished(task)).run).toMatchObject({ status: 'done', checkPassed: false, inputTokens: 5, outputTokens: 2, costUsd: 0.1, sessionId: 'session-1', finalMessage: 'finished' });
+    expect((await finished(task)).run).toMatchObject({ status: 'failed', errorCategory: 'check', checkPassed: false, inputTokens: 5, outputTokens: 2, costUsd: 0.1, sessionId: 'session-1', finalMessage: 'finished' });
+    await expect(service.merge(task.id)).rejects.toMatchObject({ code: 'invalid_state' });
+  });
+
+  test.each([{ checkPassed: false }, { errorCategory: 'permission' as const }])('refuses legacy done runs with %j before committing', async (patch) => {
+    const task = await run();
+    await finished(task);
+    store.updateRun(store.latestRun(task.id)!.id, patch);
+    const commit = vi.spyOn(worktree, 'commitAll');
+    await expect(service.merge(task.id)).rejects.toMatchObject({ code: 'invalid_state' });
+    expect(commit).not.toHaveBeenCalled();
+    expect(store.getTask(task.id)?.status).toBe('done');
   });
 
   test('rejects unknown ids and invalid lifecycle transitions', async () => {

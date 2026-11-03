@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { Command, InvalidArgumentError, Option } from 'commander';
-import type { DiffFile, Plan, Run, StoredEvent, Task, TaskResult } from '../shared/types.js';
+import type { CommandPolicy, DiffFile, Plan, Run, StoredEvent, Task, TaskResult } from '../shared/types.js';
+import { runDiagnostic, successfulResult } from '../shared/run-diagnostics.js';
 import type { MergeResult } from '../server/worktree.js';
 import { files } from '../server/paths.js';
 import { ApiError, apiRequest, ensureServer, stopServer } from './client.js';
@@ -43,6 +44,7 @@ function elapsed(ms: number): string {
 function taskLine(task: Task, run: Run | null): string {
   const details: string[] = [];
   if (run?.checkPassed != null) details.push(`check ${run.checkPassed ? '✓' : '✗'}`);
+  if (run?.errorCategory) details.push(`error ${run.errorCategory}`);
   if (run?.durationMs != null) details.push(elapsed(run.durationMs));
   return `${task.id}  ${task.status}  ${task.agent}  ${task.title}${details.length ? `  (${details.join(', ')})` : ''}`;
 }
@@ -54,6 +56,8 @@ function printFiles(files: DiffFile[]): void {
 function printResult(result: TaskResult): void {
   console.log(taskLine(result.task, result.run));
   if (result.run?.finalMessage) console.log(result.run.finalMessage);
+  const diagnostic = runDiagnostic(result.run);
+  if (diagnostic) console.log(`${diagnostic}\nfleet log ${result.task.id}`);
   printFiles(result.files);
 }
 
@@ -68,6 +72,7 @@ function printEvents(events: StoredEvent[]): void {
       case 'tool': console.log(`${event.name}${event.detail ? `  ${event.detail}` : ''}`); break;
       case 'session': console.log(`session ${event.id}`); break;
       case 'usage': console.log(JSON.stringify(event)); break;
+      case 'model': console.log(`model ${event.model}${event.provider ? ` (${event.provider})` : ''}`); break;
     }
   }
 }
@@ -91,11 +96,13 @@ program.command('run').requiredOption('--plan <id>').requiredOption('--agent <ag
   .addOption(new Option('--brief <file>').conflicts('briefText'))
   .addOption(new Option('--brief-text <text>').conflicts('brief'))
   .option('--check <cmd>')
-  .action(async (opts: { plan: string; agent: string; title: string; brief?: string; briefText?: string; check?: string }) => {
+  .addOption(new Option('--command-policy <policy>', 'AGY command approval for this run').choices(['ask', 'check-only', 'auto']))
+  .option('--allow-command <command>', 'Explicit command to allow for check-only policy (repeatable)', (value: string, previous: string[] = []) => [...previous, value])
+  .action(async (opts: { plan: string; agent: string; title: string; brief?: string; briefText?: string; check?: string; commandPolicy?: CommandPolicy; allowCommand?: string[] }) => {
     if (opts.brief === undefined && opts.briefText === undefined) throw new Error('Provide --brief <file> or --brief-text <text>');
     const brief = opts.brief === undefined ? opts.briefText! : await readFile(path.win32.resolve(opts.brief), 'utf8');
     const task = await apiRequest<Task>(await ensureServer(), '/api/tasks', {
-      planId: opts.plan, agent: opts.agent, title: opts.title, brief, checkCmd: opts.check,
+      planId: opts.plan, agent: opts.agent, title: opts.title, brief, checkCmd: opts.check, commandPolicy: opts.commandPolicy, allowedCommands: opts.allowCommand,
     });
     output(task, () => console.log(task.id));
   });
@@ -104,7 +111,7 @@ program.command('wait <ids...>').option('--timeout <duration>', 'Maximum wait', 
   .action(async (ids: string[], opts: { timeout: number }) => {
     const results = await apiRequest<TaskResult[]>(await ensureServer(), '/api/wait', { ids, timeoutMs: opts.timeout });
     output(results, () => { for (const result of results) printResult(result); });
-    if (results.some((result) => result.task.status !== 'done')) process.exitCode = 1;
+    if (results.some((result) => !successfulResult(result))) process.exitCode = 1;
   });
 
 program.command('result <id>').action(async (id: string) => {
@@ -143,8 +150,10 @@ program.command('diff <id>').option('--stat').action(async (id: string, opts: { 
 });
 
 program.command('retry <id>').option('--agent <agent>').requiredOption('--note <text>')
-  .action(async (id: string, opts: { agent?: string; note: string }) => {
-    const run = await apiRequest<Run>(await ensureServer(), `${taskRoute(id)}/retry`, { agent: opts.agent, note: opts.note });
+  .addOption(new Option('--command-policy <policy>', 'AGY command approval for this run').choices(['ask', 'check-only', 'auto']))
+  .option('--allow-command <command>', 'Explicit command to allow (repeatable)', (value: string, previous: string[] = []) => [...previous, value])
+  .action(async (id: string, opts: { agent?: string; note: string; commandPolicy?: CommandPolicy; allowCommand?: string[] }) => {
+    const run = await apiRequest<Run>(await ensureServer(), `${taskRoute(id)}/retry`, { agent: opts.agent, note: opts.note, commandPolicy: opts.commandPolicy, allowedCommands: opts.allowCommand });
     output(run, () => console.log(`${id}  ${run.status}  ${run.agent}  attempt ${run.attempt}  ${run.id}`));
   });
 

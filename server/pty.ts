@@ -5,6 +5,7 @@ export interface PtyTarget {
   cmd: string;
   args: string[];
   cwd: string;
+  env?: Record<string, string>;
 }
 
 /** Resolves the command a task's terminal should run (adapter `interactive()`). */
@@ -31,8 +32,10 @@ class NodePtySession implements PtySession {
   private readonly pty: IPty;
   private readonly dataListeners = new Set<(data: string) => void>();
   private readonly exitListeners = new Set<(code: number) => void>();
-  private buffer = '';
+  private buffer = '\x1b[0m\x1b[49m';
   private exitCode: number | null = null;
+  private cols: number;
+  private rows: number;
 
   constructor(
     target: PtyTarget,
@@ -40,13 +43,15 @@ class NodePtySession implements PtySession {
     rows: number,
     private readonly onExited: (session: NodePtySession, code: number) => void,
   ) {
+    this.cols = cols;
+    this.rows = rows;
     this.pty = spawn(target.cmd, target.args, {
       cwd: target.cwd,
       cols,
       rows,
       name: 'xterm-256color',
       // Some CLIs (opencode) take PWD over the real cwd; keep it on the task's worktree.
-      env: { ...process.env, PWD: target.cwd },
+      env: { ...process.env, PWD: target.cwd, TERM: 'xterm-256color', COLORTERM: 'truecolor', ...target.env },
     });
 
     this.pty.onData((chunk) => {
@@ -89,7 +94,9 @@ class NodePtySession implements PtySession {
   }
 
   resize(cols: number, rows: number): void {
-    if (this.exitCode === null && cols > 0 && rows > 0) this.pty.resize(cols, rows);
+    if (this.exitCode !== null || cols <= 0 || rows <= 0 || (cols === this.cols && rows === this.rows)) return;
+    this.cols = cols; this.rows = rows;
+    this.pty.resize(cols, rows);
   }
 
   kill(): void {
@@ -113,12 +120,18 @@ export class PtyManager {
   constructor(private readonly resolve: PtyResolver) {}
 
   open(taskId: string, cols = 80, rows = 24): PtySession {
+    return this.openTarget(taskId, this.sessions.has(taskId) ? undefined : this.resolve(taskId), cols, rows);
+  }
+
+  /** A server-owned command target for a dashboard terminal; never client argv. */
+  openTarget(taskId: string, target: PtyTarget | undefined, cols = 80, rows = 24): PtySession {
     const existing = this.sessions.get(taskId);
     if (existing) {
       existing.resize(cols, rows);
       return existing;
     }
-    const session = new NodePtySession(this.resolve(taskId), cols, rows, (exited) => {
+    if (!target) throw new Error(`Missing terminal target: ${taskId}`);
+    const session = new NodePtySession(target, cols, rows, (exited) => {
       // A dead shell frees the slot so the next open starts a fresh one.
       if (this.sessions.get(taskId) === exited) this.sessions.delete(taskId);
     });

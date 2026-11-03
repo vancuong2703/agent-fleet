@@ -11,6 +11,10 @@ const WRITE_TOOLS: ReadonlySet<string> = new Set([
   'sed_file',
 ]);
 
+function permissionDenied(text: string): boolean {
+  return /permission check failed|user denied permission|headless mode cannot prompt|auto-denied/i.test(text);
+}
+
 function parameterPath(parameters: Record<string, unknown> | null): string | undefined {
   if (!parameters) return undefined;
   return (
@@ -33,7 +37,14 @@ function createAgyParser(): LineParser {
 
   return (line, stream): FleetEvent[] => {
     const record = parseJsonRecord(line);
-    if (!record) return [rawEvent(line, stream)];
+    if (!record) {
+      // Print mode can exit 0 after denying a tool. Keep the original diagnostic
+      // and surface the failure instead of hiding it inside collapsed raw logs.
+      if (stream === 'stderr' && /^jetski:/.test(line) && permissionDenied(line)) {
+        return [rawEvent(line, stream), { kind: 'error', category: 'permission', text: line }];
+      }
+      return [rawEvent(line, stream)];
+    }
 
     switch (asString(record.event)) {
       case 'init': {
@@ -59,6 +70,14 @@ function createAgyParser(): LineParser {
         }
 
         if (stepType === 'tool') {
+          if (state === 'ERROR') {
+            const toolInfo = asRecord(step.tool_info);
+            const error = toolInfo ? asRecord(toolInfo.error) : null;
+            const message = error ? asString(error.message) : undefined;
+            if (message && permissionDenied(message)) {
+              return [rawEvent(line, stream), { kind: 'error', category: 'permission', text: message }];
+            }
+          }
           if (state !== 'DONE') return [rawEvent(line, stream)];
           const toolInfo = asRecord(step.tool_info);
           const toolName =
@@ -68,7 +87,7 @@ function createAgyParser(): LineParser {
           if (path !== undefined && WRITE_TOOLS.has(toolName)) {
             return [{ kind: 'file_edit', path }];
           }
-          const detail = path ?? (parameters ? asString(parameters.command) : undefined);
+          const detail = path ?? (parameters ? asString(parameters.CommandLine) ?? asString(parameters.command) : undefined);
           return detail === undefined
             ? [{ kind: 'tool', name: toolName }]
             : [{ kind: 'tool', name: toolName, detail }];
@@ -96,6 +115,13 @@ function createAgyParser(): LineParser {
           if (!emittedMessage && response !== undefined && response.length > 0) {
             events.push({ kind: 'message', text: response });
             emittedMessage = true;
+          }
+          const status = asString(result.status);
+          if (status && status !== 'SUCCESS') {
+            const error = asRecord(result.error);
+            const message = (error ? asString(error.message) : undefined)
+              ?? asString(result.error) ?? response ?? `AGY ended with status ${status}`;
+            events.push({ kind: 'error', category: permissionDenied(message) ? 'permission' : 'agent', text: message });
           }
         }
         return events.length > 0 ? events : [rawEvent(line, stream)];

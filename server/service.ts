@@ -5,6 +5,7 @@ import type { AgentAdapter } from './adapters/types.js';
 import type { Bus } from './bus.js';
 import type { FleetConfig } from './config.js';
 import { newId } from './ids.js';
+import { agyCommandArgs, validateCommandOptions, type CommandOptions } from './command-permissions.js';
 import { files } from './paths.js';
 import { isAlive, killTree, processImage } from './process.js';
 import { runAttempt, type RunOutcome } from './runner.js';
@@ -38,6 +39,7 @@ export class TaskService {
   // Reserve capacity before the runner's asynchronous brief write/spawn.
   private readonly active = new Map<string, ActiveAttempt>();
   private readonly taskLocks = new Map<string, Promise<void>>();
+  private readonly worktreeGuards = new Set<(taskId: string) => Promise<void> | void>();
   private closed = false;
 
   constructor(o: { store: Store; bus: Bus; config: FleetConfig; adapters?: (id: AgentId) => AgentAdapter; onBeforeWorktreeChange?: (taskId: string) => Promise<void> | void }) {
@@ -46,6 +48,17 @@ export class TaskService {
     this.config = o.config;
     this.adapters = o.adapters ?? getAdapter;
     this.onBeforeWorktreeChange = o.onBeforeWorktreeChange;
+  }
+
+  /** Extra terminal owners can register cleanup without replacing the task PTY hook. */
+  addWorktreeGuard(guard: (taskId: string) => Promise<void> | void): () => void {
+    this.worktreeGuards.add(guard);
+    return () => { this.worktreeGuards.delete(guard); };
+  }
+
+  private async prepareWorktree(taskId: string): Promise<void> {
+    await this.onBeforeWorktreeChange?.(taskId);
+    for (const guard of this.worktreeGuards) await guard(taskId);
   }
 
   async createPlan(i: { name: string; repoPath: string; baseBranch?: string }): Promise<Plan> {
@@ -63,8 +76,12 @@ export class TaskService {
     return plan;
   }
 
-  async run(i: { planId: string; agent: AgentId; title: string; brief: string; checkCmd?: string }): Promise<Task> {
+  async run(i: { planId: string; agent: AgentId; title: string; brief: string; checkCmd?: string } & CommandOptions): Promise<Task> {
     this.assertOpen();
+    try { validateCommandOptions(i); } catch (error) { throw new FleetError('bad_request', String(error)); }
+    if (i.agent !== 'agy' && ((i.commandPolicy !== undefined && i.commandPolicy !== 'ask') || i.allowedCommands?.length)) {
+      throw new FleetError('bad_request', 'Command approval policies are currently supported by AGY only');
+    }
     const plan = this.plan(i.planId);
     await this.available(i.agent);
     this.assertOpen();
@@ -79,23 +96,30 @@ export class TaskService {
     await createWorktree({ repoPath: plan.repoPath, baseBranch: plan.baseBranch, branch, path: worktreePath });
     const task = this.store.createTask({ id, planId: plan.id, agent: i.agent, title: i.title, branch, worktreePath, checkCmd: i.checkCmd ?? null });
     this.bus.emit({ type: 'task', task });
-    this.createRun({ taskId: id, agent: i.agent, brief: i.brief, note: null });
+    this.createRun({ taskId: id, agent: i.agent, brief: i.brief, note: null, commandPolicy: i.commandPolicy, allowedCommands: i.allowedCommands });
     this.schedule();
     return this.task(id);
   }
 
-  retry(taskId: string, i: { agent?: AgentId; note: string }): Promise<Run> {
+  retry(taskId: string, i: { agent?: AgentId; note: string } & CommandOptions): Promise<Run> {
+    try { validateCommandOptions(i); } catch (error) { return Promise.reject(new FleetError('bad_request', String(error))); }
     return this.withTask(taskId, async () => {
-      await this.onBeforeWorktreeChange?.(taskId);
+      await this.prepareWorktree(taskId);
       this.assertOpen();
       const task = this.task(taskId);
       this.requireState(task, retryable);
       const agent = i.agent ?? task.agent;
+      if (agent !== 'agy' && ((i.commandPolicy !== undefined && i.commandPolicy !== 'ask') || i.allowedCommands?.length)) {
+        throw new FleetError('bad_request', 'Command approval policies are currently supported by AGY only');
+      }
       await this.available(agent);
       const original = this.store.listRuns({ taskId })[0];
       if (!original) throw new FleetError('invalid_state', 'Task has no original run');
       const attempt = this.latest(taskId).attempt + 1;
-      const run = this.createRun({ taskId, agent, note: i.note, brief: `${original.brief}\n\n## Ghi chú lần thử ${attempt}\n${i.note}` });
+      const previous = this.latest(taskId);
+      const run = this.createRun({ taskId, agent, note: i.note, brief: `${original.brief}\n\n## Ghi chú lần thử ${attempt}\n${i.note}`,
+        commandPolicy: i.commandPolicy ?? (previous.agent === agent ? previous.commandPolicy : 'ask'),
+        allowedCommands: i.allowedCommands ?? (previous.agent === agent ? previous.allowedCommands : []) });
       this.updateTask(taskId, { agent, status: 'queued', finishedAt: null });
       this.schedule();
       return this.store.getRun(run.id)!;
@@ -125,9 +149,15 @@ export class TaskService {
 
   merge(taskId: string): Promise<MergeResult> {
     return this.withTask(taskId, async () => {
-      await this.onBeforeWorktreeChange?.(taskId);
+      await this.prepareWorktree(taskId);
       const task = this.task(taskId);
       this.requireState(task, new Set(['done']));
+      // Older versions stored done even when checks failed. Reject those runs
+      // before committing the worktree, too.
+      const run = this.latest(taskId);
+      if (run.checkPassed === false || run.errorCategory !== null) {
+        throw new FleetError('invalid_state', 'Task has a failed check or agent error; retry and review before merging');
+      }
       const plan = this.plan(task.planId);
       await commitAll(task.worktreePath, `fleet: ${task.title}`);
       const result = await mergeBranch({ repoPath: plan.repoPath, baseBranch: plan.baseBranch, branch: task.branch });
@@ -142,7 +172,7 @@ export class TaskService {
 
   discard(taskId: string): Promise<void> {
     return this.withTask(taskId, async () => {
-      await this.onBeforeWorktreeChange?.(taskId);
+      await this.prepareWorktree(taskId);
       const task = this.task(taskId);
       if (task.status === 'merged' || task.status === 'discarded') throw new FleetError('invalid_state', `Task is ${task.status}`);
       if (pending(task)) await this.stopAttempt(task);
@@ -222,8 +252,10 @@ export class TaskService {
     const cfg = getAdapterConfig(run.agent, this.config);
     let outcome: RunOutcome;
     try {
+      const approval = run.agent === 'agy' ? agyCommandArgs(cfg.extraArgs, run, task.checkCmd, task.worktreePath) : { args: cfg.extraArgs, rules: [] };
+      if (approval.rules.length) this.event(run, { kind: 'tool', name: 'command_permissions', detail: `AGY ${run.commandPolicy}: ${approval.rules.join(', ')} (session only)` });
       outcome = await runAttempt({
-        adapter: this.adapters(run.agent), bin: cfg.bin!, extraArgs: cfg.extraArgs,
+        adapter: this.adapters(run.agent), bin: cfg.bin!, extraArgs: approval.args,
         brief: run.brief, briefFile: files.brief(run.id), cwd: task.worktreePath, checkCmd: task.checkCmd,
         timeouts: { totalMs: this.config.timeouts.totalMin * 60_000, idleMs: this.config.timeouts.idleMin * 60_000 },
         signal,
@@ -269,7 +301,7 @@ export class TaskService {
     this.bus.emit({ type: 'event', taskId: run.taskId, stored });
   }
 
-  private createRun(input: Pick<Run, 'taskId' | 'agent' | 'brief' | 'note'>): Run {
+  private createRun(input: Pick<Run, 'taskId' | 'agent' | 'brief' | 'note' | 'commandPolicy' | 'allowedCommands'>): Run {
     const run = this.store.createRun(input);
     this.bus.emit({ type: 'run', run });
     return run;

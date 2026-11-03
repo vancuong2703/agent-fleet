@@ -65,11 +65,24 @@ export function addEvents(
   runId: string,
   incoming: StoredEvent[],
 ): FleetState {
-  const merged = new Map<number, StoredEvent>();
-  for (const event of state.eventsByRun[runId] ?? []) merged.set(event.seq, event);
-  for (const event of incoming) merged.set(event.seq, event);
-  const ordered = [...merged.values()].sort((a, b) => a.seq - b.seq);
-  return { ...state, eventsByRun: { ...state.eventsByRun, [runId]: ordered } };
+  const existing = state.eventsByRun[runId] ?? [];
+  let ordered: StoredEvent[];
+  // Streaming usually appends one monotonically increasing sequence number;
+  // avoid sorting thousands of existing rows for every output line.
+  if (incoming.length === 1 && (!existing.length || incoming[0]!.seq > existing[existing.length - 1]!.seq)) {
+    ordered = [...existing, incoming[0]!].slice(-4_000);
+  } else {
+    const merged = new Map<number, StoredEvent>();
+    for (const event of existing) merged.set(event.seq, event);
+    for (const event of incoming) merged.set(event.seq, event);
+    ordered = [...merged.values()].sort((a, b) => a.seq - b.seq).slice(-4_000);
+  }
+  const eventsByRun = { ...state.eventsByRun };
+  // Refresh insertion order, keeping at most 30 recently streamed/opened logs.
+  delete eventsByRun[runId];
+  eventsByRun[runId] = ordered;
+  for (const key of Object.keys(eventsByRun).slice(0, -30)) delete eventsByRun[key];
+  return { ...state, eventsByRun };
 }
 
 // ── selectors ───────────────────────────────────────────────────────────────
@@ -230,8 +243,11 @@ export function eventText(event: FleetEvent): string {
       if (event.inputTokens !== undefined) parts.push(`in ${event.inputTokens}`);
       if (event.outputTokens !== undefined) parts.push(`out ${event.outputTokens}`);
       if (event.costUsd !== undefined) parts.push(`$${event.costUsd.toFixed(4)}`);
+      if (event.credits !== undefined) parts.push(`${event.credits.toFixed(3)} credit`);
       return parts.length > 0 ? parts.join(' · ') : 'usage';
     }
+    case 'model':
+      return `${event.provider ? `${event.provider} / ` : ''}${event.model}${event.source === 'configured' ? ' (cấu hình)' : ''}`;
     case 'session':
       return event.id;
     case 'error':
@@ -275,7 +291,7 @@ export type TaskAction = 'stop' | 'markDone' | 'merge' | 'discard';
 /**
  * Which actions apply to a status:
  * running → Dừng; taken_over → Đánh dấu xong; done/failed/timeout/interrupted
- * → Merge + Huỷ; everything else (queued/merged/discarded) → none.
+ * → Huỷ; only done offers Merge. Queued/merged/discarded → none.
  */
 export function taskActions(status: TaskStatus): TaskAction[] {
   switch (status) {
@@ -284,10 +300,11 @@ export function taskActions(status: TaskStatus): TaskAction[] {
     case 'taken_over':
       return ['markDone'];
     case 'done':
+      return ['merge', 'discard'];
     case 'failed':
     case 'timeout':
     case 'interrupted':
-      return ['merge', 'discard'];
+      return ['discard'];
     default:
       return [];
   }
@@ -331,15 +348,48 @@ export function useFleet(): FleetStore {
   const [state, setState] = useState<FleetState>(initialFleetState);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const mounted = useRef(true);
+  const loadedRuns = useRef<Set<string>>(new Set());
+  const loadingRuns = useRef<Set<string>>(new Set());
+  const buffered = useRef<BusMsg[] | null>(null);
+  const hydrating = useRef(false);
+
+  const fetchEvents = useCallback(async (runId: string, catchUp = false): Promise<void> => {
+    if (loadingRuns.current.has(runId)) return;
+    const existing = stateRef.current.eventsByRun[runId];
+    if (!catchUp && loadedRuns.current.has(runId) && existing) return;
+    loadingRuns.current.add(runId);
+    try {
+      const afterSeq = catchUp && existing?.length ? existing[existing.length - 1]!.seq : undefined;
+      const events = await api.events(runId, afterSeq === undefined ? { tail: 4_000 } : { afterSeq, tail: 4_000 });
+      if (!mounted.current) return;
+      loadedRuns.current.add(runId);
+      // Bound bookkeeping as well as the actual event buffers.
+      for (const key of [...loadedRuns.current].slice(0, -30)) loadedRuns.current.delete(key);
+      setState((current) => addEvents(current, runId, events));
+    } catch {
+      loadedRuns.current.delete(runId);
+    } finally {
+      loadingRuns.current.delete(runId);
+    }
+  }, []);
 
   const hydrate = useCallback(() => {
+    if (hydrating.current) return;
+    hydrating.current = true;
+    buffered.current = [];
     void (async () => {
       try {
         const plans = await api.plans();
         const tasks = await api.tasks();
         const runLists = await Promise.all(
-          tasks.map((task) => api.runs(task.id).catch(() => [] as Run[])),
+          tasks.map((task) => api.runs(task.id)),
         );
+        if (!mounted.current) return;
+        const pending = buffered.current?.slice() ?? [];
+        buffered.current = null;
         setState((current) => {
           let next = current;
           for (const plan of plans) next = reduceFleet(next, { type: 'plan', plan });
@@ -347,37 +397,51 @@ export function useFleet(): FleetStore {
           for (const runs of runLists) {
             for (const run of runs) next = reduceFleet(next, { type: 'run', run });
           }
+          // A GET may return a snapshot older than a push that arrived while it
+          // was in flight. Replay that push after the snapshot to preserve it.
+          for (const message of pending) next = reduceFleet(next, message);
           return next;
         });
         setError(null);
+        await Promise.all([...loadedRuns.current].map((runId) => fetchEvents(runId, true)));
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : String(cause));
+        if (mounted.current) setError(cause instanceof Error ? cause.message : String(cause));
+      } finally {
+        buffered.current = null;
+        hydrating.current = false;
       }
     })();
-  }, []);
+  }, [fetchEvents]);
 
   useEffect(() => {
+    mounted.current = true;
     hydrate();
     const close = connectBus({
-      onMessage: (message) => setState((current) => reduceFleet(current, message)),
-      onOpen: () => setConnected(true),
+      onMessage: (message) => {
+        buffered.current?.push(message);
+        setState((current) => reduceFleet(current, message));
+      },
+      onOpen: () => { setConnected(true); hydrate(); },
       onClose: () => setConnected(false),
     });
-    return close;
+    const refreshVisible = () => { if (document.visibilityState !== 'hidden') hydrate(); };
+    // Reconcile missed pushes (sleep/resume, reconnect, or a transport proxy).
+    // Healthy streaming remains immediate; this slow fallback limits idle work.
+    const timer = window.setInterval(refreshVisible, 15_000);
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+    return () => {
+      mounted.current = false;
+      close();
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
   }, [hydrate]);
 
-  const loadedRuns = useRef<Set<string>>(new Set());
   const loadEvents = useCallback((runId: string) => {
-    if (loadedRuns.current.has(runId)) return;
-    loadedRuns.current.add(runId);
-    void api
-      .events(runId)
-      .then((events) => setState((current) => addEvents(current, runId, events)))
-      .catch(() => {
-        // Allow a retry on the next selection; the WS stream still fills in live.
-        loadedRuns.current.delete(runId);
-      });
-  }, []);
+    void fetchEvents(runId);
+  }, [fetchEvents]);
 
   return { state, connected, error, reload: hydrate, loadEvents };
 }

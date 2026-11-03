@@ -54,9 +54,11 @@ hoặc ghi trong brief để agent cài trước khi làm.
 Chọn agent khác bằng `--agent qodercli`, `--agent agy` hoặc `--agent opencode`.
 Có thể chờ nhiều task: `fleet wait <id1> <id2> --timeout 30m --json`.
 `wait` hết hạn có thể trả về task còn chạy; đọc `task.status` trước khi hành động.
-Mã thoát của `wait` là 0 khi mọi task `done`, 1 trong các trường hợp còn lại.
-`done` chỉ cho biết agent thoát thành công; luôn đọc `run.checkPassed` vì check
-thất bại vẫn có thể đi kèm trạng thái `done`.
+Mã thoát của `wait` là 0 khi mọi task `done`, không có lỗi agent và không có
+check thất bại; 1 trong các trường hợp còn lại. Từ bản 1.1.0, lỗi agent hoặc
+check thất bại chuyển task sang `failed`, kể cả agent thoát với mã 0. Dữ liệu
+trước 1.1.0 có thể vẫn là `done` kèm check thất bại: luôn đọc `run.checkPassed`
+và `run.errorCategory`. Check PASS không thay thế việc review kết quả.
 
 Nếu chưa đạt, gửi ghi chú cụ thể rồi đợi và review lại:
 
@@ -69,6 +71,35 @@ fleet diff $task.id
 
 Retry tạo lần chạy mới trong cùng worktree, giữ brief gốc và thêm ghi chú.
 Có thể đổi agent: `fleet retry <id> --agent qodercli --note "Sửa lỗi còn lại" --json`.
+
+## AGY và quyền chạy lệnh
+
+Fleet mặc định gọi AGY bằng `--mode accept-edits`: agent có thể sửa file,
+nhưng một số lệnh cần người dùng duyệt. Chế độ headless không hiện được hộp hỏi
+nên AGY có thể từ chối lệnh rồi vẫn thoát 0. Fleet nhận diện trường hợp này là
+`failed`, `errorCategory: permission`; log giữ nguyên thông báo bị từ chối.
+Check độc lập của fleet có thể PASS trong khi agent vẫn bị lỗi quyền.
+
+Để duyệt tương tác, mở `fleet ui`, chọn task, bấm **Mở terminal** để tiếp tục
+phiên cũ. Nếu task còn chạy, dừng agent qua luồng tiếp quản trước khi thao tác.
+Sau khi xử lý quyền, retry để fleet chạy lại brief và check, ghi nhận kết quả mới.
+
+Để chạy headless, người vận hành có thể cấp trước đúng lệnh qua cấu hình AGY.
+Ví dụ cho `node check.cjs`, ghép phần này vào mục `agents.agy` trong
+`%LOCALAPPDATA%\agent-fleet\fleet.config.json`, giữ nguyên `bin` và các trường khác:
+
+```json
+{
+  "extraArgs": [
+    "--settings",
+    "{\"permissions\":{\"allow\":[\"command(node check.cjs)\"]}}"
+  ]
+}
+```
+
+Đây là ví dụ cấu hình, không tự được bật khi nâng cấp. Chỉ thêm lệnh đã được
+phép; cấu hình `extraArgs` áp dụng cho mọi task AGY dùng server đó. Khởi động
+lại fleet server để nạp cấu hình. Không cần bật bỏ qua toàn bộ kiểm tra quyền.
 
 ## Checklist trước khi merge
 

@@ -1,0 +1,22 @@
+ M README.md
+ M cli/fleet.ts
+ M docs/leader-guide.md
+ M package-lock.json
+ M package.json
+ M server/adapters/agy.ts
+ M server/runner.ts
+ M server/service.ts
+ M shared/types.ts
+ M test/cli/fleet.test.ts
+ M test/e2e/ui.spec.ts
+ M test/server/adapters.test.ts
+ M test/server/runner.test.ts
+ M test/server/service.test.ts
+ M test/web/store.test.ts
+ M web/src/App.tsx
+ M web/src/components/TaskActions.tsx
+ M web/src/components/TaskHeader.tsx
+ M web/src/store.ts
+ M web/src/theme.css
+?? UPDATE_FLEET.md
+?? shared/run-diagnostics.ts

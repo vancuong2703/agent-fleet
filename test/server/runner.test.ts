@@ -63,6 +63,18 @@ function scriptAdapter(script: string): AgentAdapter {
 }
 
 describe('runAttempt', () => {
+  test('usage attribution, duplicates and cumulative totals never inflate run accounting', async () => {
+    const usage: FleetEvent[] = [
+      { kind: 'usage', model: 'one', inputTokens: 10, outputTokens: 2, costUsd: 0.1, usageId: 'delta-one' },
+      { kind: 'usage', model: 'one', inputTokens: 10, outputTokens: 2, costUsd: 0.1, usageId: 'delta-one' },
+      { kind: 'usage', model: 'two', inputTokens: 300, costUsd: 99, attributionOnly: true },
+      { kind: 'usage', inputTokens: 24, outputTokens: 5, costUsd: 0.3, usageScope: 'cumulative', usageId: 'final' },
+    ];
+    const adapter: AgentAdapter = { ...scriptAdapter("console.log('usage')"), createParser: () => () => usage };
+    const outcome = await attempt('', { adapter });
+    expect(outcome).toMatchObject({ status: 'done', inputTokens: 24, outputTokens: 5, costUsd: 0.3 });
+  });
+
   test('child exit completes within five seconds even when a detached grandchild inherits stdout', async () => {
     const adapter = scriptAdapter(`
       const child = require('node:child_process').spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], {
@@ -165,9 +177,29 @@ describe('runAttempt', () => {
     expect(pids).toEqual([]);
   });
 
-  test.each([['exit 0', true], ['exit 1', false]] as const)('check %s records %s and leaves the run done', async (checkCmd, passed) => {
-    expect(await attempt('do x', { checkCmd })).toMatchObject({ status: 'done', exitCode: 0, checkPassed: passed });
+  test.each([['exit 0', true], ['exit 1', false]] as const)('check %s records %s and determines the final outcome', async (checkCmd, passed) => {
+    expect(await attempt('do x', { checkCmd })).toMatchObject({ status: passed ? 'done' : 'failed', exitCode: 0, checkPassed: passed, errorCategory: passed ? null : 'check' });
     expect(events).toContainEqual({ kind: 'check', cmd: checkCmd, passed, output: '' });
+  });
+
+  test('AGY permission denial remains failed even with exit 0 and a passing independent check', async () => {
+    const line = JSON.stringify({ event: 'step_update', step_update: {
+      state: 'ERROR', step_type: 'tool', tool_name: 'run_command',
+      tool_info: { error: { message: 'permission check failed: user denied permission to run command: node check.cjs' } },
+    } });
+    const adapter: AgentAdapter = {
+      ...getAdapter('agy'),
+      headless: () => ({ cmd: process.execPath, args: ['-e', `console.log(${JSON.stringify(line)})`] }),
+    };
+    expect(await attempt('', { adapter, checkCmd: 'exit 0' })).toMatchObject({
+      status: 'failed', exitCode: 0, errorCategory: 'permission', checkPassed: true,
+    });
+    expect(events).toContainEqual({ kind: 'check', cmd: 'exit 0', passed: true, output: '' });
+  });
+
+  test('explicit agent errors with exit 0 cannot produce a successful run', async () => {
+    const adapter = scriptAdapter(`console.log('{"type":"error","category":"auth","text":"Login required"}')`);
+    expect(await attempt('', { adapter })).toMatchObject({ status: 'failed', exitCode: 0, errorCategory: 'auth' });
   });
 
   test('does not run a check after agent failure', async () => {

@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
+import { createServer as createHttpServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -169,6 +170,35 @@ describe('fleet CLI', { timeout: 30_000 }, () => {
     const results: TaskResult[] = JSON.parse(response.stdout);
     expect(results[0]?.task.status).toBe('failed');
     expect(response.stdout).toBe(JSON.stringify(results, null, 2) + '\n');
+  });
+
+  test('failed checks make wait exit 1 and show a useful human diagnostic', async () => {
+    const task = await run('hi', ['--check', 'exit 1']);
+    const response = await cli('wait', task.id, '--json');
+    expect(response.code).toBe(1);
+    const results: TaskResult[] = JSON.parse(response.stdout);
+    expect(results[0]?.run).toMatchObject({ status: 'failed', errorCategory: 'check', checkPassed: false });
+    const human = await cli('result', task.id);
+    expect(human.stdout).toContain('Kiểm tra thất bại');
+    expect(human.stdout).toContain(`fleet log ${task.id}`);
+    expect((await cli('merge', task.id)).code).toBe(1);
+  });
+
+  test.each([{ checkPassed: false, errorCategory: null }, { checkPassed: true, errorCategory: 'permission' }])('wait rejects legacy done responses with %j', async (run) => {
+    const result = { task: { id: 't-legacy', status: 'done' }, run, files: [] };
+    await writeFile(path.join(dataDir, 'token'), 'test-token');
+    const server = createHttpServer((request, response) => {
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify(request.url === '/api/health' ? { ok: true } : [result]));
+    });
+    await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
+    try {
+      const response = await cli('wait', 't-legacy', '--json');
+      expect(response.code).toBe(1);
+      expect(JSON.parse(response.stdout)).toEqual([result]);
+    } finally {
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
   });
 
   test('list shows one task line with status, agent, title, check and duration', async () => {

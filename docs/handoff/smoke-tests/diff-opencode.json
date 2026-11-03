@@ -1,0 +1,10 @@
+{
+  "files": [
+    {
+      "path": "hello.txt",
+      "added": 1,
+      "removed": 0
+    }
+  ],
+  "patch": "diff --git a/hello.txt b/hello.txt\nnew file mode 100644\nindex 0000000..1c8126d\n--- /dev/null\n+++ b/hello.txt\n@@ -0,0 +1 @@\n+Fleet smoke test OK\n"
+}

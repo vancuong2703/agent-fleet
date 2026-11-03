@@ -1,4 +1,8 @@
-# Agent Fleet
+# Agent Fleet Desktop
+
+Bản **2.2.0**: ứng dụng Windows `.exe`, giao diện trắng/sáng/tối, cột kéo giãn,
+Terminal riêng giữ nhiều phiên CLI, cuộn chuột theo vùng và thống kê tài nguyên/token/credit theo công cụ và model.
+Xem [ghi chú 2.2.0](docs/releases/2.2.0.md) và [kế hoạch phân công](docs/upgrade-2.1-plan.md).
 
 Agent Fleet là ứng dụng local cho Windows giúp một model leader giao việc cho
 các coding agent `codex`, `qodercli`, `agy`, `opencode`. Mỗi task có git worktree
@@ -6,7 +10,50 @@ riêng; CLI `fleet` dùng để giao việc, chờ kết quả, xem diff, retry,
 Web UI hiển thị task theo plan, log trực tiếp, diff, terminal tiếp quản và số liệu
 so sánh agent. Leader quyết định việc cần làm và review trước khi merge.
 
-## Cài đặt và mở ứng dụng
+## Mở ứng dụng Windows
+
+Đóng bản cũ rồi mở [AgentFleet.exe](dist/AgentFleet-2.2.0/AgentFleet.exe), hoặc giải nén toàn bộ
+[AgentFleet-2.2.0-win-x64.zip](dist/AgentFleet-2.2.0-win-x64.zip) rồi mở `AgentFleet.exe`. Giữ thư mục `app/`
+và `runtime/` cạnh EXE. Bản portable mặc định đã kèm Node và .NET; không cần mở
+CMD hoặc trình duyệt riêng. Máy cần Windows 11 x64, WebView2, Git và agent CLI
+đã cài/đăng nhập để giao việc cho agent thật.
+
+**Bảng điều khiển** mở CLI tại workspace đã chọn và chuyển sang mục **Terminal**.
+Mỗi CLI có tab riêng; chuyển tab hoặc màn hình giữ nguyên tiến trình và lịch sử.
+Chuột trong vùng terminal cuộn history/pager CLI; chuột bên ngoài cuộn giao diện.
+Nhấn **Kiểm tra** để đọc trạng thái; AGY đọc `/usage` để hiện quota từng nhóm model;
+quota/credit còn lại hiện chưa có dữ liệu nếu CLI không cung cấp. Không tự kiểm tra tài khoản khi mở màn hình.
+Chọn **Task mới** để tạo plan từ một Git repository và giao việc; chọn task ở
+sidebar để xem log, diff, brief và terminal. Chọn **Giao diện** ở góc dưới trái
+để dùng sáng/tối/theo hệ thống. Kéo đường phân cách để chỉnh cột và chiều cao terminal.
+**Tài nguyên & sử dụng** tổng hợp số liệu theo công cụ/model và xuất JSON. Số liệu token/credit
+được lấy từ lần chạy task có dữ liệu CLI, không ước tính từ nội dung terminal tương tác.
+
+Dữ liệu desktop nằm ở `%LOCALAPPDATA%\AgentFleetDesktop\`, độc lập với dữ liệu
+CLI cũ. Không sao chép database/worktree đang chạy từ bản cũ sang khi server
+cũ còn hoạt động. Xem [hướng dẫn desktop và build](desktop/README.md) để biết
+cấu hình, log và cách đóng gói lại.
+
+## Cấu trúc dự án
+
+Thư mục gốc là nơi làm việc chính và là nơi chạy mọi lệnh `npm`.
+
+```text
+cli/          Lệnh fleet và client kết nối server
+desktop/      Vỏ Windows C#/.NET, WebView2, native bridge và đo tài nguyên
+scripts/      Biên dịch và đóng gói portable EXE
+server/       API, chạy agent, Git worktree và lưu trữ
+shared/       Kiểu dữ liệu và chẩn đoán dùng chung
+web/          Giao diện React, cấu hình Vite và bản build web/dist/
+test/         Unit test, integration test, E2E và fixture
+docs/         Hướng dẫn, thiết kế, ghi chú phiên bản và bằng chứng bàn giao
+.tmp/         Dữ liệu phát triển và bản lưu cục bộ, được Git bỏ qua
+```
+
+Đọc [START_HERE.md](START_HERE.md) khi tiếp nhận dự án và xem
+[mục lục tài liệu](docs/README.md) để tìm hướng dẫn chi tiết.
+
+## Phát triển hoặc dùng CLI/web
 
 Cần Windows 11, Node.js 24, Git và ít nhất một agent CLI đã cài, đăng nhập sẵn.
 Trong thư mục dự án:
@@ -89,6 +136,8 @@ npx vitest run
 npx tsc --noEmit
 npx playwright install chromium
 npm run test:e2e
+npm run desktop:check
+npm run desktop:build
 ```
 
 E2E tự build `web/dist`, chạy server thật ở cổng `4610` với dữ liệu và repo Git

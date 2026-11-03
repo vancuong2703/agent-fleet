@@ -7,6 +7,22 @@ export interface BusHandlers {
   onError?: (event: Event) => void;
 }
 
+function isMessage(value: unknown): value is BusMsg {
+  if (!value || typeof value !== 'object') return false;
+  const data = value as Record<string, unknown>;
+  if (data.type === 'event') {
+    const stored = data.stored as Record<string, unknown> | undefined;
+    const event = stored?.event as Record<string, unknown> | undefined;
+    return typeof data.taskId === 'string' && typeof stored?.runId === 'string'
+      && typeof stored.seq === 'number' && Number.isSafeInteger(stored.seq) && stored.seq >= 0
+      && typeof stored.ts === 'number' && Number.isFinite(stored.ts) && typeof event?.kind === 'string'
+      && ['message', 'command', 'file_edit', 'tool', 'usage', 'model', 'session', 'error', 'raw', 'status', 'check'].includes(event.kind);
+  }
+  if (data.type !== 'task' && data.type !== 'run' && data.type !== 'plan') return false;
+  const item = data[data.type] as Record<string, unknown> | undefined;
+  return Boolean(item && typeof item.id === 'string');
+}
+
 /**
  * WebSocket URL for the server's event bus. Same host as the page so the
  * `fleet_token` cookie is sent along with the upgrade request.
@@ -25,33 +41,42 @@ export function connectBus(handlers: BusHandlers): () => void {
   let socket: WebSocket | null = null;
   let closed = false;
   let attempt = 0;
+  let reconnectTimer: number | undefined;
 
   const open = (): void => {
-    socket = new WebSocket(busUrl());
+    if (closed) return;
+    const current = new WebSocket(busUrl());
+    socket = current;
 
-    socket.onopen = () => {
+    current.onopen = () => {
+      if (closed || socket !== current) return;
       attempt = 0;
       handlers.onOpen?.();
     };
 
-    socket.onmessage = (event) => {
+    current.onmessage = (event) => {
+      if (closed || socket !== current) return;
       try {
-        handlers.onMessage(JSON.parse(String(event.data)) as BusMsg);
+        const message: unknown = JSON.parse(String(event.data));
+        if (isMessage(message)) handlers.onMessage(message);
       } catch {
         // Ignore a malformed frame; the next one still arrives.
       }
     };
 
-    socket.onerror = (event) => {
+    current.onerror = (event) => {
+      if (closed || socket !== current) return;
       handlers.onError?.(event);
+      // A transport error may arrive without a close until the network times out.
+      current.close();
     };
 
-    socket.onclose = () => {
+    current.onclose = () => {
+      if (closed || socket !== current) return;
       handlers.onClose?.();
-      if (closed) return;
       const delay = Math.min(5_000, 500 * 2 ** attempt);
       attempt += 1;
-      window.setTimeout(open, delay);
+      reconnectTimer = window.setTimeout(open, delay);
     };
   };
 
@@ -59,6 +84,7 @@ export function connectBus(handlers: BusHandlers): () => void {
 
   return () => {
     closed = true;
+    window.clearTimeout(reconnectTimer);
     socket?.close();
   };
 }

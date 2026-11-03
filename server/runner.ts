@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { Readable } from 'node:stream';
 import type { ErrorCategory, FleetEvent } from '../shared/types.js';
 import type { AgentAdapter, HeadlessSpec } from './adapters/types.js';
+import { configuredModel, withMetadata } from './adapters/metadata.js';
 import { killTree } from './process.js';
 
 export interface RunOutcome {
@@ -28,6 +29,7 @@ export async function runAttempt(o: {
     sessionId: null, inputTokens: null, outputTokens: null, costUsd: null, checkPassed: null,
   };
   const events: FleetEvent[] = [];
+  const usageIds = new Set<string>();
   let lastErrorCategory: ErrorCategory | null = null;
   let stopped: 'timeout' | 'interrupted' | null = null;
   let active: ChildProcess | null = null;
@@ -73,9 +75,18 @@ export async function runAttempt(o: {
       case 'error': lastErrorCategory = event.category ?? 'agent'; break;
       case 'session': outcome.sessionId = event.id; break;
       case 'usage':
-        if (event.inputTokens !== undefined) outcome.inputTokens = (outcome.inputTokens ?? 0) + event.inputTokens;
-        if (event.outputTokens !== undefined) outcome.outputTokens = (outcome.outputTokens ?? 0) + event.outputTokens;
-        if (event.costUsd !== undefined) outcome.costUsd = (outcome.costUsd ?? 0) + event.costUsd;
+        if (event.attributionOnly) break;
+        if (event.usageId) {
+          const key = `${event.provider ?? ''}/${event.model ?? ''}/${event.usageScope ?? 'delta'}/${event.usageId}`;
+          if (usageIds.has(key)) break;
+          usageIds.add(key);
+        }
+        for (const field of ['inputTokens', 'outputTokens', 'costUsd'] as const) {
+          const value = event[field];
+          if (value !== undefined && Number.isFinite(value) && value >= 0) {
+            outcome[field] = event.usageScope === 'cumulative' ? value : (outcome[field] ?? 0) + value;
+          }
+        }
         break;
     }
     o.onEvent(event);
@@ -186,6 +197,8 @@ export async function runAttempt(o: {
   const onAbort = () => stop('interrupted');
   try {
     emit({ kind: 'status', status: 'running' });
+    const model = configuredModel(o.extraArgs);
+    if (model) emit({ kind: 'model', model, source: 'configured' });
     const briefFile = path.win32.resolve(o.briefFile);
     await mkdir(path.win32.dirname(briefFile), { recursive: true });
     await writeFile(briefFile, o.brief, 'utf8');
@@ -200,16 +213,18 @@ export async function runAttempt(o: {
     if ([spec.cmd, ...spec.args].join(' ').length > 30_000) {
       throw new Error(`Brief quá dài cho dòng lệnh của ${o.adapter.id} (giới hạn ~32k ký tự trên Windows)`);
     }
-    const parse = o.adapter.createParser();
+    const parse = withMetadata(o.adapter.createParser(), o.adapter.id);
     const result = await execute(spec, (line, stream) => {
       for (const event of parse(line, stream)) emit(event);
     }, undefined, true);
     outcome.exitCode = result.code;
     outcome.finalMessage = o.adapter.finalMessage(events);
     if (result.error) systemError = result.error;
-    outcome.status = stopped ?? (systemError || result.code !== 0 ? 'failed' : 'done');
+    outcome.status = stopped ?? (systemError || result.code !== 0 || lastErrorCategory !== null ? 'failed' : 'done');
 
-    if (outcome.status === 'done' && o.checkCmd !== null) {
+    // An independent check is still useful when a zero-exit agent reported a
+    // permission error. A passing check must never erase that agent failure.
+    if (!stopped && !systemError && result.code === 0 && o.checkCmd !== null) {
       let output = '';
       const check = await execute(
         // cmd /s strips the outer quotes. Pass its command string verbatim:
@@ -224,6 +239,10 @@ export async function runAttempt(o: {
       outcome.checkPassed = !stopped && !systemError && !check.error && check.code === 0;
       emit({ kind: 'check', cmd: o.checkCmd, passed: outcome.checkPassed, output });
       if (stopped) outcome.status = stopped;
+      else if (!outcome.checkPassed) {
+        outcome.status = 'failed';
+        emit({ kind: 'error', category: check.error || systemError ? 'system' : lastErrorCategory ?? 'check', text: `Check failed: ${o.checkCmd}` });
+      }
     }
     if (systemError) emit({ kind: 'error', category: 'system', text: systemError.message });
     if (outcome.status === 'failed') outcome.errorCategory = systemError ? 'system' : lastErrorCategory ?? 'agent';

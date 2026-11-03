@@ -90,6 +90,8 @@ export const api = {
     title: string;
     brief: string;
     checkCmd?: string;
+    commandPolicy?: 'ask' | 'check-only' | 'auto';
+    allowedCommands?: string[];
   }): Promise<Task> => request('/api/tasks', jsonInit('POST', body)),
   task: (id: string): Promise<TaskResult> => request(`/api/tasks/${id}`),
   runs: (id: string): Promise<Run[]> => request(`/api/tasks/${id}/runs`),
@@ -101,7 +103,7 @@ export const api = {
 
   wait: (ids: string[], timeoutMs: number): Promise<TaskResult[]> =>
     request('/api/wait', jsonInit('POST', { ids, timeoutMs })),
-  retry: (id: string, body: { agent?: AgentId; note: string }): Promise<Run> =>
+  retry: (id: string, body: { agent?: AgentId; note: string; commandPolicy?: 'ask' | 'check-only' | 'auto'; allowedCommands?: string[] }): Promise<Run> =>
     request(`/api/tasks/${id}/retry`, jsonInit('POST', body)),
   stop: (id: string): Promise<void> => request(`/api/tasks/${id}/stop`, jsonInit('POST')),
   takeover: (id: string): Promise<void> =>

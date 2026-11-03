@@ -9,6 +9,9 @@ import type { AgentId, TaskStatus } from '../shared/types.js';
 import { getAdapter, getAdapterConfig } from './adapters/index.js';
 import type { Bus } from './bus.js';
 import { loadConfig } from './config.js';
+import { agyCommandArgs } from './command-permissions.js';
+import { registerDashboardRoutes } from './dashboard.js';
+import { Observability } from './observability.js';
 import type { PtyManager, PtyResolver } from './pty.js';
 import { FleetError, type TaskService } from './service.js';
 import { computeStats } from './stats.js';
@@ -21,6 +24,10 @@ const text = { type: 'string' };
 const nonempty = { type: 'string', minLength: 1 };
 const agent = { type: 'string', enum: agentIds };
 const nonnegativeInteger = { type: 'integer', minimum: 0 };
+const commandOptionsSchema = {
+  commandPolicy: { type: 'string', enum: ['ask', 'check-only', 'auto'] },
+  allowedCommands: { type: 'array', maxItems: 64, items: { type: 'string', minLength: 1, maxLength: 2_000, pattern: '^[^\\r\\n\\u0000]+$' } },
+};
 const objectSchema = (properties: Record<string, object>, required: string[] = []) => ({
   type: 'object', properties, required, additionalProperties: false,
 });
@@ -45,7 +52,8 @@ export function createPtyResolver(store: Store): PtyResolver {
       cwd: task.worktreePath,
       sessionId: run?.sessionId ?? null,
     });
-    return { cmd: spec.cmd, args: spec.args, cwd: task.worktreePath };
+    const args = task.agent === 'agy' && run ? agyCommandArgs(spec.args, run, task.checkCmd, task.worktreePath).args : spec.args;
+    return { cmd: spec.cmd, args, cwd: task.worktreePath };
   };
 }
 
@@ -66,7 +74,9 @@ export function buildServer(o: {
   port?: number; shutdown?: () => Promise<void> | void;
 }): FastifyInstance {
   const { service, store, bus } = o;
-  const app = fastify({ ajv: { customOptions: { coerceTypes: true } } });
+  const app = fastify({ ajv: { customOptions: { coerceTypes: true, removeAdditional: false } } });
+  const observability = new Observability(store, bus);
+  app.addHook('onClose', async () => { observability.close(); });
   const expectedToken = Buffer.from(o.token);
   const matches = (value: unknown): boolean => {
     if (typeof value !== 'string') return false;
@@ -122,18 +132,34 @@ export function buildServer(o: {
 
   // Register routes after the websocket plugin so upgrades use its lifecycle hooks.
   app.register(async (routes) => {
+    const dashboardTerminals = registerDashboardRoutes(routes, { store, ptyManager: o.ptyManager ?? {
+      openTarget() { throw new FleetError('invalid_state', 'Terminal is unavailable in this server'); },
+      async kill() {},
+    } });
+    const removeWorktreeGuard = service.addWorktreeGuard(taskId => dashboardTerminals.closeForTask(taskId));
+    routes.addHook('onClose', async () => { removeWorktreeGuard(); });
     routes.get('/api/health', async () => ({ ok: true }));
     routes.post('/api/shutdown', async (_request, reply) => {
       reply.raw.once('finish', () => { setImmediate(() => { void o.shutdown?.(); }); });
       return reply.code(202).send({ ok: true });
     });
     routes.get('/api/plans', async () => store.listPlans());
+    routes.get<{ Querystring: { planId?: string } }>('/api/observability', {
+      schema: { querystring: objectSchema({ planId: nonempty }) },
+    }, async (request) => {
+      if (request.query.planId !== undefined && !store.getPlan(request.query.planId)) {
+        throw new FleetError('not_found', `Plan not found: ${request.query.planId}`);
+      }
+      // Start on the first dashboard request; CLI-only servers do no unused polling.
+      observability.start();
+      return observability.snapshot(request.query.planId);
+    });
     routes.post<{ Body: Parameters<TaskService['createPlan']>[0] }>('/api/plans', {
       schema: { body: objectSchema({ name: nonempty, repoPath: nonempty, baseBranch: nonempty }, ['name', 'repoPath']) },
     }, async (request) => service.createPlan(request.body));
 
     routes.post<{ Body: Parameters<TaskService['run']>[0] }>('/api/tasks', {
-      schema: { body: objectSchema({ planId: nonempty, agent, title: nonempty, brief: text, checkCmd: text }, ['planId', 'agent', 'title', 'brief']) },
+      schema: { body: objectSchema({ planId: nonempty, agent, title: nonempty, brief: text, checkCmd: text, ...commandOptionsSchema }, ['planId', 'agent', 'title', 'brief']) },
     }, async (request) => service.run(request.body));
     routes.get<{ Querystring: { planId?: string; status?: TaskStatus } }>('/api/tasks', {
       schema: { querystring: objectSchema({ planId: nonempty, status: { type: 'string', enum: statuses } }) },
@@ -157,7 +183,7 @@ export function buildServer(o: {
       return diffWorktree(found.worktreePath, plan.baseBranch);
     });
     routes.post<IdParams & { Body: Parameters<TaskService['retry']>[1] }>('/api/tasks/:id/retry', {
-      schema: { body: objectSchema({ agent, note: text }, ['note']) },
+      schema: { body: objectSchema({ agent, note: text, ...commandOptionsSchema }, ['note']) },
     }, async (request) => service.retry(request.params.id, request.body));
     for (const [action, method] of [
       ['stop', 'stop'], ['takeover', 'takeOver'], ['done', 'markDone'], ['discard', 'discard'],

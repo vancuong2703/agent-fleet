@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 import { TaskActions } from '../../web/src/components/TaskActions.js';
+import { TaskHeader } from '../../web/src/components/TaskHeader.js';
 
 vi.mock('../../web/src/components/TerminalPanel.js', () => ({ TerminalPanel: () => null }));
 
@@ -88,6 +89,15 @@ function makeEvent(runId: string, seq: number, event: FleetEvent): StoredEvent {
 function taskWith(status: TaskStatus, id = `t-${status}`): Task {
   return makeTask(id, { status });
 }
+
+test('log buffers retain recent events and evict old run buffers', () => {
+  let state = addEvents(initialFleetState(), 'large', Array.from({length:4_100}, (_,index)=>makeEvent('large',index+1,{kind:'message',text:'event'})));
+  expect(state.eventsByRun.large).toHaveLength(4_000);
+  expect(state.eventsByRun.large![0]!.seq).toBe(101);
+  for(let index=0;index<30;index++) state=addEvents(state,`r-${index}`,[makeEvent(`r-${index}`,1,{kind:'message',text:'latest'})]);
+  expect(Object.keys(state.eventsByRun)).toHaveLength(30);
+  expect(state.eventsByRun.large).toBeUndefined();
+});
 
 describe('reduceFleet', () => {
   test('starts empty', () => {
@@ -296,9 +306,26 @@ describe('taskActions', () => {
     expect(taskActions('running')).toEqual(['stop']);
     expect(taskActions('taken_over')).toEqual(['markDone']);
     expect(taskActions('done')).toEqual(['merge', 'discard']);
-    expect(taskActions('failed')).toEqual(['merge', 'discard']);
-    expect(taskActions('timeout')).toEqual(['merge', 'discard']);
-    expect(taskActions('interrupted')).toEqual(['merge', 'discard']);
+    expect(taskActions('failed')).toEqual(['discard']);
+    expect(taskActions('timeout')).toEqual(['discard']);
+    expect(taskActions('interrupted')).toEqual(['discard']);
+  });
+
+  test('legacy done task cannot offer an enabled merge when its check failed', () => {
+    const html = renderToStaticMarkup(createElement(TaskActions, {
+      task: taskWith('done'), baseBranch: 'main', run: makeRun('r-1', { checkPassed: false }),
+    }));
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Merge<\/button>/);
+  });
+
+  test('header distinguishes a passing fleet check from a blocked agent', () => {
+    const html = renderToStaticMarkup(createElement(TaskHeader, {
+      task: taskWith('failed'), run: makeRun('r-1', { status: 'failed', checkPassed: true, errorCategory: 'permission' }),
+    }));
+    expect(html).toContain('Kiểm tra: PASS');
+    expect(html).toContain('role="alert"');
+    expect(html).toContain('Agent bị từ chối quyền');
+    expect(html).toContain('Mở terminal');
   });
 
   test('offers no actions while queued or once the task is final', () => {

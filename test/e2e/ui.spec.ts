@@ -16,14 +16,14 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('.connection')).toHaveAttribute('title', 'Đã kết nối');
 });
 
-async function createTask(page: Page, title: string, brief = 'UI smoke test'): Promise<Task> {
+async function createTask(page: Page, title: string, brief = 'UI smoke test', checkCmd?: string): Promise<Task> {
   const planResponse = await page.request.post('/api/plans', {
     data: { name: title, repoPath },
   });
   expect(planResponse.ok()).toBeTruthy();
   const plan = await planResponse.json() as Plan;
   const taskResponse = await page.request.post('/api/tasks', {
-    data: { planId: plan.id, agent: 'fake', title, brief },
+    data: { planId: plan.id, agent: 'fake', title, brief, checkCmd },
   });
   expect(taskResponse.ok()).toBeTruthy();
   return await taskResponse.json() as Task;
@@ -68,6 +68,21 @@ test('finished task shows fake.txt and its patch in Diff', async ({ page }) => {
   await expect(page.locator('.diff-pane .diff-add')).toContainText('fake agent completed');
 });
 
+test('failed check is visible and cannot be merged', async ({ page }) => {
+  const task = await createTask(page, 'Failed check smoke', 'UI smoke test', 'exit 1');
+  const response = await page.request.post('/api/wait', { data: { ids: [task.id], timeoutMs: 10_000 } });
+  expect(response.ok()).toBeTruthy();
+  const results = await response.json() as TaskResult[];
+  expect(results[0]?.run).toMatchObject({ status: 'failed', errorCategory: 'check', checkPassed: false });
+  await page.getByRole('button', { name: task.title, exact: false }).click();
+  await expect(page.locator('.task-header .status-badge')).toHaveClass(/status-failed/);
+  await expect(page.locator('.task-check')).toHaveText('Kiểm tra: FAIL');
+  await expect(page.getByRole('alert')).toContainText('Kiểm tra thất bại');
+  await expect(page.getByRole('button', { name: 'Merge', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Mở terminal', exact: true })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('failed-check.png'), fullPage: true });
+});
+
 test('finished fake task opens a working cmd terminal', async ({ page }) => {
   const task = await createTask(page, 'Terminal smoke');
   await waitForDone(page, task);
@@ -92,9 +107,16 @@ test('finished fake task opens a working cmd terminal', async ({ page }) => {
 test('Compare shows the fake agent and its completed runs', async ({ page }) => {
   const task = await createTask(page, 'Compare smoke');
   await waitForDone(page, task);
+  // Other E2E scenarios intentionally create failed runs. Compare the UI to
+  // its actual stats response instead of assuming the shared history is 100%.
+  const statsResponse = await page.request.get('/api/stats?sinceDays=7');
+  expect(statsResponse.ok()).toBeTruthy();
+  const stats = await statsResponse.json() as Array<{ agent: string; runs: number; successRate: number }>;
+  const fake = stats.find((entry) => entry.agent === 'fake')!;
+  expect(fake.runs).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'So sánh agent', exact: true }).click();
   const row = page.getByRole('row').filter({ has: page.getByText('fake', { exact: true }) });
   await expect(row).toBeVisible();
-  await expect(row.getByRole('cell').nth(1)).toHaveText(/^[1-9]\d*$/);
-  await expect(row.getByRole('cell').nth(2)).toHaveText('100%');
+  await expect(row.getByRole('cell').nth(1)).toHaveText(String(fake.runs));
+  await expect(row.getByRole('cell').nth(2)).toHaveText(`${Math.round(fake.successRate * 100)}%`);
 });

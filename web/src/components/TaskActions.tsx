@@ -1,14 +1,17 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
-import type { Task } from '../../../shared/types.js';
+import type { CommandPolicy, Run, Task } from '../../../shared/types.js';
 import { api } from '../api.js';
 import { mergeErrorMessage, taskActions } from '../store.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
-import { TerminalPanel } from './TerminalPanel.js';
+const TerminalPanel = lazy(() => import('./TerminalPanel.js').then((module) => ({ default: module.TerminalPanel })));
 
 export interface TaskActionsProps {
   task: Task;
   baseBranch: string;
+  run?: Run | null;
+  terminalHeight?: number;
+  onTerminalHeight?: (height: number) => void;
 }
 
 type Pending = 'merge' | 'discard' | 'terminal' | null;
@@ -18,17 +21,25 @@ type Pending = 'merge' | 'discard' | 'terminal' | null;
  * Merge, Huỷ and terminal takeover go through an in-page `ConfirmDialog`.
  * Merge failures are translated to Vietnamese and shown above the buttons.
  */
-export function TaskActions({ task, baseBranch }: TaskActionsProps) {
+export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalHeight }: TaskActionsProps) {
   const actions = taskActions(task.status);
   const [pending, setPending] = useState<Pending>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [terminalOpen, setTerminalOpen] = useState(false);
+  const [retryOpen, setRetryOpen] = useState(false);
+  const [retryNote, setRetryNote] = useState('Hoàn tất công việc và chạy lại kiểm tra.');
+  const [retryPolicy, setRetryPolicy] = useState<CommandPolicy>(run?.commandPolicy ?? 'ask');
+  const [retryAllowed, setRetryAllowed] = useState((run?.allowedCommands ?? []).join('\n'));
 
   // Switching tasks never leaves the previous task's terminal mounted.
   useEffect(() => {
     setTerminalOpen(false);
-  }, [task.id]);
+    setRetryOpen(false);
+    setMessage(null);
+    setRetryPolicy(run?.commandPolicy ?? 'ask');
+    setRetryAllowed((run?.allowedCommands ?? []).join('\n'));
+  }, [task.id, run?.id]);
 
   const fail = (cause: unknown): void => {
     setMessage(cause instanceof Error ? cause.message : String(cause));
@@ -124,7 +135,7 @@ export function TaskActions({ task, baseBranch }: TaskActionsProps) {
           <button
             type="button"
             className="action-btn action-primary"
-            disabled={busy}
+            disabled={busy || run?.checkPassed === false || Boolean(run?.errorCategory)}
             onClick={() => setPending('merge')}
           >
             Merge
@@ -150,12 +161,14 @@ export function TaskActions({ task, baseBranch }: TaskActionsProps) {
             Mở terminal
           </button>
         )}
+        {['done', 'failed', 'timeout', 'interrupted'].includes(task.status) && <button type="button" className="action-btn" disabled={busy} onClick={() => setRetryOpen((open) => !open)}>Thử lại</button>}
 
         {message !== null && <span className="action-message">{message}</span>}
       </div>
+      {retryOpen && <form className="retry-form" onSubmit={(event) => { event.preventDefault(); const allowed = retryAllowed.split(/\r?\n/).map((line) => line.trim()).filter(Boolean); void invoke(async () => { await api.retry(task.id, { note: retryNote, ...(task.agent === 'agy' ? { commandPolicy: retryPolicy, ...(retryPolicy === 'check-only' && allowed.length > 0 ? { allowedCommands: allowed } : {}) } : {}) }); setRetryOpen(false); }); }}><label className="field">Ghi chú lần thử lại<textarea value={retryNote} required rows={2} onChange={(event) => setRetryNote(event.target.value)} /></label>{task.agent === 'agy' && <div className="command-policy"><label className="field">Quyền lệnh cho lần thử này<select aria-label="Quyền lệnh AGY khi thử lại" value={retryPolicy} onChange={(event) => setRetryPolicy(event.target.value as CommandPolicy)}><option value="ask">Hỏi quyền theo mặc định của AGY</option><option value="check-only">Chỉ lệnh kiểm tra và danh sách cho phép</option><option value="auto">Tự duyệt lệnh terminal (chỉ phiên này)</option></select></label>{retryPolicy === 'check-only' && <label className="field">Lệnh được cho phép thêm<textarea rows={3} value={retryAllowed} onChange={(event) => setRetryAllowed(event.target.value)} placeholder={'npm test\nnode check.cjs'} /></label>}<p className="small-note">Dùng “Tự duyệt” khi lần trước thất bại vì AGY bị chặn quyền chạy lệnh. Quyền chỉ áp dụng phiên này và được ghi log.</p></div>}<button className="action-btn action-primary" disabled={busy} type="submit">Chạy lại agent</button></form>}
 
       {terminalOpen && (
-        <TerminalPanel taskId={task.id} onClose={() => setTerminalOpen(false)} />
+        <Suspense fallback={<p className="small-note">Đang tải terminal…</p>}><TerminalPanel taskId={task.id} height={terminalHeight} onHeightChange={onTerminalHeight} onClose={() => setTerminalOpen(false)} /></Suspense>
       )}
 
       {confirm !== null && (

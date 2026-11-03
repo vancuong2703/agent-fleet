@@ -1,0 +1,12 @@
+{
+  "id": "t-8p9zay",
+  "planId": "p-7yabhf",
+  "title": "Create hello.txt and verify exact content",
+  "agent": "qodercli",
+  "status": "queued",
+  "branch": "fleet/qoder-smoke-test/t-8p9zay",
+  "worktreePath": "C:\\Users\\diang_w\\AppData\\Local\\agent-fleet\\worktrees\\repo\\t-8p9zay",
+  "checkCmd": "node check.cjs",
+  "createdAt": 1793686239515,
+  "finishedAt": null
+}
