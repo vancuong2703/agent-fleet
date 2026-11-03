@@ -15,7 +15,7 @@ export default async function globalSetup(): Promise<void> {
     id, { bin: null, maxParallel: 2, extraArgs: [] },
   ]));
   await writeFile(path.join(dataDir, 'fleet.config.json'), JSON.stringify({
-    port: 4610,
+    port: Number(process.env.FLEET_E2E_PORT ?? 4610),
     agents,
     maxParallelTotal: 4,
     timeouts: { totalMin: 1, idleMin: 1 },

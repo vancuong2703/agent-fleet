@@ -128,10 +128,10 @@ test('usage pages list every model, generic names, and the unattributed bucket',
   await expect(modelTable.locator('code', { hasText: 'qfmodel' })).toBeVisible();
   await expect(modelTable.getByText('Chưa gán được model')).toBeVisible();
   await expect(modelTable.getByText('Cấu hình CLI').first()).toBeVisible();
-  const toolTable = page.getByRole('table', { name: 'Mức sử dụng theo công cụ' });
+  const toolTable = page.getByRole('table', { name: 'Mức sử dụng theo agent' });
   await expect(toolTable.getByText('reportedCredits', { exact: true })).toHaveCount(0);
   await expect(toolTable.locator('code', { hasText: 'qfmodel' })).toBeVisible();
-  const headerCells = await page.getByRole('table', { name: 'Mức sử dụng theo công cụ' }).locator('th').allInnerTexts();
+  const headerCells = await toolTable.locator('th').allInnerTexts();
   expect(headerCells).toContain('Credit thanh toán');
   expect(headerCells).toContain('Credit danh nghĩa');
 });
