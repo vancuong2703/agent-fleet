@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/pages.css">
 <link rel="stylesheet" href="assets/terminal.css">
 </head>
 <body>
@@ -43,8 +44,16 @@
           <h1 class="title sm">TERM<em>INAL</em></h1>
         </div>
         <div class="actions">
-          <span class="stamp" data-en="3 sessions" data-vi="3 phiên">3 sessions</span>
+          <span class="stamp" data-en="2 sessions" data-vi="2 phiên">2 sessions</span>
         </div>
+      </div>
+
+      <!-- System: real values, toggled by the header button -->
+      <div class="res" id="resStrip">
+        <span class="rlabel" data-en="System" data-vi="Tài nguyên">System</span>
+        <div class="r"><span class="rname">CPU</span><b>3.8</b><span class="unit">/ 5.2 GHz</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">8/24</span></div>
+        <div class="r"><span class="rname">RAM</span><b>19.8</b><span class="unit">/ 32 GB</span><div class="bar warn"><span style="width:62%"></span></div></div>
+        <div class="r"><span class="rname">GPU</span><b>4.6</b><span class="unit">/ 12 GB</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">52°C</span></div>
       </div>
 
       <div class="grid2">
@@ -78,7 +87,7 @@
                 <span class="lbl-on" data-en="Hide" data-vi="Ẩn">Hide</span>
                 <span class="lbl-off" data-en="Show" data-vi="Hiện" hidden>Show</span>
               </button>
-              <button class="btn danger" onclick="TERM.end()">
+              <button class="btn danger" id="endBtn" onclick="TERM.end()">
                 <i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='5' y='5' width='14' height='14' rx='2'/%3E%3C/svg%3E&quot;)"></i>
                 <span data-en="End process" data-vi="Kết thúc tiến trình">End process</span>
               </button>
@@ -106,8 +115,8 @@
             </div>
           </div>
 
-          <!-- error state -->
-          <div class="notice" role="alert">
+          <!-- error state: hidden until the process is ended, Reconnect clears it -->
+          <div class="notice" id="connNotice" role="status" aria-live="polite" hidden>
             <i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E&quot;)"></i>
             <span class="txt" data-en="Connection lost. Output below may be stale." data-vi="Mất kết nối. Nội dung bên dưới có thể đã cũ.">Connection lost. Output below may be stale.</span>
             <button class="btn" onclick="TERM.reconnect(this)">
@@ -139,8 +148,8 @@
                 <span class="pct">46%</span>
               </div>
               <div>
-                <div class="kpi"><b>92K</b><small>/ 200K tokens</small></div>
-                <div class="g-reset">↻ resets in 3h 20m</div>
+                <div class="kpi"><b>92K</b><small data-en="/ 200K tokens" data-vi="/ 200K token">/ 200K tokens</small></div>
+                <div class="g-reset" data-en="context used" data-vi="ngữ cảnh đã dùng">context used</div>
               </div>
             </div>
           </div>
@@ -149,13 +158,35 @@
     </div>
   </main>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="assets/app.js"></script>
 <script>
   (function () {
     var fs = 12.5;
+    var live = true;
 
     function toast(en, vi) { AF.toast(AF.lang === 'vi' ? vi : en); }
+    function body() { return document.getElementById('termbody'); }
+    function notice(show) { document.getElementById('connNotice').hidden = !show; }
+    function status(badgeText, stateText, kind) {
+      var lb = document.getElementById('liveBadge');
+      lb.className = 'badge ' + kind;
+      lb.textContent = badgeText;
+      document.getElementById('sessionState').textContent = stateText;
+    }
+    function setLive(on) {
+      live = on;
+      document.getElementById('hideBtn').disabled = !on;
+      document.getElementById('endBtn').disabled = !on;
+    }
+    /* the Show/Hide label follows what the frame actually does */
+    function syncHideLabel() {
+      var vis = !body().hidden;
+      var on = document.querySelector('.lbl-on');
+      var off = document.querySelector('.lbl-off');
+      if (on) on.hidden = !vis;
+      if (off) off.hidden = vis;
+    }
 
     window.TERM = {
       toast: toast,
@@ -170,32 +201,34 @@
       },
       fs: function (d) {
         fs = Math.max(10, Math.min(18, fs + d));
-        var b = document.getElementById('termbody');
-        if (b) b.style.setProperty('--fs', fs + 'px');
+        body().style.setProperty('--fs', fs + 'px');
       },
       hide: function () {
-        var b = document.getElementById('termbody');
-        var on = document.querySelector('.lbl-on');
-        var off = document.querySelector('.lbl-off');
+        if (!live) return;
+        var b = body();
         b.hidden = !b.hidden;
-        if (on) on.hidden = b.hidden;
-        if (off) off.hidden = !b.hidden;
-        toast(b.hidden ? 'View hidden — process still running' : 'View shown', b.hidden ? 'Đã ẩn — tiến trình vẫn chạy' : 'Đã hiện');
+        syncHideLabel();
+        toast(b.hidden ? 'View hidden — process still running' : 'View shown',
+              b.hidden ? 'Đã ẩn — tiến trình vẫn chạy' : 'Đã hiện');
       },
       end: function () {
-        document.getElementById('termbody').hidden = true;
-        var st = document.getElementById('sessionState');
-        if (st) st.textContent = 'ENDED';
-        var lb = document.getElementById('liveBadge');
-        if (lb) { lb.className = 'badge bad'; lb.textContent = 'ENDED'; }
-        toast('Process ended (demo)', 'Đã kết thúc tiến trình (demo)');
+        setLive(false);
+        body().hidden = true;
+        syncHideLabel();
+        status('ENDED', 'ENDED', 'bad');
+        notice(true);
+        toast('Process ended — output stopped updating (demo)',
+              'Đã kết thúc tiến trình — nội dung ngừng cập nhật (demo)');
       },
       reconnect: function (btn) {
         var done = AF.spin(btn);
-        var n = btn.closest('.notice');
         setTimeout(function () {
           done();
-          if (n) n.hidden = true;
+          notice(false);
+          setLive(true);
+          body().hidden = false;
+          syncHideLabel();
+          status('LIVE', 'RUNNING', 'ok');
           toast('Reconnected (demo)', 'Đã kết nối lại (demo)');
         }, 900);
       }

@@ -25,11 +25,8 @@
 /* long unbreakable labels (e.g. harbor-pool/…flash:free) must wrap */
 .cmp .statusline,.cmp .ver{overflow-wrap:anywhere}
 
-/* time-window filter chips */
-button.chip{cursor:pointer;background:transparent}
-button.chip:hover{border-color:var(--ink);color:var(--ink)}
-button.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* Time-window chips (.filters, button.chip) and the summary table frame
+   (.tscroll) come from assets/pages.css. */
 
 /* per-agent stat rows */
 .stats{border-top:1px solid var(--border)}
@@ -38,7 +35,5 @@ button.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-co
 .stat .k{font:600 11.5px var(--sans);color:var(--muted);min-width:0}
 .stat .v{font:700 12px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:auto}
 
-/* wide summary table pans inside its panel, never the page */
-.tscroll{overflow-x:auto}
-.tscroll .table{min-width:600px}
-.tscroll td.model{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* absolute figure under a gauge (credits / tokens), above its reset time */
+.g-num{font:700 10.5px var(--mono);color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}

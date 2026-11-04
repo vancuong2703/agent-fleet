@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/pages.css">
 <link rel="stylesheet" href="assets/compare.css">
 </head>
 <body>
@@ -44,10 +45,10 @@
         </div>
         <div class="actions">
           <div class="filters" role="group" aria-label="Time window">
-            <button class="chip" id="c7" aria-pressed="true" onclick="cmpWin('7')" data-en="7 days" data-vi="7 ngày">7 days</button>
-            <button class="chip" id="c30" aria-pressed="false" onclick="cmpWin('30')" data-en="30 days" data-vi="30 ngày">30 days</button>
+            <button class="chip" id="c7" aria-pressed="true" onclick="CMP.win('7')" data-en="7 days" data-vi="7 ngày">7 days</button>
+            <button class="chip" id="c30" aria-pressed="false" onclick="CMP.win('30')" data-en="30 days" data-vi="30 ngày">30 days</button>
           </div>
-          <button class="btn" onclick="AF.toast('CSV exported (demo)')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 3v12M7 10l5 5 5-5M5 21h14'/%3E%3C/svg%3E&quot;)"></i><span data-en="Export" data-vi="Xuất">Export</span></button>
+          <button class="btn" onclick="CMP.toast('CSV exported (demo)','Đã xuất CSV (demo)')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 3v12M7 10l5 5 5-5M5 21h14'/%3E%3C/svg%3E&quot;)"></i><span data-en="Export" data-vi="Xuất">Export</span></button>
         </div>
       </div>
 
@@ -87,8 +88,8 @@
             </div>
           </div>
           <div class="stats">
-            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">39.8 s</span></div>
-            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v">96.4%</span></div>
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v" data-7="39.8 s" data-30="41.2 s">39.8 s</span></div>
+            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v" data-7="96.4%" data-30="95.1%">96.4%</span></div>
             <div class="stat"><span class="k" data-en="Tasks run" data-vi="Số task đã chạy">Tasks run</span><span class="v" data-7="128" data-30="541">128</span></div>
           </div>
           <div class="foot"><span class="when" data-en="check 18:41:50" data-vi="kiểm tra 18:41:50">check 18:41:50</span>
@@ -103,7 +104,7 @@
             <div class="card-title"><h3>Qoder <span class="tier trial">PRO TRIAL</span></h3><span class="ver">qodercli 1.1.81</span></div>
             <span class="dot warn"></span>
           </div>
-          <div class="statusline">Qwen3.8-Flash · x0.1</div>
+          <div class="statusline">Qwen3.8-Flash · FREE</div>
           <div class="gauges">
             <div class="gauge">
               <div class="donut sm" style="--pct:62;--col:var(--ok)">
@@ -111,12 +112,13 @@
                 <span class="pct">62%</span>
               </div>
               <span class="g-cap" data-en="Credits left" data-vi="Credit còn lại">Credits left</span>
-              <span class="g-reset">1,240 / 2,000</span>
+              <span class="g-num">1,240 / 2,000</span>
+              <span class="g-reset" data-en="↻ renews 28/11" data-vi="↻ gia hạn 28/11">↻ renews 28/11</span>
             </div>
           </div>
           <div class="stats">
-            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">46.5 s</span></div>
-            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v">91.8%</span></div>
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v" data-7="46.5 s" data-30="44.8 s">46.5 s</span></div>
+            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v" data-7="91.8%" data-30="90.4%">91.8%</span></div>
             <div class="stat"><span class="k" data-en="Tasks run" data-vi="Số task đã chạy">Tasks run</span><span class="v" data-7="74" data-30="318">74</span></div>
           </div>
           <div class="foot"><span class="when" data-en="check 18:40:12" data-vi="kiểm tra 18:40:12">check 18:40:12</span>
@@ -151,8 +153,8 @@
             </div>
           </div>
           <div class="stats">
-            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">36.2 s</span></div>
-            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v">94.2%</span></div>
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v" data-7="36.2 s" data-30="35.5 s">36.2 s</span></div>
+            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v" data-7="94.2%" data-30="93.6%">94.2%</span></div>
             <div class="stat"><span class="k" data-en="Tasks run" data-vi="Số task đã chạy">Tasks run</span><span class="v" data-7="96" data-30="402">96</span></div>
           </div>
           <div class="foot"><span class="when" data-en="check 18:39:03" data-vi="kiểm tra 18:39:03">check 18:39:03</span>
@@ -175,12 +177,13 @@
                 <span class="pct">46%</span>
               </div>
               <span class="g-cap" data-en="Tokens used" data-vi="Token đã dùng">Tokens used</span>
-              <span class="g-reset">1.56M / 3.4M</span>
+              <span class="g-num">1.56M / 3.4M</span>
+              <span class="g-reset">↻ 3d</span>
             </div>
           </div>
           <div class="stats">
-            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">54.3 s</span></div>
-            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v">88.5%</span></div>
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v" data-7="54.3 s" data-30="52.6 s">54.3 s</span></div>
+            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v" data-7="88.5%" data-30="89.7%">88.5%</span></div>
             <div class="stat"><span class="k" data-en="Tasks run" data-vi="Số task đã chạy">Tasks run</span><span class="v" data-7="203" data-30="861">203</span></div>
           </div>
           <div class="foot"><span class="when" data-en="check 18:41:20" data-vi="kiểm tra 18:41:20">check 18:41:20</span>
@@ -189,10 +192,14 @@
         </article>
       </div>
 
+      <p class="tablenote" style="margin-top:12px" data-en="Avg time, Success rate and Tasks run follow the selected range. The gauges show the current plan window and do not move with it." data-vi="Thời gian TB, Tỉ lệ thành công và Số task đã chạy theo khoảng ngày đang chọn. Vòng hạn mức là cửa sổ gói hiện tại, không đổi theo khoảng ngày.">Avg time, Success rate and Tasks run follow the selected range. The gauges show the current plan window and do not move with it.</p>
+
       <div class="panel" style="margin-top:24px">
         <h4>
           <span data-en="Side-by-side summary" data-vi="Bảng tổng hợp">Side-by-side summary</span>
-          <span class="spacer" id="winNote" data-en="Last 7 days" data-vi="7 ngày gần nhất">Last 7 days</span>
+          <span class="spacer" id="winNote"
+                data-en-7="Last 7 days" data-vi-7="7 ngày gần nhất" data-en-30="Last 30 days" data-vi-30="30 ngày gần nhất"
+                data-en="Last 7 days" data-vi="7 ngày gần nhất">Last 7 days</span>
         </h4>
         <div class="tscroll">
           <table class="table">
@@ -210,63 +217,80 @@
                 <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>Codex</span></td>
                 <td><span class="tier plus">PLUS</span></td>
                 <td class="model mono">gpt-6.1-sol</td>
-                <td><span class="badge bad" data-en="22% · 5h" data-vi="22% · 5 giờ">22% · 5h</span></td>
-                <td><div class="mono small">3.1M tokens</div><div class="bar" style="margin-top:6px;max-width:120px"><span style="width:7%"></span></div></td>
-                <td class="num">39.8 s</td>
-                <td class="num"><span class="badge ok">96.4%</span></td>
+                <td><span class="badge bad" data-en="22% · 5h left" data-vi="22% · 5 giờ còn lại">22% · 5h left</span></td>
+                <td><div class="mono small" data-en="included in PLUS plan" data-vi="đã gồm trong gói PLUS">included in PLUS plan</div></td>
+                <td class="num" data-7="39.8 s" data-30="41.2 s">39.8 s</td>
+                <td class="num"><span class="badge ok" data-7="96.4%" data-30="95.1%">96.4%</span></td>
               </tr>
               <tr>
                 <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
                 <td><span class="tier trial">PRO TRIAL</span></td>
                 <td class="model mono">Qwen3.8-Flash</td>
-                <td><span class="badge ok" data-en="62% · credit" data-vi="62% · credit">62% · credit</span></td>
+                <td><span class="badge ok" data-en="62% · credits left" data-vi="62% · credit còn lại">62% · credits left</span></td>
                 <td><div class="mono small">760 / 2,000 credits</div><div class="bar ok" style="margin-top:6px;max-width:120px"><span style="width:38%"></span></div></td>
-                <td class="num">46.5 s</td>
-                <td class="num"><span class="badge warn">91.8%</span></td>
+                <td class="num" data-7="46.5 s" data-30="44.8 s">46.5 s</td>
+                <td class="num"><span class="badge warn" data-7="91.8%" data-30="90.4%">91.8%</span></td>
               </tr>
               <tr>
                 <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>Antigravity CLI</span></td>
                 <td><span class="tier pro">PRO</span></td>
                 <td class="model mono">Gemini 4 Argon</td>
-                <td><span class="badge ok" data-en="78% · week" data-vi="78% · tuần">78% · week</span></td>
-                <td><div class="mono small">1,120 / 2,000 credits</div><div class="bar warn" style="margin-top:6px;max-width:120px"><span style="width:56%"></span></div></td>
-                <td class="num">36.2 s</td>
-                <td class="num"><span class="badge ok">94.2%</span></td>
+                <td><span class="badge ok" data-en="78% · week left" data-vi="78% · tuần còn lại">78% · week left</span></td>
+                <td><div class="mono small" data-en="included in PRO plan" data-vi="đã gồm trong gói PRO">included in PRO plan</div></td>
+                <td class="num" data-7="36.2 s" data-30="35.5 s">36.2 s</td>
+                <td class="num"><span class="badge ok" data-7="94.2%" data-30="93.6%">94.2%</span></td>
               </tr>
               <tr>
                 <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>OpenCode</span></td>
                 <td><span class="tier byok">BYOK</span></td>
                 <td class="model mono">harbor-pool/…flash:free</td>
-                <td><span class="badge warn" data-en="54% · token" data-vi="54% · token">54% · token</span></td>
+                <td><span class="badge warn" data-en="46% · tokens used" data-vi="46% · token đã dùng">46% · tokens used</span></td>
                 <td><div class="mono small">1.56M / 3.4M tokens</div><div class="bar ok" style="margin-top:6px;max-width:120px"><span style="width:46%"></span></div></td>
-                <td class="num">54.3 s</td>
-                <td class="num"><span class="badge warn">88.5%</span></td>
+                <td class="num" data-7="54.3 s" data-30="52.6 s">54.3 s</td>
+                <td class="num"><span class="badge warn" data-7="88.5%" data-30="89.7%">88.5%</span></td>
               </tr>
             </tbody>
           </table>
         </div>
+        <p class="tablenote" data-en="Credit / token shows use against each agent's own cap — Qoder credits (760 of 2,000 used) and the OpenCode token pool (1.56M of 3.4M). Codex and Antigravity bill inside their plan, so they have no separate cap. The Lowest quota column mirrors each card's gauge." data-vi="Cột Credit / token là mức dùng so với hạn mức riêng của từng agent — credit Qoder (đã dùng 760/2.000) và pool token OpenCode (đã dùng 1,56M/3,4M). Codex và Antigravity tính trong gói nên không có hạn mức riêng. Cột Hạn mức thấp nhất lặp lại đúng vòng hạn mức trên card.">Credit / token shows use against each agent's own cap — Qoder credits (760 of 2,000 used) and the OpenCode token pool (1.56M of 3.4M). Codex and Antigravity bill inside their plan, so they have no separate cap. The Lowest quota column mirrors each card's gauge.</p>
       </div>
     </div>
   </main>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="assets/app.js"></script>
 <script>
   (function () {
-    window.cmpWin = function (v) {
+    function toast(en, vi) { AF.toast(AF.lang === 'vi' ? vi : en); }
+
+    /* One window change must move every window-scoped number on the page:
+       [data-7]/[data-30] hold language-neutral figures, while
+       [data-*-7]/[data-*-30] also refresh the EN/VI pair so a later language
+       switch cannot fall back to the other window's label. */
+    function applyWindow(v) {
       var seven = v === '7';
-      document.getElementById('c7').setAttribute('aria-pressed', String(seven));
-      document.getElementById('c30').setAttribute('aria-pressed', String(!seven));
       document.querySelectorAll('[data-7]').forEach(function (n) {
-        n.textContent = n.getAttribute('data-' + v);
+        n.textContent = n.getAttribute(seven ? 'data-7' : 'data-30');
       });
-      var note = document.getElementById('winNote');
-      var en = seven ? 'Last 7 days' : 'Last 30 days';
-      var vi = seven ? '7 ngày gần nhất' : '30 ngày gần nhất';
-      note.setAttribute('data-en', en);
-      note.setAttribute('data-vi', vi);
-      note.textContent = AF.lang === 'vi' ? vi : en;
-      AF.toast(seven ? 'Window: 7 days' : 'Window: 30 days');
+      document.querySelectorAll('[data-en-7]').forEach(function (n) {
+        var en = n.getAttribute(seven ? 'data-en-7' : 'data-en-30');
+        var vi = n.getAttribute(seven ? 'data-vi-7' : 'data-vi-30');
+        n.setAttribute('data-en', en);
+        n.setAttribute('data-vi', vi);
+        n.textContent = AF.lang === 'vi' ? vi : en;
+      });
+    }
+
+    window.CMP = {
+      toast: toast,
+      win: function (v) {
+        var seven = v === '7';
+        document.getElementById('c7').setAttribute('aria-pressed', String(seven));
+        document.getElementById('c30').setAttribute('aria-pressed', String(!seven));
+        applyWindow(v);
+        toast(seven ? 'Window: last 7 days' : 'Window: last 30 days',
+              seven ? 'Khoảng: 7 ngày gần nhất' : 'Khoảng: 30 ngày gần nhất');
+      }
     };
   })();
 </script>
