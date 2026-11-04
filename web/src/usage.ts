@@ -57,7 +57,7 @@ export function chartGuidance(kind: ChartKind, state: ChartState): string {
   const metric = kind === 'cpu' ? 'CPU' : 'bộ nhớ';
   if (state !== 'ready') {
     if (state === 'collecting') return `Mới có 1 mẫu ${metric}. Cần thêm một mẫu (khoảng 5 giây) để vẽ xu hướng.`;
-    return `Chưa có mẫu ${metric}. Số liệu lấy mỗi 5 giây khi có tiến trình chạy — mở một task để bắt đầu đo.`;
+    return `Chưa có mẫu ${metric}. Số liệu lấy mỗi 5 giây khi có tiến trình chạy — mở một công việc để bắt đầu đo.`;
   }
   return '';
 }

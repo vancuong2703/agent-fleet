@@ -77,7 +77,7 @@ test('a slow task sweep shows a skeleton and never the empty welcome', async ({ 
   await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await expect(page.locator('.welcome-skeleton')).toBeVisible();
   await expect(page.getByText('Bắt đầu một công việc mới.', { exact: true })).toHaveCount(0);
-  await expect(page.getByText('Tạo task đầu tiên', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Tạo công việc đầu tiên', { exact: true })).toHaveCount(0);
   await expect(page.locator('.welcome-skeleton')).toHaveCount(0, { timeout: 15_000 });
   await expect(page.locator('.welcome h1')).toHaveText('Bắt đầu một công việc mới.');
 });

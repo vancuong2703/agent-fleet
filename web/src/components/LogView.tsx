@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Run, StoredEvent } from '../../../shared/types.js';
 import { buildLogRows, eventText, formatClock } from '../store.js';
+import { appStrings, eventKindLabel } from '../strings.js';
 import { Skeleton } from './Skeleton.js';
 
 export interface LogViewProps {
@@ -58,7 +59,7 @@ export function LogView({ runs, events, runId, onSelectRun, loading = false, err
               className={`run-chip${run.id === runId ? ' active' : ''}`}
               onClick={() => onSelectRun(run.id)}
             >
-              lần {run.attempt}
+              {appStrings.log.attempt(run.attempt)}
             </button>
           ))}
         </div>
@@ -66,12 +67,12 @@ export function LogView({ runs, events, runId, onSelectRun, loading = false, err
       <div className="log-scroll" ref={scrollRef} onScroll={handleScroll}>
         {error !== null && (
           <div className="banner banner-error" role="alert">
-            Không tải được nhật ký: {error}
+            {appStrings.log.error(error)}
             {onRetry && <button type="button" className="banner-retry" onClick={onRetry}>Thử lại</button>}
           </div>
         )}
-        {rows.length === 0 && loading && error === null && <Skeleton className="log-skeleton" label="Đang tải nhật ký…" lines={5} />}
-        {rows.length === 0 && !loading && error === null && <div className="log-empty">Chưa có sự kiện.</div>}
+        {rows.length === 0 && loading && error === null && <Skeleton className="log-skeleton" label={appStrings.log.loading} lines={5} />}
+        {rows.length === 0 && !loading && error === null && <div className="log-empty">{appStrings.log.empty}</div>}
         {rows.map((row) => {
           if (row.raw && !expanded[row.id]) {
             return (
@@ -82,8 +83,8 @@ export function LogView({ runs, events, runId, onSelectRun, loading = false, err
                 onClick={() => toggle(row.id, true)}
               >
                 <span className="log-ts" />
-                <span className="log-kind kind-raw">raw</span>
-                <span className="log-text">... {row.events.length} dòng raw</span>
+                <span className="log-kind kind-raw">{appStrings.log.rawKind}</span>
+                <span className="log-text">{appStrings.log.rawToggle(row.events.length)}</span>
               </button>
             );
           }
@@ -92,7 +93,7 @@ export function LogView({ runs, events, runId, onSelectRun, loading = false, err
             const content = (
               <>
                 <span className="log-ts">{formatClock(stored.ts)}</span>
-                <span className={`log-kind kind-${kind}`}>{kind}</span>
+                <span className={`log-kind kind-${kind}`}>{eventKindLabel(kind)}</span>
                 <span className="log-text">{eventText(stored.event)}</span>
               </>
             );

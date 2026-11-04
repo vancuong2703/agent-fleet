@@ -1,4 +1,5 @@
 import type { KeyPool } from '../../../../shared/dashboard.js';
+import { appStrings } from '../../strings.js';
 import { dayLabel, hasValue, num, roundPct } from './blocks.js';
 import { meterTone } from './QuotaMeter.js';
 
@@ -82,8 +83,8 @@ export function KeyPoolGrid({ pools }: KeyPoolGridProps) {
             <PoolBar pct={pool.remainingPct} label={pool.total > 0 ? `${pool.ok}/${pool.total} key còn hạn mức` : 'Mức còn lại của pool'} />
             <p className="dash-pool-limit">
               {poolLimit(pool)}
-              {reset && reset !== pool.resetAt ? <> · key cạn reset {reset}</> : null}
-              {reason ? <em className="dash-pool-reason">{reason}</em> : null}
+              {reset && reset !== pool.resetAt ? <>{appStrings.keyPool.reasonSeparator}key cạn reset {reset}</> : null}
+              {reason ? <>{appStrings.keyPool.reasonSeparator}<em className="dash-pool-reason">{reason}</em></> : null}
             </p>
           </article>
         );

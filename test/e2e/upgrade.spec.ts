@@ -148,7 +148,7 @@ test('AGY composer defaults to auto, sends policy per run, and omits it for othe
     route.fulfill({ json: { id: `task-e2e-${payloads.length}`, planId: plan.id, title: body.title, agent: body.agent, status: 'queued', branch: 'fleet/policy', worktreePath: repoPath, checkCmd: null, createdAt: Date.now(), finishedAt: null } });
   });
   const openComposer = async (agent: string, title: string, extra?: () => Promise<void>) => {
-    await page.getByRole('button', { name: /Task mới/ }).click();
+    await page.getByRole('button', { name: /Công việc mới/ }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Dự án / plan', { exact: true }).selectOption(plan.id);
     await dialog.getByLabel('Agent', { exact: true }).selectOption(agent);

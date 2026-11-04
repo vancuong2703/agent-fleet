@@ -32,7 +32,7 @@ async function createPlan(page: Page, name: string, repoPath: string): Promise<P
 }
 
 async function openComposer(page: Page) {
-  await page.getByRole('button', { name: /Task mới/ }).click();
+  await page.getByRole('button', { name: /Công việc mới/ }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   return dialog;

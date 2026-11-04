@@ -289,7 +289,7 @@ for (const theme of ['light', 'dark'] as const) {
     await login(page);
     await expect(page.locator('.dash-picks button.dash-pick')).toHaveCount(3);
     await page.getByRole('button', { name: 'Tài nguyên & sử dụng', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Tài nguyên & mức sử dụng', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Tài nguyên & sử dụng', exact: true })).toBeVisible();
     await expect(page.locator('.usage-empty')).toContainText('Chưa có số liệu sử dụng');
     await expect(page.locator('.kpi-tile .kpi-value')).toHaveCount(4);
     for (const value of await page.locator('.kpi-tile .kpi-value').allInnerTexts()) expect(value).toBe('Chưa có dữ liệu');

@@ -34,6 +34,18 @@ import { Dashboard } from '../../web/src/components/Dashboard.js';
 const html = (node: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(node);
 
 /** Strips tags so assertions can talk about what a sighted user actually reads. */
+/** Visible text without inserting spaces between adjacent inline elements. */
+function joinedText(markup: string): string {
+  return markup
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;|&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
 function textOf(markup: string): string {
   const entities: Record<string, string> = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#x27;': "'", '&#39;': "'", '&nbsp;': ' ' };
   return markup
@@ -326,6 +338,10 @@ describe('KeyPoolGrid', () => {
     expect(textOf(out)).toContain('Chưa có dữ liệu');
     expect(out).not.toMatch(/is-error|banner-error/);
     expect(out).not.toContain('width:');
+    // Giới hạn và lý do là hai phần riêng; nếu dính tag, người dùng đọc
+    // thành "keypool không chạy" (leader visual review 2026-11-04).
+    expect(joinedText(out)).not.toContain('keypool không chạy');
+    expect(joinedText(out)).toContain('key · pool không chạy');
   });
 
   test('mã nguồn không chứa khoá hay token', () => {
