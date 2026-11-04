@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resources &amp; usage · Agent Fleet web demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/resources.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="mk">AF</span><span><b>Agent Fleet</b><small>AI WORKSPACE</small></span></div>
+    <nav class="nav">
+      <a href="dashboard.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1.5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Dashboard" data-vi="Bảng điều khiển">Dashboard</span></a>
+      <a href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Terminal" data-vi="Terminal">Terminal</span></a>
+      <a href="jobs.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'/%3E%3C/svg%3E&quot;)"></i><span data-en="Jobs" data-vi="Công việc">Jobs</span></a>
+      <a href="compare.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Compare" data-vi="So sánh agent">Compare</span></a>
+      <a href="resources.html" aria-current="page"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 3v18h18M7 15l4-5 3 3 5-7'/%3E%3C/svg%3E&quot;)"></i><span data-en="Resources &amp; usage" data-vi="Tài nguyên &amp; sử dụng">Resources &amp; usage</span></a>
+    </nav>
+    <div class="foot">WEB DEMO · v5</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <span class="crumb" data-en="Resources &amp; usage" data-vi="Tài nguyên &amp; sử dụng">Resources &amp; usage</span>
+      <span class="spacer"></span>
+      <div class="toggle" role="group" aria-label="Language">
+        <button id="lang-en" aria-pressed="true" onclick="AF.setLang('en')">EN</button>
+        <button id="lang-vi" aria-pressed="false" onclick="AF.setLang('vi')">VI</button>
+      </div>
+      <button class="tbtn" id="resToggle" aria-pressed="true" onclick="AF.toggleRes()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i><span data-en="System" data-vi="Tài nguyên">System</span></button>
+      <button class="tbtn" onclick="AF.theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i><span id="themeLabel" data-en="System" data-vi="Theo hệ thống">System</span></button>
+    </div>
+
+    <div class="wrap">
+      <div class="head">
+        <div>
+          <p class="eyebrow" data-en="Budget &amp; hardware" data-vi="Ngân sách &amp; phần cứng">Budget &amp; hardware</p>
+          <h1 class="title">RE<em>SOURCES</em></h1>
+        </div>
+        <div class="actions">
+          <span class="stamp" id="stamp">18:41</span>
+          <button class="btn" onclick="AF.toast('Refreshed (demo)')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 0 1-15 6.7L3 16'/%3E%3Cpath d='M8 16H3v5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Refresh" data-vi="Làm mới">Refresh</span></button>
+        </div>
+      </div>
+
+      <!-- Resources: real values, not % -->
+      <div class="res" id="resStrip">
+        <span class="rlabel" data-en="System" data-vi="Tài nguyên">System</span>
+        <div class="r"><span class="rname">CPU</span><b>3.8</b><span class="unit">/ 5.2 GHz</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">8/24</span></div>
+        <div class="r"><span class="rname">RAM</span><b>19.8</b><span class="unit">/ 32 GB</span><div class="bar warn"><span style="width:62%"></span></div></div>
+        <div class="r"><span class="rname">GPU</span><b>4.6</b><span class="unit">/ 12 GB</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">52°C</span></div>
+      </div>
+
+      <!-- KPI row -->
+      <div class="kpis">
+        <div class="panel">
+          <h4 data-en="Total tokens used" data-vi="Tổng token đã dùng">Total tokens used</h4>
+          <div class="kpi"><b>42.8M</b><small data-en="last 7 days" data-vi="7 ngày qua">last 7 days</small></div>
+          <div class="small muted" style="margin-top:10px" data-en="+6.4M vs previous week" data-vi="+6.4M so với tuần trước">+6.4M vs previous week</div>
+        </div>
+        <div class="panel">
+          <h4 data-en="Credits remaining" data-vi="Credit còn lại">Credits remaining</h4>
+          <div class="kpi"><b>1,240</b><small data-en="/ 2,000" data-vi="/ 2,000">/ 2,000</small></div>
+          <div class="bar ok" style="margin-top:12px"><span style="width:62%"></span></div>
+          <div class="creditline"><span data-en="760 used" data-vi="760 đã dùng">760 used</span><span data-en="renews 28/11" data-vi="gia hạn 28/11">renews 28/11</span></div>
+        </div>
+        <div class="panel">
+          <h4 data-en="Jobs run" data-vi="Số job đã chạy">Jobs run</h4>
+          <div class="kpi"><b>501</b><small data-en="across 4 agents" data-vi="trên 4 agent">across 4 agents</small></div>
+          <div class="small muted" style="margin-top:10px" data-en="+38 today" data-vi="+38 hôm nay">+38 today</div>
+        </div>
+        <div class="panel">
+          <h4 data-en="Avg duration" data-vi="Thời lượng TB">Avg duration</h4>
+          <div class="kpi"><b>46s</b><small data-en="/ task" data-vi="/ task">/ task</small></div>
+          <div class="small muted" style="margin-top:10px" data-en="↓ 3s vs previous week" data-vi="↓ 3s so với tuần trước">↓ 3s vs previous week</div>
+        </div>
+      </div>
+
+      <!-- Token trend -->
+      <div class="panel" style="margin-bottom:24px">
+        <div class="panel-head">
+          <h4 data-en="Tokens per day" data-vi="Token theo ngày">Tokens per day</h4>
+          <div class="filters" role="group" aria-label="Trend window">
+            <button class="chip" id="w7" aria-pressed="true" onclick="resWin('7')" data-en="7 days" data-vi="7 ngày">7 days</button>
+            <button class="chip" id="w30" aria-pressed="false" onclick="resWin('30')" data-en="30 days" data-vi="30 ngày">30 days</button>
+          </div>
+        </div>
+
+        <div id="win7">
+          <svg class="chart" viewBox="0 0 700 260" role="img" aria-label="Tokens used per day over the last 7 days">
+            <line class="grid-line" x1="44" y1="39" x2="660" y2="39"/>
+            <line class="grid-line" x1="44" y1="129.5" x2="660" y2="129.5"/>
+            <line class="axis" x1="44" y1="220" x2="660" y2="220"/>
+            <text class="lbl" x="38" y="43" text-anchor="end">8M</text>
+            <text class="lbl" x="38" y="133.5" text-anchor="end">4M</text>
+            <text class="lbl" x="38" y="224" text-anchor="end">0</text>
+            <rect class="bar-rect" x="56" y="102.4" width="56" height="117.6" rx="3"/>
+            <rect class="bar-rect" x="145" y="63.9" width="56" height="156.1" rx="3"/>
+            <rect class="bar-rect" x="233" y="120.5" width="56" height="99.5" rx="3"/>
+            <rect class="bar-rect" x="322" y="43.6" width="56" height="176.4" rx="3"/>
+            <rect class="bar-rect" x="411" y="82" width="56" height="138" rx="3"/>
+            <rect class="bar-rect" x="499" y="30" width="56" height="190" rx="3"/>
+            <rect class="bar-rect last" x="588" y="129.5" width="56" height="90.5" rx="3"/>
+            <text class="val" x="84" y="94.4" text-anchor="middle">5.2M</text>
+            <text class="val" x="173" y="55.9" text-anchor="middle">6.9M</text>
+            <text class="val" x="261" y="112.5" text-anchor="middle">4.4M</text>
+            <text class="val" x="350" y="35.6" text-anchor="middle">7.8M</text>
+            <text class="val" x="439" y="74" text-anchor="middle">6.1M</text>
+            <text class="val" x="527" y="22" text-anchor="middle">8.4M</text>
+            <text class="val" x="616" y="121.5" text-anchor="middle">4.0M</text>
+            <text class="lbl" x="84" y="242" text-anchor="middle" data-en="Mon" data-vi="T2">Mon</text>
+            <text class="lbl" x="173" y="242" text-anchor="middle" data-en="Tue" data-vi="T3">Tue</text>
+            <text class="lbl" x="261" y="242" text-anchor="middle" data-en="Wed" data-vi="T4">Wed</text>
+            <text class="lbl" x="350" y="242" text-anchor="middle" data-en="Thu" data-vi="T5">Thu</text>
+            <text class="lbl" x="439" y="242" text-anchor="middle" data-en="Fri" data-vi="T6">Fri</text>
+            <text class="lbl" x="527" y="242" text-anchor="middle" data-en="Sat" data-vi="T7">Sat</text>
+            <text class="lbl" x="616" y="242" text-anchor="middle" data-en="Sun" data-vi="CN">Sun</text>
+          </svg>
+        </div>
+
+        <!-- Empty state (30-day window has no rollup yet) -->
+        <div id="win30" hidden>
+          <div class="empty">
+            <b data-en="No data yet" data-vi="Chưa có dữ liệu">No data yet</b>
+            <span data-en="Run a job or wait for the next sync, then pick 30 days again." data-vi="Hãy chạy một job hoặc chờ lần đồng bộ kế tiếp, rồi chọn lại 30 ngày.">Run a job or wait for the next sync, then pick 30 days again.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-agent usage -->
+      <div class="panel">
+        <h4 data-en="Usage by agent" data-vi="Sử dụng theo agent">Usage by agent</h4>
+        <div class="tscroll">
+          <table class="table">
+            <thead><tr>
+              <th data-en="Agent" data-vi="Agent">Agent</th>
+              <th data-en="Tier" data-vi="Gói">Tier</th>
+              <th data-en="Model" data-vi="Model">Model</th>
+              <th data-en="Credit / tokens used" data-vi="Credit / token đã dùng">Credit / tokens used</th>
+              <th class="num" data-en="Multiplier" data-vi="Hệ số">Multiplier</th>
+              <th class="num" data-en="Tokens" data-vi="Token">Tokens</th>
+              <th data-en="Status" data-vi="Trạng thái">Status</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>Codex</span></td>
+                <td><span class="tier plus">PLUS</span></td>
+                <td class="model mono">gpt-6.1-sol</td>
+                <td class="mono small" data-en="included in plan" data-vi="nằm trong gói">included in plan</td>
+                <td class="num mono">x1.0</td>
+                <td class="num mono">3.1M</td>
+                <td><span class="badge warn" data-en="QUOTA 22%" data-vi="HẠN MỨC 22%">QUOTA 22%</span></td>
+              </tr>
+              <tr>
+                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
+                <td><span class="tier trial">PRO TRIAL</span></td>
+                <td class="model mono">Qwen3.8-Flash</td>
+                <td class="mono small">760 / 2,000</td>
+                <td class="num mono">x0.1</td>
+                <td class="num mono">1.2M</td>
+                <td><span class="badge ok">OK</span></td>
+              </tr>
+              <tr>
+                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>Antigravity CLI</span></td>
+                <td><span class="tier pro">PRO</span></td>
+                <td class="model mono">Gemini 4 Argon</td>
+                <td class="mono small">1,120 / 2,000</td>
+                <td class="num mono">x1.0</td>
+                <td class="num mono">6.9M</td>
+                <td><span class="badge ok">OK</span></td>
+              </tr>
+              <tr>
+                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>OpenCode</span></td>
+                <td><span class="tier byok">BYOK</span></td>
+                <td class="model mono">harbor-pool/…flash:free</td>
+                <td class="mono small">1.56M / 3.4M</td>
+                <td class="num mono">x0</td>
+                <td class="num mono">31.6M</td>
+                <td><span class="badge ok">OK</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="assets/app.js"></script>
+<script>
+  (function () {
+    window.resWin = function (v) {
+      var seven = v === '7';
+      document.getElementById('w7').setAttribute('aria-pressed', String(seven));
+      document.getElementById('w30').setAttribute('aria-pressed', String(!seven));
+      document.getElementById('win7').hidden = !seven;
+      document.getElementById('win30').hidden = seven;
+      AF.toast(seven ? 'Window: 7 days' : 'Window: 30 days');
+    };
+  })();
+</script>
+</body>
+</html>
