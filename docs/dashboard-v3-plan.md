@@ -441,6 +441,33 @@ Các task này giải quyết những lỗi trong [`ui-ux-improvement-plan.md`](
 
 ---
 
+## 4c. Trạng thái triển khai 2.3.0 (04/11/2026)
+
+| Task | Trạng thái | Ghi chú |
+|---|---|---|
+| T0.1 Giảm dung lượng | Đã triển khai | `app/` 40.52 → 3.48 MiB; tổng 179.92 → 142.96 MiB; ZIP 89.96 → 79.06 MiB |
+| T0.2 Nền tảng UI | Đã triển khai | Tokens, lucide, sửa cascade sidebar |
+| T1 Hợp đồng v3 | Đã triển khai | 4 parser theo agent, `rankPicks` |
+| T2, T4 Dữ liệu Qoder/Codex/AGY | Đã triển khai | Fixture + test parser |
+| T3 Dữ liệu OpenCode + harbor-key | Đã triển khai | Chỉ đọc loopback `/stats`, không ghi key |
+| T5 ToolCard v3 + Dashboard | Đã triển khai | Có **Kiểm tra tất cả** tuần tự |
+| T6 Dải "Nên dùng ngay" | Đã triển khai | |
+| T7 Tài nguyên & sử dụng | Đã triển khai | |
+| T8 E2E + tài liệu | Đã triển khai | Ảnh tổng hợp trong `docs/images/2.3/` |
+| T10–T14 Hoàn thiện UI | Đã triển khai | Confirm dialog, composer, trạng thái tải, topbar/palette, chuỗi tiếng Việt |
+| T12 Thống nhất ngôn ngữ | Đã triển khai | Glossary test chặn chuỗi tiếng Anh chung |
+| T9 Tích hợp & phát hành | Đã triển khai | Build `AgentFleet-2.3.0`, smoke thật 4 CLI (Qoder có khung TUI đọc được), sửa mẫu số credit + helper smoke, ảnh live |
+
+**Mục tiêu dung lượng:** `app/ < 15 MB` **đã đạt** (3.48 MiB). Tổng gói
+`< 115 MB` **chưa đạt** (142.96 MiB / 149.906.566 B, ZIP 82.897.560 B) vì Node
+portable (89.21 MiB) cộng .NET self-contained (49.58 MiB) đã vượt mục tiêu.
+Không đổi stack/portability trong 2.3.0; đây là giới hạn đã biết, không phải lỗi
+tích hợp và không được tính là đã đạt.
+
+Bằng chứng thật: `docs/images/2.3/live/` (ảnh CLI thật, nhãn tài khoản đã ẩn) tách
+riêng khỏi ảnh tổng hợp `docs/images/2.3/`. Chi tiết trong
+[`docs/releases/2.3.0.md`](releases/2.3.0.md).
+
 ## 5. Leader review sau mỗi task
 1. `fleet diff --stat`: kiểm tra task chỉ sửa đúng file được giao.
 2. Đọc diff và tìm: secret, `catch {}` nuốt lỗi, giá trị hard-code, `null` bị hiển thị thành 0.

@@ -9,8 +9,16 @@ const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('This package targets Windows x64 and must be built with Windows x64 Node.js');
 const publish = path.resolve(process.argv[2] ?? path.join(workspace, '.tmp/desktop-publish'));
 const output = path.resolve(process.argv[3] ?? path.join(workspace, 'dist/AgentFleet'));
+const dist = path.join(workspace, 'dist');
 const inside = (child, parent) => child.startsWith(parent + path.sep);
-if (!inside(output, path.join(workspace, 'dist')) || !inside(publish, workspace)) throw new Error('Packaging target must stay within workspace');
+// The release directory is recursively deleted below. Validate the absolute
+// targets first, and never allow workspace, dist/, or a source directory that
+// contains the release (that would copy the output into itself).
+if (!path.isAbsolute(output) || !path.isAbsolute(publish)) throw new Error('Packaging paths must be absolute');
+if (output === workspace || output === dist || !inside(output, dist) || publish === workspace || !inside(publish, workspace))
+  throw new Error('Packaging target must stay within workspace');
+if (output === publish || inside(output, publish) || inside(publish, output))
+  throw new Error('Packaging source and release target overlap');
 if (!existsSync(path.join(publish, 'AgentFleet.exe'))) throw new Error('Publish AgentFleet.exe before packaging');
 if (!existsSync(path.join(workspace, 'web/dist/index.html'))) throw new Error('Build web first');
 // This exact generated target is the only directory replaced by the packager.

@@ -69,6 +69,13 @@ export const appStrings = {
   localWorkspace: 'Máy cục bộ',
   live: 'Trực tiếp',
   usageTitle: 'Tài nguyên & sử dụng',
+  webWorkspace: 'Giao diện web',
+  desktopWorkspace: 'Ứng dụng máy tính',
+  /** Nhãn nhỏ phía trên tiêu đề; không dùng tiếng Anh chung chung. */
+  eyebrows: {
+    workspace: 'KHÔNG GIAN LÀM VIỆC AI',
+    usage: 'PHÂN TÍCH SỬ DỤNG',
+  },
   workspaceFallback: 'Không gian làm việc',
   tasksDone: (count: number) => `${count} công việc hoàn tất`,
   /** Nhãn tab Thay đổi: chỉ hiện số khi đã đọc xong, tránh "Thay đổi (0)" giả. */

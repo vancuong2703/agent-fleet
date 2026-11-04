@@ -6,5 +6,6 @@
     <Compile Include="../DesktopDataDirectory.cs" Link="DesktopDataDirectory.cs" />
     <Compile Include="../OwnedProcessJob.cs" Link="OwnedProcessJob.cs" />
     <Compile Include="../DesktopPreferences.cs" Link="DesktopPreferences.cs" />
+    <Compile Include="../SmokeFrame.cs" Link="SmokeFrame.cs" />
   </ItemGroup>
 </Project>

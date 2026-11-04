@@ -49,7 +49,7 @@ internal sealed class DesktopWindow : Form
             view.CoreWebView2.Settings.AreDevToolsEnabled = false;
             view.CoreWebView2.Settings.IsStatusBarEnabled = false;
             view.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
-            var marker = JsonSerializer.Serialize(new { version = "2.2.0", platform = "win32", theme = preferences.Theme, layout = preferences.Layout }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            var marker = JsonSerializer.Serialize(new { version = "2.3.0", platform = "win32", theme = preferences.Theme, layout = preferences.Layout }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             await view.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync($"window.__FLEET_DESKTOP__ = Object.freeze({marker}); window.dispatchEvent(new Event('fleet:desktop-ready'));");
             view.CoreWebView2.NavigationStarting += (_, e) =>
             {
@@ -184,6 +184,7 @@ internal sealed class DesktopWindow : Form
                 if (attempt == 59) throw new InvalidOperationException("React root did not render.");
             }
             if (Environment.GetEnvironmentVariable("FLEET_SMOKE_CLI_TESTS") == "1") await RunCliSmokeTestsAsync();
+            if (Environment.GetEnvironmentVariable("FLEET_SMOKE_CHECK_ALL") == "1") await RunCheckAllSmokeTestAsync();
             await Task.Delay(16000);
             var observation = await runtime.GetAsync("/api/observability");
             if (observation.GetProperty("resource").GetProperty("scope").GetString() != "desktop-process-tree")
@@ -216,6 +217,60 @@ internal sealed class DesktopWindow : Form
         finally { Close(); }
     }
 
+    // Opt-in check of the real "Kiểm tra tất cả" button. Never runs on a normal
+    // launch; requires both --smoke-test and FLEET_SMOKE_CHECK_ALL=1.
+    private async Task RunCheckAllSmokeTestAsync()
+    {
+        var agents = new[] { "codex", "qodercli", "agy", "opencode" };
+        var started = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await ClickSmokeButtonAsync("Kiểm tra tất cả");
+        var pending = new HashSet<string>(agents);
+        var checks = new Dictionary<string, JsonElement>();
+        // Bounded at ~7.5 minutes: real status/usage probes can be slow, and a
+        // hung CLI must fail the smoke test rather than wait forever.
+        for (var attempt = 0; attempt < 900 && pending.Count > 0; attempt++)
+        {
+            var dashboard = await runtime.GetAsync("/api/dashboard");
+            foreach (var tool in dashboard.GetProperty("tools").EnumerateArray())
+            {
+                var agent = tool.GetProperty("agent").GetString() ?? string.Empty;
+                if (!pending.Contains(agent)) continue;
+                var current = tool.GetProperty("lastCheck");
+                if (current.ValueKind == JsonValueKind.Object && current.GetProperty("checkedAt").GetInt64() >= started)
+                {
+                    checks[agent] = current.Clone();
+                    pending.Remove(agent);
+                }
+            }
+            if (pending.Count > 0) await Task.Delay(500);
+        }
+        if (pending.Count > 0) throw new InvalidOperationException($"Check All did not complete for: {string.Join(", ", pending)}");
+        foreach (var agent in agents)
+        {
+            // Never weaken the manual-check policy: every real CLI must report ready.
+            if (checks[agent].GetProperty("status").GetString() != "ready") throw new InvalidOperationException($"CLI {agent} Check All result was not ready.");
+        }
+        await Task.Delay(750);
+        // Keep account identifiers out of the stored evidence image; plan, quota
+        // and status stay visible. This only affects the screenshot, never the checks.
+        await view.CoreWebView2.ExecuteScriptAsync("document.querySelectorAll('.tool-account').forEach(el=>{el.textContent='Đã ẩn trong ảnh kiểm chứng';})");
+        await using (var capture = File.Create(Path.Combine(dataDir, "desktop-check-all.png")))
+            await view.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, capture);
+        // Store a redacted summary only; probe output and account identifiers stay out of evidence.
+        var summary = agents.Select(agent => new
+        {
+            agent,
+            status = checks[agent].GetProperty("status").GetString(),
+            checkedAt = checks[agent].GetProperty("checkedAt").GetInt64(),
+            plan = checks[agent].TryGetProperty("plan", out var plan) && plan.ValueKind == JsonValueKind.Object ? plan.GetProperty("name").GetString() : null,
+            tier = checks[agent].TryGetProperty("plan", out var tiered) && tiered.ValueKind == JsonValueKind.Object && tiered.TryGetProperty("tier", out var tierValue) ? tierValue.GetString() : null,
+            quotaWindows = checks[agent].TryGetProperty("quotaWindows", out var windows) && windows.ValueKind == JsonValueKind.Array ? windows.GetArrayLength() : 0,
+            models = checks[agent].TryGetProperty("models", out var models) && models.ValueKind == JsonValueKind.Array ? models.GetArrayLength() : 0,
+            keyPools = checks[agent].TryGetProperty("keyPools", out var pools) && pools.ValueKind == JsonValueKind.Array ? pools.GetArrayLength() : 0,
+        }).ToArray();
+        await File.WriteAllTextAsync(Path.Combine(dataDir, "desktop-check-all.json"), JsonSerializer.Serialize(new { checkedAll = "passed", agents = summary }));
+    }
+
     // Opt-in integration check in the real WebView2 host. Never runs on a normal
     // launch; requires both --smoke-test and FLEET_SMOKE_CLI_TESTS=1.
     private async Task RunCliSmokeTestsAsync()
@@ -225,15 +280,11 @@ internal sealed class DesktopWindow : Form
         {
             var started = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             await ClickSmokeButtonAsync("Mở " + title);
-            var rendered = false;
-            for (var attempt = 0; attempt < 100; attempt++)
-            {
-                var found = await view.CoreWebView2.ExecuteScriptAsync("(()=>{const p=document.querySelector('.terminal-session:not([hidden]) .terminal-panel');const r=p?.getBoundingClientRect();return !!p&&r.top>=0&&r.top<innerHeight&&/[A-Za-z]{4}/.test(p.querySelector('.xterm-rows')?.innerText??'')})()");
-                if (found == "true") { rendered = true; break; }
-                await Task.Delay(250);
-            }
-            if (!rendered) throw new InvalidOperationException($"CLI {agent} did not render in the native viewport.");
+            var settled = await WaitForSettledFrameAsync(agent, title);
             await Task.Delay(1500);
+            // Verify AGAIN at capture: a late navigation must not produce a blank image.
+            var atCapture = SmokeFrame.Evaluate(title, await view.CoreWebView2.ExecuteScriptAsync(SmokeFrame.SnapshotScript(title)));
+            if (!atCapture.Ready) throw new InvalidOperationException($"CLI {agent} was not readable at capture time (tab: {atCapture.TabLabel}).");
             await using (var capture = File.Create(Path.Combine(dataDir, $"native-cli-{agent}.png")))
                 await view.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, capture);
             var dashboard = await runtime.GetAsync("/api/dashboard");
@@ -260,9 +311,30 @@ internal sealed class DesktopWindow : Form
             if (agent == "codex" && check.GetProperty("quota").GetProperty("remaining").ValueKind != JsonValueKind.Number) throw new InvalidOperationException("Codex quota missing.");
             if (agent == "qodercli" && check.GetProperty("credits").GetProperty("remaining").ValueKind != JsonValueKind.Number) throw new InvalidOperationException("Qoder credits missing.");
             if (agent == "agy" && check.GetProperty("quotas").GetArrayLength() < 5) throw new InvalidOperationException("AGY model-group quotas missing.");
-            reports.Add(new { agent, rendered, manualCheck = "passed", quota = check.GetProperty("quota"), credits = check.GetProperty("credits"), quotas = check.GetProperty("quotas") });
+            reports.Add(new { agent, rendered = true, frameLines = atCapture.Lines, settledLines = settled.Lines, manualCheck = "passed", quota = check.GetProperty("quota"), credits = check.GetProperty("credits"), quotas = check.GetProperty("quotas") });
             await File.WriteAllTextAsync(Path.Combine(dataDir, "native-cli-results.json"), JsonSerializer.Serialize(reports));
         }
+    }
+
+    /// <summary>
+    /// Wait for the EXPECTED CLI's own readable frame and require it to be stable
+    /// across two samples. The tab title must match, so the previous CLI that is
+    /// still visible during a React tab transition can never satisfy the check.
+    /// Bounded at 40s: slow CLIs (Qoder needs ~2s) pass, a hung one fails.
+    /// </summary>
+    private async Task<CliFrameState> WaitForSettledFrameAsync(string agent, string title)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(40);
+        var previous = new CliFrameState(false, 0, string.Empty, string.Empty);
+        var last = previous;
+        while (DateTime.UtcNow < deadline)
+        {
+            last = SmokeFrame.Evaluate(title, await view.CoreWebView2.ExecuteScriptAsync(SmokeFrame.SnapshotScript(title)));
+            if (SmokeFrame.IsSettled(previous, last)) return last;
+            previous = last;
+            await Task.Delay(400);
+        }
+        throw new InvalidOperationException($"CLI {agent} did not render a readable, settled frame within 40s (tab: {last.TabLabel}, lines: {last.Lines}).");
     }
 
     private async Task ClickSmokeButtonAsync(string label)

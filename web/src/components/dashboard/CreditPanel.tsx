@@ -31,13 +31,15 @@ export interface CreditPanelProps {
 }
 
 /**
- * Số dư credit. Các cửa sổ `unit === 'credits'` chỉ được dùng để lấy hạn mức
- * gói và đơn vị; bản thân từng cửa sổ hiện ở khối "Hạn mức còn lại" (QuotaMeter)
- * để không lặp lại một số liệu hai lần trong thẻ.
+ * Số dư credit. Chỉ một cửa sổ `unit === 'credits'` mới đủ tương ứng để làm mẫu
+ * số; khi Qoder báo nhiều nguồn (gói + credit bổ sung) số dư là tổng đã cộng
+ * dồn nên ghép với hạn mức của cửa sổ đầu sẽ so hai đại lượng khác nhau — khi
+ * đó chỉ hiện số dư, còn từng cửa sổ vẫn hiện ở khối "Hạn mức còn lại" (QuotaMeter).
  */
 export function CreditPanel({ check }: CreditPanelProps) {
   const credits = check.credits;
-  const primary = (check.quotaWindows ?? []).find((row) => row.unit === 'credits') ?? null;
+  const creditWindows = (check.quotaWindows ?? []).filter((row) => row.unit === 'credits');
+  const primary = creditWindows.length === 1 ? creditWindows[0] : null;
   const remaining = credits.remaining;
   return (
     <div className="dash-credit">

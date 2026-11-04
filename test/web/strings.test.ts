@@ -12,8 +12,12 @@ import viteConfig from '../../web/vite.config.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const componentsDir = path.join(root, 'web/src/components');
 
-/** The words the glossary pass removes from every user-facing literal. */
-const BANNED = ['Task mới', 'Copy', 'Paste', 'Log', 'Brief', 'Tasks'];
+/**
+ * The words the glossary pass removes from every user-facing literal. The last
+ * four are generic English display phrases found by the T12 review; agent/model
+ * names and API identifiers are intentionally not listed.
+ */
+const BANNED = ['Task mới', 'Copy', 'Paste', 'Log', 'Brief', 'Tasks', 'AGENT WORKSPACE', 'WORKSPACE ANALYTICS', 'Web workspace', 'Desktop workspace'];
 
 function walk(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -73,6 +77,13 @@ describe('shared glossary strings', () => {
     expect(appStrings.live).toBe('Trực tiếp');
     expect(appStrings.usageTitle).toBe('Tài nguyên & sử dụng');
     expect(appStrings.sidebar.emptySearch).toContain('công việc');
+  });
+
+  test('generic eyebrow and host labels are Vietnamese, not English chrome', () => {
+    expect(appStrings.eyebrows.workspace).toBe('KHÔNG GIAN LÀM VIỆC AI');
+    expect(appStrings.eyebrows.usage).toBe('PHÂN TÍCH SỬ DỤNG');
+    expect(appStrings.webWorkspace).toBe('Giao diện web');
+    expect(appStrings.desktopWorkspace).toBe('Ứng dụng máy tính');
   });
 
   test('diff badge only shows a count after the patch was read', () => {

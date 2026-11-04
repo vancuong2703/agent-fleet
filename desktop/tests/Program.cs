@@ -57,6 +57,30 @@ checkedCases++;
 using (var layout = JsonDocument.Parse("{\"sidebarWidth\":-3,\"inspectorWidth\":9000,\"terminalHeight\":\"invalid\"}")) restoredPreferences.SetLayout(layout.RootElement);
 if (restoredPreferences.Layout != new DesktopLayout(190, 520, 380)) throw new Exception("Native layout bounds failed");
 checkedCases++;
+// CLI smoke framing: a previous CLI's tab, a still-connecting socket and a
+// blank screen must never count as the expected agent's rendered frame.
+string Frame(string label, string caption, string conn, int lines, int letters, int textLen, int hash) =>
+    JsonSerializer.Serialize(new { label, caption, conn, lines, letters, textLen, hash });
+var readyFrame = Frame("Qoder CLI · Workspace", "Qoder CLI · C:\\ws", "Đã kết nối", 6, 240, 1200, 99);
+if (SmokeFrame.Evaluate("Qoder CLI", readyFrame).Ready != true) throw new Exception("Readable expected frame rejected");
+checkedCases++;
+if (SmokeFrame.Evaluate("Qoder CLI", Frame("Codex · Workspace", "Codex · C:\\ws", "Đã kết nối", 6, 240, 1200, 99)).Ready) throw new Exception("Previous CLI tab accepted as expected agent");
+checkedCases++;
+if (SmokeFrame.Evaluate("Qoder CLI", Frame("Qoder CLI · Workspace", "Qoder CLI · C:\\ws", "Đang kết nối", 0, 0, 0, 0)).Ready) throw new Exception("Connecting socket accepted as rendered");
+checkedCases++;
+if (SmokeFrame.Evaluate("Qoder CLI", Frame("Qoder CLI · Workspace", "Qoder CLI · C:\\ws", "Đã kết nối", 1, 2, 12, 7)).Ready) throw new Exception("Transient loading line accepted as frame");
+checkedCases++;
+if (SmokeFrame.Evaluate("Qoder CLI", "not json").Ready) throw new Exception("Malformed frame snapshot accepted");
+checkedCases++;
+var first = SmokeFrame.Evaluate("Qoder CLI", readyFrame);
+var same = SmokeFrame.Evaluate("Qoder CLI", readyFrame);
+var grown = SmokeFrame.Evaluate("Qoder CLI", Frame("Qoder CLI · Workspace", "Qoder CLI · C:\\ws", "Đã kết nối", 7, 260, 1300, 101));
+if (!SmokeFrame.IsSettled(first, same)) throw new Exception("Identical frames not settled");
+if (SmokeFrame.IsSettled(first, grown)) throw new Exception("Growing frame treated as settled");
+checkedCases += 2;
+var frameScript = SmokeFrame.SnapshotScript("Qoder CLI");
+if (!frameScript.Contains("\"Qoder CLI\"") || !frameScript.Contains("aria-selected") || !frameScript.Contains("terminal-connection")) throw new Exception("Frame snapshot does not pin the expected agent and connection state");
+checkedCases++;
 var expectedParent = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, ".tmp"));
 if (Path.GetDirectoryName(testRoot) != expectedParent || !Path.GetFileName(testRoot).StartsWith("desktop-path-tests-")) throw new Exception("Unexpected cleanup target");
 Directory.Delete(testRoot, recursive: true);

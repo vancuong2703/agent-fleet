@@ -150,7 +150,10 @@ test('thẻ công cụ v3 hiển thị gói, cửa sổ nghẽn, credit, model v
   await expect(qoder).toContainText('Pro Trial');
   await expect(qoder.locator('.tier-badge', { hasText: 'TRIAL' })).toBeVisible();
   await expect(qoder.locator('.dash-credit-big')).toContainText('1.240');
-  await expect(qoder.locator('.dash-credit-big')).toContainText('2.000');
+  // Hai nguồn credit (gói + bổ sung): số dư là tổng đã cộng dồn nên không ghép
+  // với hạn mức 2.000 của riêng cửa sổ gói; hạn mức vẫn hiện ở thanh bên dưới.
+  await expect(qoder.locator('.dash-credit-big')).not.toContainText('2.000');
+  await expect(qoder.locator('.dash-meter[data-group="Credit gói"]')).toContainText('2.000');
   await expect(qoder.locator('.dash-meter[data-group="Credit gói"] .dash-bar')).toHaveAttribute('aria-valuenow', '62');
 
   // Mặc định chỉ 6 dòng; 8 dòng còn lại nằm trong <details> đang đóng.

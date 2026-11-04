@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 
 import type { RepositoryValidation } from '../../../shared/repository.js';
 import type { AgentId, Plan, Task } from '../../../shared/types.js';
 import { api, type AgentInfo } from '../api.js';
+import { appStrings } from '../strings.js';
 import { Icon } from './Icon.js';
 
 /** The composer runs as a two-step assistant: pick the project, then hand over the work. */
@@ -311,7 +312,7 @@ export function TaskComposer({ plans, initialPlanId, onClose, onCreated }: { pla
   const projectLabel = newPlan ? (planName.trim() || 'Plan mới') : plans.find((plan) => plan.id === planId)?.name ?? planId;
 
   return <div className="modal-overlay" role="presentation"><section className="modal composer-modal" role="dialog" aria-modal="true" aria-labelledby="composer-title">
-    <div className="composer-heading"><div><span className="eyebrow">AGENT WORKSPACE</span><h2 id="composer-title">Giao một công việc mới</h2></div><button className="icon-button" title="Đóng tạo công việc" aria-label="Đóng tạo công việc" onClick={onClose} disabled={busy}><Icon name="close" /></button></div>
+    <div className="composer-heading"><div><span className="eyebrow">{appStrings.eyebrows.workspace}</span><h2 id="composer-title">Giao một công việc mới</h2></div><button className="icon-button" title="Đóng tạo công việc" aria-label="Đóng tạo công việc" onClick={onClose} disabled={busy}><Icon name="close" /></button></div>
     <form ref={formRef} onSubmit={handleSubmit} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); formRef.current?.requestSubmit(); } }} data-step={step}>
       <ol className="composer-steps" aria-label="Các bước giao việc" style={stepListStyle}>
         <li><span className="composer-step" aria-current={step === 1 ? 'step' : undefined} style={stepChipStyle(step === 1)}>1. Dự án</span></li>
