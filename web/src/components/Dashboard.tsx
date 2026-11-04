@@ -1,6 +1,7 @@
 import type { Plan, Task } from '../../../shared/types.js';
 import type { CliWorkspace } from '../cli-workspace.js';
 import { AgentMark, Icon } from './Icon.js';
+import { PicksStrip } from './dashboard/PicksStrip.js';
 import { ToolCard } from './dashboard/ToolCard.js';
 import { Skeleton, clock, hasValue } from './dashboard/blocks.js';
 import '../styles/dashboard.css';
@@ -81,6 +82,8 @@ export function Dashboard({ plans, tasks, cli }: { plans: Plan[]; tasks: Task[];
           ) : null}
         </div>
       ) : null}
+
+      {cli.snapshot && tools.length ? <PicksStrip tools={tools} cli={cli} /> : null}
 
       <div className="dash-grid">
         {tools.map((tool) => <ToolCard key={tool.agent} tool={tool} cli={cli} />)}
