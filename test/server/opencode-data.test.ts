@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { DashboardCheck } from '../../shared/dashboard.js';
 import type { FleetConfig } from '../../server/config.js';
 import type { DashboardEnrichmentContext } from '../../server/dashboard/parsers/common.js';
-import { enrichOpencode } from '../../server/dashboard/parsers/opencode.js';
+import { enrichOpencode, parseModels } from '../../server/dashboard/parsers/opencode.js';
 import {
   POOL_DOWN_REASON,
   POOL_HOST_REASON,
@@ -280,7 +280,7 @@ describe('OpenCode enrichment', () => {
       label: 'tokenharbor/deepseek-v4.1-flash-1017',
       effort: null,
     });
-    expect(enrichment.models).toHaveLength(5);
+    expect(enrichment.models).toHaveLength(4);
     expect(enrichment.models?.find((model) => model.id === 'tokenharbor/deepseek-v4.1-flash-1017')).toEqual({
       id: 'tokenharbor/deepseek-v4.1-flash-1017',
       label: 'DeepSeek V4.1 Flash 1017',
@@ -289,10 +289,8 @@ describe('OpenCode enrichment', () => {
       contextTokens: 1000000,
       source: 'cli',
     });
-    // Nested model ids keep only the first segment as the provider.
-    expect(enrichment.models?.find((model) => model.id === '9router/ag/gemini-3.8-flash')).toMatchObject({
-      provider: '9router', label: 'Gemini 3.8 Flash', contextTokens: 1000000,
-    });
+    // 9router routes are not displayed, even when opencode.json still describes them.
+    expect(enrichment.models?.some((model) => model.provider === '9router')).toBe(false);
     // A model missing from opencode.json keeps a null context instead of a made-up number.
     expect(enrichment.models?.find((model) => model.id === 'opencode/deepseek-v4.1-flash-free')).toMatchObject({
       provider: 'opencode', label: 'opencode/deepseek-v4.1-flash-free', contextTokens: null,
@@ -318,7 +316,7 @@ describe('OpenCode enrichment', () => {
     });
     expect(enrichment.keyPools?.[0]?.limitLabel).toContain(POOL_DOWN_REASON);
     expect(enrichment.plan?.tier).toBe('byok');
-    expect(enrichment.models).toHaveLength(5);
+    expect(enrichment.models).toHaveLength(4);
   });
 
   test('never contacts a non-loopback pool host from the enrichment hook', async () => {
@@ -351,7 +349,36 @@ describe('OpenCode enrichment', () => {
     const enrichment = await enrichOpencode(context(fleetConfig(keyPoolPath, []), models));
 
     expect(enrichment.keyPools).toBeUndefined();
-    expect(enrichment.models).toHaveLength(5);
+    expect(enrichment.models).toHaveLength(4);
     expect(enrichment.currentModel?.id).toBe('harbor-pool/deepseek-v4.1-flash:free');
+  });
+});
+
+describe('OpenCode model allowlist', () => {
+  // `OpencodeSettings` stays private; the parser only reads these two fields.
+  const settings = {
+    providers: new Map<string, Map<string, { name: string | null; contextTokens: number | null }>>(),
+    model: null,
+  };
+
+  test('keeps only opencode, tokenharbor and harbor-pool models, in order', () => {
+    const stdout = [
+      'opencode/deepseek-v4.1-flash-free',
+      'tokenharbor/deepseek-v4.1-flash:free',
+      'tokenharbor/deepseek-v4.1-flash-1017',
+      'harbor-pool/deepseek-v4.1-flash:free',
+      '9router/ag/gemini-4-argon-high',
+    ].join('\n');
+
+    expect(parseModels(stdout, settings).map((model) => model.id)).toEqual([
+      'opencode/deepseek-v4.1-flash-free',
+      'tokenharbor/deepseek-v4.1-flash:free',
+      'tokenharbor/deepseek-v4.1-flash-1017',
+      'harbor-pool/deepseek-v4.1-flash:free',
+    ]);
+  });
+
+  test('a 9router-only listing leaves no models to show', () => {
+    expect(parseModels('9router/ag/gemini-4-argon-high', settings)).toEqual([]);
   });
 });

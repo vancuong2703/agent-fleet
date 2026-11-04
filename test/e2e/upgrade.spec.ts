@@ -107,7 +107,7 @@ test('resource model breakdown retains generic models, attribution and distinct 
     ], notes: [],
   };
   await page.route('**/api/observability**', route => route.fulfill({ json: snapshot }));
-  await login(page); await page.getByRole('button', { name: 'Tài nguyên & sử dụng', exact: true }).click();
+  await login(page); await page.getByRole('button', { name: 'Tài nguyên', exact: true }).click();
   await page.locator('.diagnostics > summary').click();
   const table = page.getByRole('table', { name: 'Mức sử dụng theo model' });
   await expect(table.getByRole('cell', { name: 'gemini-pro', exact: true })).toBeVisible();

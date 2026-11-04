@@ -16,7 +16,7 @@
 .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 button.chip{cursor:pointer;background:transparent}
 button.chip:hover{border-color:var(--ink);color:var(--ink)}
-button.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button.chip[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-strong);border-color:var(--accent)}
 .filters .count{font:600 11.5px var(--mono);color:var(--muted)}
 
 /* tabs: terminal sessions and job details use the same tab button */

@@ -23,7 +23,7 @@ test('health markers agree on dashboard, compare, resources and tool details', a
   await expect(headerDot).toHaveAttribute('aria-label', /key cạn/);
   await navigate(page, 'So sánh agent');
   await expect(page.locator('.compare-page article[data-tool="opencode"] .card-top .dot')).toHaveClass(/warn/);
-  await navigate(page, 'Tài nguyên & sử dụng');
+  await navigate(page, 'Tài nguyên', 'Tài nguyên & sử dụng');
   await expect(page.getByRole('table', { name: 'Mức sử dụng theo agent' }).getByRole('row').filter({ hasText: 'OpenCode' }).locator('.badge')).toHaveClass(/warn/);
 });
 

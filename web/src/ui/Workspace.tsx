@@ -27,7 +27,7 @@ const NAV: Array<{ id: Exclude<View, 'tool'>; en: string; vi: string; icon: Icon
   { id: 'terminal', en: 'Terminal', vi: 'Terminal', icon: 'terminal' },
   { id: 'tasks', en: 'Jobs', vi: 'Công việc', icon: 'tasks' },
   { id: 'compare', en: 'Compare', vi: 'So sánh agent', icon: 'compare' },
-  { id: 'usage', en: 'Resources & usage', vi: 'Tài nguyên & sử dụng', icon: 'activity' },
+  { id: 'usage', en: 'Resources & usage', vi: 'Tài nguyên', icon: 'activity' },
 ];
 export function Workspace() { return <LanguageProvider><WorkspaceBody /></LanguageProvider>; }
 function WorkspaceBody() {
@@ -60,7 +60,7 @@ function WorkspaceBody() {
     <aside id="workspace-sidebar" className="side workspace-sidebar" aria-label={t('Navigation', 'Điều hướng')}>
       <div className="brand"><span className="mk">AF</span><span><b>Agent Fleet</b><small>AI WORKSPACE</small></span></div>
       <nav className="nav" aria-label={t('Main navigation', 'Điều hướng chính')}>{NAV.map(item => <button type="button" key={item.id} aria-label={t(item.en, item.vi)} aria-current={view === item.id || view === 'tool' && item.id === 'dashboard' ? 'page' : undefined} onClick={() => go(item.id)}><Icon name={item.icon} size={15} /><span>{t(item.en, item.vi)}</span></button>)}</nav>
-      <div className="sidebar-extras"><button className={`sidebar-guide${view === 'guide' ? ' active' : ''}`} aria-current={view === 'guide' ? 'page' : undefined} onClick={() => go('guide')}><Icon name="file" size={14} />{t('Leader guide', 'Hướng dẫn leader')}</button></div>
+      <div className="sidebar-extras"><button type="button" className={`sidebar-guide${view === 'guide' ? ' active' : ''}`} aria-current={view === 'guide' ? 'page' : undefined} onClick={() => go('guide')}><Icon name="file" size={15} />{t('Leader guide', 'Hướng dẫn leader')}</button></div>
       <section className="side-res" id="resStrip" hidden={!hardware} aria-label={t('Hardware measurements', 'Số đo phần cứng')}><span className="rlabel">{t('Hardware', 'Phần cứng')}</span><div className="r"><div className="r-top"><span className="rname">CPU</span><b>{known(resource?.cpuPercent) ? resource.cpuPercent.toFixed(1) : '—'}</b><span className="unit">%</span></div><Meter pct={resource?.cpuPercent} /></div><div className="r"><div className="r-top"><span className="rname">RAM</span><b>{resource ? formatBytes(resource.memoryBytes) : '—'}</b><span className="unit">{known(totalMemory) ? `/ ${formatBytes(totalMemory)}` : ''}</span></div><Meter pct={resource && totalMemory ? resource.memoryBytes / totalMemory * 100 : null} /></div><div className="r"><div className="r-top"><span className="rname">GPU</span><b>{known(resource?.gpu?.utilizationPercent) ? resource.gpu.utilizationPercent.toFixed(1) : '—'}</b><span className="unit">%{resource?.gpu?.scope === 'system' ? t(' system', ' hệ thống') : ''}</span></div><Meter pct={resource?.gpu?.utilizationPercent} /></div></section>
       <div className="foot side-foot"><span>DESKTOP · v{__APP_VERSION__}</span><span className={`connection${connected ? ' on' : ''}`} title={connected ? 'Đã kết nối' : 'Mất kết nối'}><i className={`dot${connected ? '' : ' warn'}`} aria-label={connected ? t('Connected', 'Đã kết nối') : t('Reconnecting', 'Đang kết nối lại')} /></span></div>
     </aside>

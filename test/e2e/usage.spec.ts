@@ -22,7 +22,7 @@ async function openUsage(page: Page, options: UsageOptions = {}) {
     const days = Number(new URL(route.request().url()).searchParams.get('sinceDays'));
     return route.fulfill({ json: populated ? [{ agent: 'codex', runs: days === 30 ? 4 : 2, successRate: 1, avgDurationMs: days === 30 ? 2500 : 1000, retryRate: 0, mergeRate: 1, costUsd: null }] : [] });
   });
-  await login(page); await navigate(page, 'Tài nguyên & sử dụng');
+  await login(page); await navigate(page, 'Tài nguyên', 'Tài nguyên & sử dụng');
 }
 
 test('empty usage explains how to populate the report and draws no flat token line', async ({ page }) => {

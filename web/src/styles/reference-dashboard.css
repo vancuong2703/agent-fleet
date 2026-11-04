@@ -13,6 +13,12 @@
 .row3 .panel{display:flex;flex-direction:column;min-height:0;padding:16px 18px}
 @media(max-width:1100px){.row3{grid-template-columns:1fr}.zones{margin-bottom:14px}}
 
+/* ---- spinner wrapper for the refresh icons (.spin and @keyframes spin
+   already live in reference.css); the span keeps the icon aligned inside
+   the pill buttons ---- */
+.spin{display:inline-flex}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+
 /* ---- jobs today: six-segment status strip ---- */
 .stackbar{display:flex;gap:3px;height:9px;margin-top:12px}
 .stackbar .sg{flex:1;border-radius:2px;background:var(--track)}
@@ -26,10 +32,13 @@
 
 /* ---- needs attention ---- */
 .attn{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.attn li{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);font:600 12px var(--sans)}
+.attn li{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font:600 12px/1.45 var(--sans)}
 .attn li:last-child{border-bottom:0;padding-bottom:0}
 .attn .at-t{flex:1;min-width:0;color:var(--muted)}
 .attn .at-t b{color:var(--ink)}
+/* a text link, not a 32 px pill: keeps four attention rows on one line each */
+.attn-open{border:0;background:transparent;color:var(--accent-strong);font:650 11.5px var(--sans);cursor:pointer;padding:0;white-space:nowrap}
+.attn-open:hover{text-decoration:underline}
 
 /* ---- short window (see the note in app.css) ---- */
 @media(max-height:870px),(max-width:1250px){

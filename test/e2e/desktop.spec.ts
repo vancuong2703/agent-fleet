@@ -117,7 +117,7 @@ test('job search restores focus after the palette and exports an actual usage fi
   await expect(search).toBeFocused();
   await search.fill(task.title);
   await expect(page.locator('.table.jobs .task-row')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Tài nguyên & sử dụng', exact: true }).click();
+  await page.getByRole('button', { name: 'Tài nguyên', exact: true }).click();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Xuất báo cáo', exact: true }).click();
   expect((await download).suggestedFilename()).toMatch(/^agent-fleet-usage-.*\.json$/);

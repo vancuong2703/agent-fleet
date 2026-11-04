@@ -17,11 +17,11 @@ export async function login(page: Page) {
   await page.goto(`/auth?token=${encodeURIComponent(token)}`);
   await expect(page.getByRole('heading', { name: 'Bảng điều khiển', exact: true })).toBeVisible();
 }
-export async function navigate(page: Page, label: string) {
+export async function navigate(page: Page, label: string, heading = label) {
   await page.keyboard.press('Control+k');
   await page.getByRole('combobox', { name: 'Tìm lệnh' }).fill(label);
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: label, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
 }
 export const card = (page: Page, agent: DashboardTool['agent']) => page.locator(`.dashboard-page article[data-tool="${agent}"]`);
 export async function openTool(page: Page, agent: DashboardTool['agent']) {

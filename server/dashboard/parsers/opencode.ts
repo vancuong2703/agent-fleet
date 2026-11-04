@@ -83,8 +83,15 @@ function readOpencodeSettings(filePath: string): OpencodeSettings {
   return { providers, model: typeof record.model === 'string' && record.model.trim().length > 0 ? record.model.trim() : null };
 }
 
+/**
+ * Providers whose models belong on the OpenCode card. The `9router` routes are
+ * no longer used and must not clutter the card, so anything outside this list
+ * is dropped.
+ */
+const DISPLAY_PROVIDERS = new Set(['opencode', 'tokenharbor', 'harbor-pool']);
+
 /** Split `provider/model` on the first slash and annotate it from opencode.json. */
-function parseModels(stdout: string, settings: OpencodeSettings): ModelOffer[] {
+export function parseModels(stdout: string, settings: OpencodeSettings): ModelOffer[] {
   const offers: ModelOffer[] = [];
   const seen = new Set<string>();
   for (const line of stdout.split(/\r?\n/)) {
@@ -93,6 +100,13 @@ function parseModels(stdout: string, settings: OpencodeSettings): ModelOffer[] {
     seen.add(id);
     const slash = id.indexOf('/');
     const provider = slash > 0 ? id.slice(0, slash) : null;
+    if (provider === null) {
+      // Defensive: `opencode models` always prints `provider/model`. A bare id
+      // is only worth keeping when it is a free route.
+      if (!id.includes(':free') && !id.endsWith('-free')) continue;
+    } else if (!DISPLAY_PROVIDERS.has(provider)) {
+      continue;
+    }
     const modelKey = slash > 0 ? id.slice(slash + 1) : id;
     const details = provider ? settings.providers.get(provider)?.get(modelKey) : undefined;
     offers.push({
