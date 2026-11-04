@@ -201,7 +201,7 @@ export function App() {
           </>}
         </main>{showInspector && <><ResizeHandle orientation="vertical" reverse label="Điều chỉnh độ rộng bảng thông tin" value={layout.inspectorWidth} min={260} max={520} onChange={(inspectorWidth) => updateLayout({ inspectorWidth })} /><Inspector snapshot={observability.snapshot} error={observability.error} task={selectedTask} run={latestRun} plan={plan} onClose={() => setInspectorChoice(false)} /></>}</> : null}
       </div>
-      <footer className="statusbar"><span><span className={`status-led ${connected ? 'on' : ''}`} />{connected ? 'Đã đồng bộ' : 'Đang chờ kết nối'}</span><span>{isDesktop() ? 'Windows Desktop' : 'Web workspace'}<span className="statusbar-sep">·</span>{appStrings.tasksDone(counts.done)}<span className="statusbar-sep">·</span>Dữ liệu lưu trên máy</span></footer>
+      <footer className="statusbar"><span><span className={`status-led ${connected ? 'on' : ''}`} />{connected ? 'Đã đồng bộ' : 'Đang chờ kết nối'}</span><span>{isDesktop() ? appStrings.desktopWorkspace : appStrings.webWorkspace}<span className="statusbar-sep">·</span>{appStrings.tasksDone(counts.done)}<span className="statusbar-sep">·</span>Dữ liệu lưu trên máy</span></footer>
     </div>
     {composer && <TaskComposer plans={plans} initialPlanId={plan?.id} onClose={() => setComposer(false)} onCreated={(task) => { setSelectedTaskId(task.id); setView('tasks'); setTab('log'); setComposer(false); }} />}
     <CommandPalette open={paletteOpen} tasks={tasks} onClose={() => setPaletteOpen(false)} onAction={runPaletteAction} />

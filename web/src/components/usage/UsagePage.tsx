@@ -257,7 +257,7 @@ export function UsagePage({ snapshot, error, plans, tasks, onSelectTask, tools: 
   return <div className="usage-page">
     <div className="page-heading">
       <div>
-        <span className="eyebrow">WORKSPACE ANALYTICS</span>
+        <span className="eyebrow">{appStrings.eyebrows.usage}</span>
         <h1>{appStrings.usageTitle}</h1>
         <p className="muted">Số liệu thực đo và dữ liệu do agent cung cấp.</p>
       </div>

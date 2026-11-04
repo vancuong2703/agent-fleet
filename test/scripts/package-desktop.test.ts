@@ -93,6 +93,24 @@ describe.skipIf(process.platform !== 'win32' || process.arch !== 'x64')('desktop
     expect(readdirSync(path.join(app, 'node_modules/@lydell'))).toEqual(['node-pty', 'node-pty-win32-x64']);
   });
 
+  it('refuses to recursively clean an unsafe or overlapping release target', () => {
+    const root = fixture();
+    const script = path.join(root, 'scripts/package-desktop.mjs');
+    const publish = path.join(root, '.tmp/publish');
+    const release = path.join(root, 'dist/AgentFleet');
+    mkdirSync(path.join(root, 'dist'), { recursive: true });
+    const marker = path.join(root, 'dist', 'keep.txt');
+    writeFileSync(marker, 'keep');
+
+    // `dist/` is the parent of every release and must never be the deletion target.
+    expect(() => execFileSync(process.execPath, [script, publish, path.join(root, 'dist')])).toThrow();
+    // Absolute paths outside the workspace are rejected before any cleanup.
+    expect(() => execFileSync(process.execPath, [script, publish, path.resolve(root, '..', 'AgentFleet-escaped')])).toThrow();
+    // A source directory that contains the release would copy the output into itself.
+    expect(() => execFileSync(process.execPath, [script, path.join(root, 'dist'), release])).toThrow(/overlap/i);
+    expect(readFileSync(marker, 'utf8')).toBe('keep');
+  });
+
   it('uses the package version for the archive even with a different output folder name', () => {
     const root = fixture();
     // Stub publishing/archiving, but run real PowerShell orchestration and the

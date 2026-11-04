@@ -358,13 +358,53 @@ describe('KeyPoolGrid', () => {
 describe('CreditPanel', () => {
   const credit = (over: Partial<DashboardCheck> = {}) => html(createElement(CreditPanel, { check: baseCheck(over) }));
 
-  test('số dư kèm hạn mức gói hiện cả hai vế', () => {
+  test('một nguồn credit duy nhất: số dư kèm hạn mức có nghĩa', () => {
     const out = textOf(credit({
       credits: { remaining: 1_240, unit: 'credits', resetAt: null, source: '/usage', reason: null },
-      quotaWindows: qoderCreditWindows,
+      quotaWindows: qoderCreditWindows.slice(0, 1),
     }));
     expect(out).toContain('1.240');
     expect(out).toContain('2.000');
+  });
+
+  test('nhiều nguồn credit chỉ hiện số dư, không ghép với hạn mức của cửa sổ đầu', () => {
+    // Số liệu tổng hợp từ lần kiểm tra Qoder thật: số dư 555 = 0 còn lại ở gói
+    // + 555 credit bổ sung, trong khi hạn mức cửa sổ đầu chỉ là 300. Ghép
+    // "555 / 300" là so hai đại lượng khác nhau.
+    const out = textOf(credit({
+      credits: { remaining: 555, unit: 'credits', resetAt: null, source: '/usage', reason: null },
+      quotaWindows: [
+        win('Credit gói', 'plan', 0, { unit: 'credits', used: 300, limit: 300 }),
+        win('Credit bổ sung', 'plan', 69.38, { unit: 'credits', used: 245, limit: 800 }),
+      ],
+    }));
+    expect(out).toContain('555');
+    expect(out).toContain('credit');
+    expect(out).not.toContain('300');
+    expect(out).not.toContain('/');
+  });
+
+  test('nhiều cửa sổ nhưng chỉ một nơi có hạn mức: không suy ra tổng', () => {
+    const out = textOf(credit({
+      credits: { remaining: 420, unit: 'credits', resetAt: null, source: '/usage', reason: null },
+      quotaWindows: [
+        win('Credit gói', 'plan', null, { unit: 'credits', used: null, limit: null }),
+        win('Credit bổ sung', 'plan', 47.5, { unit: 'credits', used: 210, limit: 400 }),
+      ],
+    }));
+    expect(out).toContain('420');
+    expect(out).not.toContain('400');
+    expect(out).not.toContain('/');
+  });
+
+  test('một cửa sổ nhưng thiếu hạn mức: giữ số dư, không hiện 0', () => {
+    const out = textOf(credit({
+      credits: { remaining: 88, unit: 'credits', resetAt: null, source: '/usage', reason: null },
+      quotaWindows: [win('Credit gói', 'plan', null, { unit: 'credits', used: null, limit: null })],
+    }));
+    expect(out).toContain('88');
+    expect(out).not.toContain('/');
+    expect(out).not.toContain(' 0');
   });
 
   test('thiếu dữ liệu hiện lý do, không hiện 0', () => {

@@ -10,11 +10,11 @@ open a console window or an external browser for the workspace.
 From the repository root with Node.js 24, npm dependencies and .NET 10 SDK:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/package-desktop.ps1 -OutputName AgentFleet-2.2.0
+powershell -ExecutionPolicy Bypass -File scripts/package-desktop.ps1 -OutputName AgentFleet-2.3.0
 ```
 
-Output: `dist/AgentFleet-2.2.0/AgentFleet.exe` and
-`dist/AgentFleet-2.2.0-win-x64.zip`. Close the older app first. Extract the whole folder before opening the
+Output: `dist/AgentFleet-2.3.0/AgentFleet.exe` and
+`dist/AgentFleet-2.3.0-win-x64.zip`. Close the older app first. Extract the whole folder before opening the
 EXE. The default build includes the .NET runtime, Node and only reachable
 production Node dependencies. The server is compiled to JavaScript before packaging,
 so no TypeScript runner or esbuild process stays running. WebView2 Evergreen
@@ -53,7 +53,7 @@ GPU is `null` when neither source works; no usage or billing numbers are invente
 
 ## Native bridge
 
-The host injects `window.__FLEET_DESKTOP__ = { version: '2.2.0', platform: 'win32' }`.
+The host injects `window.__FLEET_DESKTOP__ = { version: '2.3.0', platform: 'win32' }`.
 The marker also includes the saved `theme` preference (`system`, `light`, `dark`).
 Trusted `{type:'fleet:set-theme', theme}` messages persist the choice in
 `desktop-settings.json` and update the native title bar, surviving random-port
@@ -80,7 +80,7 @@ Reports downloaded from the trusted origin use a native Save dialog.
 ## Smoke test
 
 ```powershell
-Start-Process -FilePath .\dist\AgentFleet-2.2.0\AgentFleet.exe -ArgumentList '--smoke-test --data-dir "C:\Qoder\agent-fleet-upgrade\.tmp\desktop-smoke"' -WindowStyle Hidden -Wait
+Start-Process -FilePath .\dist\AgentFleet-2.3.0\AgentFleet.exe -ArgumentList '--smoke-test --data-dir "C:\Qoder\agent-fleet-upgrade\.tmp\desktop-smoke"' -WindowStyle Hidden -Wait
 ```
 
 The app boots, authenticates, verifies the React `.app` root and native marker,
@@ -97,11 +97,22 @@ Native policy regression tests:
 dotnet run --project desktop/tests/PathPolicy.Tests.csproj
 ```
 
-The 17 cases cover safe/unsafe paths, canonical profile identity, TCP listener
-ownership, job-object enumeration/kill-on-close and theme/layout persistence. Run outside the restricted
-agent sandbox because Windows TCP ownership tables are filtered inside it.
+The 25 cases cover safe/unsafe paths, canonical profile identity, TCP listener
+ownership, job-object enumeration/kill-on-close, theme/layout persistence and the
+CLI smoke frame rule (expected agent tab, connected socket, stable readable frame).
+Run outside the restricted agent sandbox because Windows TCP ownership tables are
+filtered inside it.
 
-See [2.1 release verification](../docs/releases/2.2.0.md) for the current build.
+Set `FLEET_SMOKE_CLI_TESTS=1` to open each real CLI and run its manual check, and
+`FLEET_SMOKE_CHECK_ALL=1` to press the dashboard **Kiểm tra tất cả** button. The
+CLI smoke only accepts the EXPECTED agent's own tab with a connected socket and a
+readable frame that is identical across two samples (40 s bound), then re-checks
+that frame right before capturing; a slower CLI such as Qoder (~2 s to draw) can
+no longer be screenshotted blank. The Check All run writes
+`desktop-check-all.png` and a redacted `desktop-check-all.json` (status, plan
+name/tier, quota-window count and model/pool counts only).
+
+See [2.3 release verification](../docs/releases/2.3.0.md) for the current build.
 
 ## Historical 2.0 build — 03/11/2026
 

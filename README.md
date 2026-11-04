@@ -1,19 +1,21 @@
 # Agent Fleet Desktop
 
-Bản **2.2.0**: ứng dụng Windows `.exe`, giao diện trắng/sáng/tối, cột kéo giãn,
-Terminal riêng giữ nhiều phiên CLI, cuộn chuột theo vùng và thống kê tài nguyên/token/credit theo công cụ và model.
-Xem [ghi chú 2.2.0](docs/releases/2.2.0.md) và [kế hoạch phân công](docs/upgrade-2.1-plan.md).
+Bản **2.3.0**: Dashboard v3 theo từng CLI (gói, hạn mức, credit, key pool, hệ số
+model), dải **Nên dùng ngay**, trang **Tài nguyên & sử dụng** mới và nền tảng giao
+diện dùng chung. Vẫn là ứng dụng Windows `.exe` với giao diện sáng/tối, cột kéo
+giãn, Terminal riêng giữ nhiều phiên CLI và cuộn chuột theo vùng.
+Xem [ghi chú 2.3.0](docs/releases/2.3.0.md) và [kế hoạch hiện tại](docs/dashboard-v3-plan.md).
 
 Agent Fleet là ứng dụng local cho Windows giúp một model leader giao việc cho
-các coding agent `codex`, `qodercli`, `agy`, `opencode`. Mỗi task có git worktree
-riêng; CLI `fleet` dùng để giao việc, chờ kết quả, xem diff, retry, merge hoặc huỷ.
-Web UI hiển thị task theo plan, log trực tiếp, diff, terminal tiếp quản và số liệu
+các coding agent `codex`, `qodercli`, `agy`, `opencode`. Mỗi công việc có git worktree
+riêng; CLI `fleet` dùng để giao việc, chờ kết quả, xem thay đổi, retry, merge hoặc huỷ.
+Web UI hiển thị công việc theo plan, nhật ký trực tiếp, thay đổi, terminal tiếp quản và số liệu
 so sánh agent. Leader quyết định việc cần làm và review trước khi merge.
 
 ## Mở ứng dụng Windows
 
-Đóng bản cũ rồi mở [AgentFleet.exe](dist/AgentFleet-2.2.0/AgentFleet.exe), hoặc giải nén toàn bộ
-[AgentFleet-2.2.0-win-x64.zip](dist/AgentFleet-2.2.0-win-x64.zip) rồi mở `AgentFleet.exe`. Giữ thư mục `app/`
+Đóng bản cũ rồi mở [AgentFleet.exe](dist/AgentFleet-2.3.0/AgentFleet.exe), hoặc giải nén toàn bộ
+[AgentFleet-2.3.0-win-x64.zip](dist/AgentFleet-2.3.0-win-x64.zip) rồi mở `AgentFleet.exe`. Giữ thư mục `app/`
 và `runtime/` cạnh EXE. Bản portable mặc định đã kèm Node và .NET; không cần mở
 CMD hoặc trình duyệt riêng. Máy cần Windows 11 x64, WebView2, Git và agent CLI
 đã cài/đăng nhập để giao việc cho agent thật.
@@ -31,8 +33,8 @@ Mỗi CLI có tab riêng; chuyển tab hoặc màn hình giữ nguyên tiến tr
 Chuột trong vùng terminal cuộn history/pager CLI; chuột bên ngoài cuộn giao diện.
 Nhấn **Kiểm tra** để đọc trạng thái; AGY đọc `/usage` để hiện quota từng nhóm model;
 quota/credit còn lại hiện chưa có dữ liệu nếu CLI không cung cấp. Không tự kiểm tra tài khoản khi mở màn hình.
-Chọn **Task mới** để tạo plan từ một Git repository và giao việc; chọn task ở
-sidebar để xem log, diff, brief và terminal. Chọn **Giao diện** ở góc dưới trái
+Chọn **Công việc mới** để tạo plan từ một Git repository và giao việc; chọn công việc ở
+sidebar để xem **Nhật ký**, **Thay đổi**, **Yêu cầu** và terminal. Chọn **Giao diện** ở góc dưới trái
 để dùng sáng/tối/theo hệ thống, hoặc **Ô lệnh nhanh** (Ctrl K) ở mọi độ rộng màn hình.
 Kéo đường phân cách để chỉnh cột và chiều cao terminal.
 **Tài nguyên & sử dụng** tổng hợp số liệu theo công cụ/model và xuất JSON, kèm badge

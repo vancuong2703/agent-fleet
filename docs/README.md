@@ -3,6 +3,7 @@
 - [Bắt đầu và tiếp nhận dự án](../START_HERE.md)
 - [Cài đặt, cấu hình và phát triển](../README.md)
 - [Ứng dụng Windows và đóng gói EXE](../desktop/README.md)
+- [Dashboard v3 và nền tảng giao diện 2.3](releases/2.3.0.md)
 - [Terminal riêng, cuộn chuột và quota AGY 2.2](releases/2.2.0.md)
 - [Bản vá CLI và kiểm tra trạng thái 2.1.1](releases/2.1.1.md)
 - [Ghi chú desktop 2.1](releases/2.1.0.md)

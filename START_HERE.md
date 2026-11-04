@@ -2,9 +2,12 @@
 
 Thư mục dự án: `C:\Qoder\agent-fleet-upgrade`.
 
-**Bản làm việc hiện tại: Agent Fleet Desktop 2.2.0.** Đóng bản cũ rồi mở
-`dist/AgentFleet-2.2.0/AgentFleet.exe`; xem [ghi chú 2.2.0](docs/releases/2.2.0.md) và
-[hướng dẫn desktop](desktop/README.md). Những số liệu 1.1.0 bên dưới là lịch sử
+**Bản làm việc hiện tại: Agent Fleet Desktop 2.3.0.** Đóng bản cũ rồi mở
+`dist/AgentFleet-2.3.0/AgentFleet.exe`; xem [ghi chú 2.3.0](docs/releases/2.3.0.md) và
+[hướng dẫn desktop](desktop/README.md). Kết quả cuối: 690 test unit/integration,
+106 E2E, 25 native policy; smoke thật 4/4 CLI `ready` với khung terminal đọc được.
+Tổng gói 142.96 MiB / ZIP 79.06 MiB — **mục tiêu < 115 MB chưa đạt** vì Node và
+.NET portable, không đổi stack. Những số liệu 1.1.0 bên dưới là lịch sử
 bàn giao, không phải mô tả đầy đủ của bản desktop hiện tại.
 
 Chọn thư mục này khi tạo dự án mới trong Codex. Mã nguồn ở ngay thư mục gốc,
@@ -28,8 +31,9 @@ làm việc chính. Xem [cấu trúc và mục lục tài liệu](docs/README.md
 
 ## Đọc theo thứ tự
 
-1. [Ghi chú 2.2.0](docs/releases/2.2.0.md): thay đổi, phân công CLI, kết quả test
-   và giới hạn số liệu. [Ghi chú 1.1.0](docs/releases/1.1.0.md) là lịch sử.
+1. [Ghi chú 2.3.0](docs/releases/2.3.0.md): thay đổi, phân công CLI, kết quả test,
+   kích thước gói và giới hạn số liệu. [Ghi chú 2.2.0](docs/releases/2.2.0.md) và
+   [Ghi chú 1.1.0](docs/releases/1.1.0.md) là lịch sử.
 2. [README.md](README.md): cấu trúc ứng dụng, cài đặt, cấu hình.
 3. [Hướng dẫn leader](docs/leader-guide.md): giao việc cho Codex, Qoder, AGY và OpenCode qua fleet.
 4. [Thiết kế ban đầu](docs/superpowers/specs/2026-11-02-agent-fleet-design.md).
@@ -112,6 +116,6 @@ lần chạy đó không được tính là regression PASS. Gói bàn giao khô
 
 Mẫu yêu cầu cho chat mới:
 
-> Đọc START_HERE.md và docs/releases/2.2.0.md. Review thay đổi 2.1 hiện có, sau đó
+> Đọc START_HERE.md và docs/releases/2.3.0.md. Review hiện trạng dự án đã bàn giao, sau đó
 > tiếp tục theo yêu cầu mới. Giữ dữ liệu/cổng phát triển
 > riêng và kiểm tra đầy đủ trước khi áp dụng thay đổi vào server đang dùng.
