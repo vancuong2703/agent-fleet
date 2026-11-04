@@ -53,6 +53,17 @@ table.jobs td{padding:10px 6px;vertical-align:middle}
 .empty .steps{margin:14px 0;font:600 12px var(--mono);color:var(--muted)}
 .empty .btn{margin-top:6px}
 
+/* ---- narrow but still side-by-side -----------------------------------------
+   Between 1101 and 1250 px the list panel is only ~430 px wide, so the fourth
+   column no longer fits: hide it (the file count is repeated in the job
+   detail) and let the title ellipsis instead of panning the row out of sight. */
+@media(max-width:1250px){
+  table.jobs{min-width:0}
+  table.jobs th.num,table.jobs td.num{display:none}
+  .rowbtn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cellsub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+
 /* ---- narrow screens: stack the two panels, page scrolls again ---- */
 @media(max-width:1100px){
   .split{grid-template-columns:1fr;flex:none}

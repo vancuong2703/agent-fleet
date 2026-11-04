@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-lang="en">
+<html lang="en" data-lang="en" data-style="warm">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/dashboard.css">
 </head>
 <body>
 <div class="app">
@@ -51,6 +52,7 @@
       </div>
       <button class="tbtn" id="resToggle" aria-pressed="true" aria-label="Hardware" onclick="AF.toggleRes()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i><span data-en="Hardware" data-vi="Phần cứng">Hardware</span></button>
       <button class="tbtn" onclick="AF.theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i><span id="themeLabel" data-en="System" data-vi="Theo hệ thống">System</span></button>
+      <button class="tbtn" id="styleBtn" onclick="AF.style()" aria-label="View style" title="View style: warm paper tone"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 2.7 6.6 8.1a7.6 7.6 0 1 0 10.8 0z'/%3E%3C/svg%3E&quot;)"></i><span id="styleLabel">Warm</span></button>
     </div>
 
     <div class="wrap">
@@ -68,11 +70,11 @@
         </div>
       </div>
 
-      <div class="zones fill">
+      <div class="zones">
         <!-- CODEX -->
         <article class="card">
           <div class="card-top">
-            <span class="logo" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>
+            <span class="logo lg-codex"><img src="assets/logos/codex.svg" alt="Codex"></span>
             <div class="card-title"><h3>Codex <span class="tier plus">PLUS</span></h3><span class="ver">codex-cli 0.166.0</span></div>
             <span class="dot warn" title="Warning: only 22% of the 5-hour window is left"></span>
           </div>
@@ -95,6 +97,15 @@
               <span class="g-reset" data-en="↻ 6d" data-vi="↻ 6 ngày">↻ 6d</span>
             </div>
           </div>
+          <div class="stats">
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">39.8 s</span></div>
+            <div class="stat"><span class="k" data-en="Success" data-vi="Thành công">Success</span><span class="v">96.4%</span></div>
+            <div class="stat"><span class="k" data-en="Tasks 7d" data-vi="Task 7 ngày">Tasks 7d</span><span class="v">128</span></div>
+          </div>
+          <a class="lastjob" href="jobs.html">
+            <span class="lj-head"><span class="lj-k" data-en="Last job" data-vi="Job gần nhất">Last job</span><span class="lj-s ok" data-en="running" data-vi="đang chạy">running</span></span>
+            <span class="lj-t" title="#4821 · Add jobs page"><b>#4821</b> <span data-en="Add jobs page" data-vi="Thêm trang jobs">Add jobs page</span></span>
+          </a>
           <div class="foot"><span class="when" data-en="check 18:41:50" data-vi="kiểm tra 18:41:50">check 18:41:50</span>
             <button class="btn" onclick="AF.checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Check" data-vi="Kiểm tra">Check</span></button>
             <a class="btn ghost" href="tool.html?t=codex"><span data-en="Details" data-vi="Chi tiết">Details</span> →</a>
@@ -104,7 +115,7 @@
         <!-- QODER -->
         <article class="card">
           <div class="card-top">
-            <span class="logo" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>
+            <span class="logo lg-qoder"><img src="assets/logos/qoder.svg" alt="Qoder"></span>
             <div class="card-title"><h3>Qoder <span class="tier trial">PRO TRIAL</span></h3><span class="ver">qodercli 1.1.81</span></div>
             <span class="dot" title="OK: 62% of the credit balance is left"></span>
           </div>
@@ -118,6 +129,15 @@
             <div class="m"><span class="mn">Qwen3.8-Flash</span><span class="mult free">FREE</span></div>
             <div class="m"><span class="mn">DeepSeek-Flash</span><span class="mult">x0.1</span></div>
           </div>
+          <div class="stats">
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">46.5 s</span></div>
+            <div class="stat"><span class="k" data-en="Success" data-vi="Thành công">Success</span><span class="v">91.8%</span></div>
+            <div class="stat"><span class="k" data-en="Tasks 7d" data-vi="Task 7 ngày">Tasks 7d</span><span class="v">74</span></div>
+          </div>
+          <a class="lastjob" href="jobs.html">
+            <span class="lj-head"><span class="lj-k" data-en="Last job" data-vi="Job gần nhất">Last job</span><span class="lj-s warn" data-en="review" data-vi="chờ xem xét">review</span></span>
+            <span class="lj-t" title="#4820 · Refactor quota parser"><b>#4820</b> <span data-en="Refactor quota parser" data-vi="Viết lại bộ đọc hạn mức">Refactor quota parser</span></span>
+          </a>
           <div class="foot"><span class="when" data-en="check 18:40:12" data-vi="kiểm tra 18:40:12">check 18:40:12</span>
             <button class="btn" onclick="AF.checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Check" data-vi="Kiểm tra">Check</span></button>
             <a class="btn ghost" href="tool.html?t=qoder"><span data-en="Details" data-vi="Chi tiết">Details</span> →</a>
@@ -127,7 +147,7 @@
         <!-- ANTIGRAVITY CLI: 2 columns 5h | week -->
         <article class="card">
           <div class="card-top">
-            <span class="logo" style="background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>
+            <span class="logo lg-agy"><img src="assets/logos/agy.svg" alt="Antigravity CLI"></span>
             <div class="card-title"><h3>Antigravity CLI <span class="tier pro">PRO</span></h3><span class="ver">agy 1.4.12</span></div>
             <span class="dot" title="OK: 91% of the 5-hour window and 78% of the week are left"></span>
           </div>
@@ -155,6 +175,15 @@
               </tr>
             </tbody>
           </table>
+          <div class="stats">
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">36.2 s</span></div>
+            <div class="stat"><span class="k" data-en="Success" data-vi="Thành công">Success</span><span class="v">94.2%</span></div>
+            <div class="stat"><span class="k" data-en="Tasks 7d" data-vi="Task 7 ngày">Tasks 7d</span><span class="v">96</span></div>
+          </div>
+          <a class="lastjob" href="jobs.html">
+            <span class="lj-head"><span class="lj-k" data-en="Last job" data-vi="Job gần nhất">Last job</span><span class="lj-s" data-en="done" data-vi="hoàn tất">done</span></span>
+            <span class="lj-t" title="#4819 · Fix context overflow"><b>#4819</b> <span data-en="Fix context overflow" data-vi="Sửa tràn ngữ cảnh">Fix context overflow</span></span>
+          </a>
           <div class="foot"><span class="when" data-en="check 18:39:03" data-vi="kiểm tra 18:39:03">check 18:39:03</span>
             <button class="btn" onclick="AF.checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Check" data-vi="Kiểm tra">Check</span></button>
             <a class="btn ghost" href="tool.html?t=agy"><span data-en="Details" data-vi="Chi tiết">Details</span> →</a>
@@ -164,7 +193,7 @@
         <!-- OPENCODE: tokens used -->
         <article class="card">
           <div class="card-top">
-            <span class="logo" style="background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>
+            <span class="logo lg-opencode"><img src="assets/logos/opencode.svg" alt="OpenCode"></span>
             <div class="card-title"><h3>OpenCode <span class="tier byok">BYOK</span></h3><span class="ver">opencode 2.2.5</span></div>
             <span class="dot warn" title="Warning: pool key-13 has expired"></span>
           </div>
@@ -175,6 +204,15 @@
           <div class="g-cap" data-en="Tokens used" data-vi="Token đã dùng">Tokens used</div>
           <div class="bar ok"><span style="width:46%"></span></div>
           <div class="creditline"><span>1.56M / 3.4M</span><span data-en="12/13 keys · ↻ 3d" data-vi="12/13 key · ↻ 3d">12/13 keys · ↻ 3d</span></div>
+          <div class="stats">
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">54.3 s</span></div>
+            <div class="stat"><span class="k" data-en="Success" data-vi="Thành công">Success</span><span class="v">88.5%</span></div>
+            <div class="stat"><span class="k" data-en="Tasks 7d" data-vi="Task 7 ngày">Tasks 7d</span><span class="v">203</span></div>
+          </div>
+          <a class="lastjob" href="jobs.html">
+            <span class="lj-head"><span class="lj-k" data-en="Last job" data-vi="Job gần nhất">Last job</span><span class="lj-s" data-en="queued" data-vi="xếp hàng">queued</span></span>
+            <span class="lj-t" title="#4818 · Write e2e tests"><b>#4818</b> <span data-en="Write e2e tests" data-vi="Viết test e2e">Write e2e tests</span></span>
+          </a>
           <div class="foot"><span class="when" data-en="check 18:41:20" data-vi="kiểm tra 18:41:20">check 18:41:20</span>
             <button class="btn" onclick="AF.checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Check" data-vi="Kiểm tra">Check</span></button>
             <a class="btn ghost" href="tool.html?t=opencode"><span data-en="Details" data-vi="Chi tiết">Details</span> →</a>
@@ -182,8 +220,54 @@
         </article>
       </div>
 
+      <div class="row3 fill">
+        <div class="panel">
+          <h4><span data-en="Jobs today" data-vi="Job hôm nay">Jobs today</span><span class="spacer" data-en="4 agents" data-vi="4 agent">4 agents</span></h4>
+          <div class="kpi"><b>6</b><small data-en="run today" data-vi="chạy hôm nay">run today</small></div>
+          <div class="stackbar">
+            <span class="sg ok" title="running"></span>
+            <span class="sg warn" title="review"></span>
+            <span class="sg ok" title="done"></span>
+            <span class="sg plain" title="queued"></span>
+            <span class="sg bad" title="failed"></span>
+            <span class="sg plain" title="waiting"></span>
+          </div>
+          <p class="minilegend" data-en="1 running · 1 review · 1 done · 1 queued · 1 failed · 1 waiting" data-vi="1 đang chạy · 1 chờ xem xét · 1 hoàn tất · 1 xếp hàng · 1 lỗi · 1 đang chờ">1 running · 1 review · 1 done · 1 queued · 1 failed · 1 waiting</p>
+        </div>
+
+        <div class="panel">
+          <h4><span data-en="Tokens today" data-vi="Token hôm nay">Tokens today</span><span class="spacer" data-en="12.0M last 7 days" data-vi="12,0M · 7 ngày">12.0M last 7 days</span></h4>
+          <div class="kpi"><b>1.3M</b><small data-en="today" data-vi="hôm nay">today</small></div>
+          <svg class="spark" viewBox="0 0 340 44" role="img" aria-label="Tokens per day over the last 7 days">
+            <rect class="sb" x="9" y="23.7" width="34" height="16.3" rx="2"/>
+            <rect class="sb" x="57" y="14.2" width="34" height="25.8" rx="2"/>
+            <rect class="sb" x="105" y="25" width="34" height="15" rx="2"/>
+            <rect class="sb" x="153" y="8.7" width="34" height="31.3" rx="2"/>
+            <rect class="sb" x="201" y="16.9" width="34" height="23.1" rx="2"/>
+            <rect class="sb" x="249" y="6" width="34" height="34" rx="2"/>
+            <rect class="sb last" x="297" y="22.3" width="34" height="17.7" rx="2"/>
+          </svg>
+        </div>
+
+        <div class="panel">
+          <h4><span data-en="Needs attention" data-vi="Cần chú ý">Needs attention</span><span class="spacer">2</span></h4>
+          <ul class="attn">
+            <li>
+              <span class="dot warn"></span>
+              <span class="at-t"><b>Codex</b> <span data-en="5-hour window is at 22%" data-vi="cửa sổ 5 giờ chỉ còn 22%">5-hour window is at 22%</span></span>
+              <a class="btn ghost sm" href="tool.html?t=codex"><span data-en="Open" data-vi="Mở">Open</span></a>
+            </li>
+            <li>
+              <span class="dot warn"></span>
+              <span class="at-t"><b>OpenCode</b> <span data-en="pool key-13 has expired" data-vi="key-13 của pool đã hết hạn">pool key-13 has expired</span></span>
+              <a class="btn ghost sm" href="tool.html?t=opencode"><span data-en="Open" data-vi="Mở">Open</span></a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
       <div class="noterow">
-        <p class="tablenote" data-en="Each card is one tool zone, ordered Codex · Qoder · Antigravity CLI · OpenCode. The dot is that account's health: quota headroom plus key state." data-vi="Mỗi card là một khu vực công cụ, theo thứ tự Codex · Qoder · Antigravity CLI · OpenCode. Chấm tròn là tình trạng tài khoản: hạn mức còn lại và trạng thái key.">Each card is one tool zone, ordered Codex · Qoder · Antigravity CLI · OpenCode. The dot is that account's health: quota headroom plus key state.</p>
+        <p class="tablenote" data-en="Each card is one tool zone. The dot is that account's health: quota headroom plus key state." data-vi="Mỗi card là một công cụ. Chấm tròn là tình trạng tài khoản: hạn mức còn lại và trạng thái key.">Each card is one tool zone. The dot is that account's health: quota headroom plus key state.</p>
         <p class="legend">
           <span><i class="dot"></i><span data-en="OK" data-vi="Ổn">OK</span></span>
           <span><i class="dot warn"></i><span data-en="Warning" data-vi="Cảnh báo">Warning</span></span>

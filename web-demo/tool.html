@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-lang="en">
+<html lang="en" data-lang="en" data-style="warm">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -32,12 +32,13 @@
         <button id="lang-vi" aria-pressed="false" onclick="AF.setLang('vi')">VI</button>
       </div>
       <button class="tbtn" onclick="AF.theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i><span id="themeLabel" data-en="System" data-vi="Theo hệ thống">System</span></button>
+      <button class="tbtn" id="styleBtn" onclick="AF.style()" aria-label="View style" title="View style: warm paper tone"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 2.7 6.6 8.1a7.6 7.6 0 1 0 10.8 0z'/%3E%3C/svg%3E&quot;)"></i><span id="styleLabel">Warm</span></button>
     </div>
 
     <div class="wrap">
       <div class="head">
         <div class="row" style="align-items:center;gap:14px">
-          <span class="logo" id="t-logo" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9);width:52px;height:52px;border-radius:13px;font-size:17px">Cx</span>
+          <span class="logo lg-codex" id="t-logo" style="width:52px;height:52px;border-radius:14px"><img src="assets/logos/codex.svg" alt="Codex"></span>
           <div>
             <h1 class="title sm" id="t-title">Codex</h1>
             <span class="ver mono small muted" id="t-ver">codex-cli 0.166.0</span>
@@ -311,10 +312,10 @@
 <script>
   (function () {
     var map = {
-      codex: { t: 'Codex', v: 'codex-cli 0.166.0', l: 'Cx', g: 'linear-gradient(135deg,#6d5df6,#3b2fc9)' },
-      qoder: { t: 'Qoder', v: 'qodercli 1.1.81', l: 'Q', g: 'linear-gradient(135deg,#2ad18f,#0f9f6e)' },
-      agy: { t: 'Antigravity CLI', v: 'agy 1.4.12', l: 'Ag', g: 'linear-gradient(135deg,#4f8cff,#1d4ed8)' },
-      opencode: { t: 'OpenCode', v: 'opencode 2.2.5', l: 'oc', g: 'linear-gradient(135deg,#3f3f46,#111827)' }
+      codex: { t: 'Codex', v: 'codex-cli 0.166.0', logo: 'codex' },
+      qoder: { t: 'Qoder', v: 'qodercli 1.1.81', logo: 'qoder' },
+      agy: { t: 'Antigravity CLI', v: 'agy 1.4.12', logo: 'agy' },
+      opencode: { t: 'OpenCode', v: 'opencode 2.2.5', logo: 'opencode' }
     };
     var id = (new URLSearchParams(location.search)).get('t');
     id = id ? id.toLowerCase() : '';
@@ -328,13 +329,23 @@
     var ver = document.getElementById('t-ver');
     var lg = document.getElementById('t-logo');
 
+    /* the tile class carries the bed the mark needs; '' = unknown tool */
+    function setLogo(file, alt) {
+      lg.className = 'logo ' + (file ? 'lg-' + file : 'lg-none');
+      lg.textContent = '';
+      if (!file) { lg.textContent = '?'; return; }
+      var img = document.createElement('img');
+      img.src = 'assets/logos/' + file + '.svg';
+      img.alt = alt;
+      lg.appendChild(img);
+    }
+
     if (known) {
       var d = map[id];
       title.textContent = d.t;
       title.removeAttribute('data-en'); title.removeAttribute('data-vi');
       ver.textContent = d.v;
-      lg.textContent = d.l;
-      lg.style.background = d.g;
+      setLogo(d.logo, d.t);
       document.title = d.t + ' · Agent Fleet web demo';
     } else {
       // No data-tool match: show an empty state, never fall back to Codex.
@@ -342,8 +353,7 @@
       title.setAttribute('data-vi', 'Không tìm thấy công cụ');
       title.textContent = AF.lang === 'vi' ? 'Không tìm thấy công cụ' : 'Tool not found';
       ver.textContent = '';
-      lg.textContent = '?';
-      lg.style.background = 'linear-gradient(135deg,#9a9a90,#5b5b53)';
+      setLogo('', '');
       document.title = 'Tool not found · Agent Fleet web demo';
     }
 

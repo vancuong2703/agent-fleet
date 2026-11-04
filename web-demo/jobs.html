@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-lang="en">
+<html lang="en" data-lang="en" data-style="warm">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -53,6 +53,7 @@
       </div>
       <button class="tbtn" id="resToggle" aria-pressed="true" aria-label="Hardware" onclick="AF.toggleRes()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i><span data-en="Hardware" data-vi="Phần cứng">Hardware</span></button>
       <button class="tbtn" onclick="AF.theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i><span id="themeLabel" data-en="System" data-vi="Theo hệ thống">System</span></button>
+      <button class="tbtn" id="styleBtn" onclick="AF.style()" aria-label="View style" title="View style: warm paper tone"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 2.7 6.6 8.1a7.6 7.6 0 1 0 10.8 0z'/%3E%3C/svg%3E&quot;)"></i><span id="styleLabel">Warm</span></button>
     </div>
 
     <div class="wrap">
@@ -96,37 +97,37 @@
               <tbody class="rows" id="jobRows">
                 <tr class="sel" data-job="4821" data-status="running" onclick="JOB.select(this)">
                   <td><button class="rowbtn" type="button" aria-pressed="true" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Add jobs page" data-vi="Thêm trang jobs">Add jobs page</span></button><span class="cellsub">#4821 · +128 −0 · <span data-en="just now" data-vi="vừa xong">just now</span></span></td>
-                  <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>Codex</span></td>
+                  <td><span class="agentchip"><span class="logo xs lg-codex"><img src="assets/logos/codex.svg" alt="Codex"></span>Codex</span></td>
                   <td><span class="badge ok">RUNNING</span></td>
                   <td class="num">2</td>
                 </tr>
                 <tr data-job="4820" data-status="review" onclick="JOB.select(this)">
                   <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Refactor quota parser" data-vi="Viết lại bộ đọc hạn mức">Refactor quota parser</span></button><span class="cellsub">#4820 · +312 −188 · <span data-en="2m ago" data-vi="2 phút trước">2m ago</span></span></td>
-                  <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
+                  <td><span class="agentchip"><span class="logo xs lg-qoder"><img src="assets/logos/qoder.svg" alt="Qoder"></span>Qoder</span></td>
                   <td><span class="badge warn">REVIEW</span></td>
                   <td class="num">7</td>
                 </tr>
                 <tr data-job="4819" data-status="done" onclick="JOB.select(this)">
                   <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Fix context overflow" data-vi="Sửa tràn ngữ cảnh">Fix context overflow</span></button><span class="cellsub">#4819 · +18 −6 · <span data-en="18m ago" data-vi="18 phút trước">18m ago</span></span></td>
-                  <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>Antigravity</span></td>
+                  <td><span class="agentchip"><span class="logo xs lg-agy"><img src="assets/logos/agy.svg" alt="Antigravity CLI"></span>Antigravity</span></td>
                   <td><span class="badge ok">DONE</span></td>
                   <td class="num">1</td>
                 </tr>
                 <tr data-job="4818" data-status="queued" onclick="JOB.select(this)">
                   <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Write e2e tests" data-vi="Viết test e2e">Write e2e tests</span></button><span class="cellsub">#4818 · <span data-en="queued" data-vi="đã xếp hàng">queued</span> · <span data-en="22m ago" data-vi="22 phút trước">22m ago</span></span></td>
-                  <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>OpenCode</span></td>
+                  <td><span class="agentchip"><span class="logo xs lg-opencode"><img src="assets/logos/opencode.svg" alt="OpenCode"></span>OpenCode</span></td>
                   <td><span class="badge plain">QUEUED</span></td>
                   <td class="num">0</td>
                 </tr>
                 <tr data-job="4817" data-status="failed" onclick="JOB.select(this)">
                   <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Migrate auth store" data-vi="Chuyển kho lưu xác thực">Migrate auth store</span></button><span class="cellsub">#4817 · +204 −96 · <span data-en="1h ago" data-vi="1 giờ trước">1h ago</span></span></td>
-                  <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>Codex</span></td>
+                  <td><span class="agentchip"><span class="logo xs lg-codex"><img src="assets/logos/codex.svg" alt="Codex"></span>Codex</span></td>
                   <td><span class="badge bad">FAILED</span></td>
                   <td class="num">4</td>
                 </tr>
                 <tr data-job="4816" data-status="waiting" onclick="JOB.select(this)">
                   <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Docs: web demo" data-vi="Tài liệu: web demo">Docs: web demo</span></button><span class="cellsub">#4816 · <span data-en="waiting for a slot" data-vi="chờ slot">waiting for a slot</span> · <span data-en="1h ago" data-vi="1 giờ trước">1h ago</span></span></td>
-                  <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
+                  <td><span class="agentchip"><span class="logo xs lg-qoder"><img src="assets/logos/qoder.svg" alt="Qoder"></span>Qoder</span></td>
                   <td><span class="badge plain">WAITING</span></td>
                   <td class="num">0</td>
                 </tr>

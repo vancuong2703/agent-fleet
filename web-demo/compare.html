@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-lang="en">
+<html lang="en" data-lang="en" data-style="warm">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -53,6 +53,7 @@
       </div>
       <button class="tbtn" id="resToggle" aria-pressed="true" aria-label="Hardware" onclick="AF.toggleRes()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i><span data-en="Hardware" data-vi="Phần cứng">Hardware</span></button>
       <button class="tbtn" onclick="AF.theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i><span id="themeLabel" data-en="System" data-vi="Theo hệ thống">System</span></button>
+      <button class="tbtn" id="styleBtn" onclick="AF.style()" aria-label="View style" title="View style: warm paper tone"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 2.7 6.6 8.1a7.6 7.6 0 1 0 10.8 0z'/%3E%3C/svg%3E&quot;)"></i><span id="styleLabel">Warm</span></button>
     </div>
 
     <div class="wrap">
@@ -74,7 +75,7 @@
         <!-- CODEX -->
         <article class="card">
           <div class="card-top">
-            <span class="logo" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>
+            <span class="logo lg-codex"><img src="assets/logos/codex.svg" alt="Codex"></span>
             <div class="card-title"><h3>Codex <span class="tier plus">PLUS</span></h3><span class="ver">codex-cli 0.166.0</span></div>
             <span class="dot warn" title="Warning: only 22% of the 5-hour window is left"></span>
           </div>
@@ -110,7 +111,7 @@
         <!-- QODER -->
         <article class="card">
           <div class="card-top">
-            <span class="logo" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>
+            <span class="logo lg-qoder"><img src="assets/logos/qoder.svg" alt="Qoder"></span>
             <div class="card-title"><h3>Qoder <span class="tier trial">PRO TRIAL</span></h3><span class="ver">qodercli 1.1.81</span></div>
             <span class="dot" title="OK: 62% of the credit balance is left"></span>
           </div>
@@ -139,7 +140,7 @@
         <!-- ANTIGRAVITY CLI -->
         <article class="card">
           <div class="card-top">
-            <span class="logo" style="background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>
+            <span class="logo lg-agy"><img src="assets/logos/agy.svg" alt="Antigravity CLI"></span>
             <div class="card-title"><h3>Antigravity CLI <span class="tier pro">PRO</span></h3><span class="ver">agy 1.4.12</span></div>
             <span class="dot" title="OK: 91% of the 5-hour window and 78% of the week are left"></span>
           </div>
@@ -175,7 +176,7 @@
         <!-- OPENCODE -->
         <article class="card">
           <div class="card-top">
-            <span class="logo" style="background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>
+            <span class="logo lg-opencode"><img src="assets/logos/opencode.svg" alt="OpenCode"></span>
             <div class="card-title"><h3>OpenCode <span class="tier byok">BYOK</span></h3><span class="ver">opencode 2.2.5</span></div>
             <span class="dot warn" title="Warning: pool key-13 has expired"></span>
           </div>
@@ -231,7 +232,7 @@
             </tr></thead>
             <tbody>
               <tr>
-                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>Codex</span></td>
+                <td><span class="row" style="gap:8px"><span class="logo lg-codex" style="width:24px;height:24px;border-radius:7px"><img src="assets/logos/codex.svg" alt="Codex"></span>Codex</span></td>
                 <td><span class="tier plus">PLUS</span></td>
                 <td class="model mono">gpt-6.1-sol</td>
                 <td><span class="badge bad" data-en="22% · 5h left" data-vi="22% · 5 giờ còn lại">22% · 5h left</span></td>
@@ -240,7 +241,7 @@
                 <td class="num"><span class="badge ok" data-7="96.4%" data-30="95.1%">96.4%</span></td>
               </tr>
               <tr>
-                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
+                <td><span class="row" style="gap:8px"><span class="logo lg-qoder" style="width:24px;height:24px;border-radius:7px"><img src="assets/logos/qoder.svg" alt="Qoder"></span>Qoder</span></td>
                 <td><span class="tier trial">PRO TRIAL</span></td>
                 <td class="model mono">Qwen3.8-Flash</td>
                 <td><span class="badge ok" data-en="62% · credits left" data-vi="62% · credit còn lại">62% · credits left</span></td>
@@ -249,7 +250,7 @@
                 <td class="num"><span class="badge warn" data-7="91.8%" data-30="90.4%">91.8%</span></td>
               </tr>
               <tr>
-                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>Antigravity CLI</span></td>
+                <td><span class="row" style="gap:8px"><span class="logo lg-agy" style="width:24px;height:24px;border-radius:7px"><img src="assets/logos/agy.svg" alt="Antigravity CLI"></span>Antigravity CLI</span></td>
                 <td><span class="tier pro">PRO</span></td>
                 <td class="model mono">Gemini 4 Argon</td>
                 <td><span class="badge ok" data-en="78% · week left" data-vi="78% · tuần còn lại">78% · week left</span></td>
@@ -258,7 +259,7 @@
                 <td class="num"><span class="badge ok" data-7="94.2%" data-30="93.6%">94.2%</span></td>
               </tr>
               <tr>
-                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>OpenCode</span></td>
+                <td><span class="row" style="gap:8px"><span class="logo lg-opencode" style="width:24px;height:24px;border-radius:7px"><img src="assets/logos/opencode.svg" alt="OpenCode"></span>OpenCode</span></td>
                 <td><span class="tier byok">BYOK</span></td>
                 <td class="model mono"><span data-en="harbor-pool/…flash:free" data-vi="harbor-pool/…flash:free" title="harbor-pool/deepseek-v4.1-flash:free">harbor-pool/…flash:free</span></td>
                 <td><span class="badge warn" data-en="46% · tokens used" data-vi="46% · token đã dùng">46% · tokens used</span></td>

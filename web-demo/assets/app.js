@@ -19,11 +19,31 @@
   else if (savedTheme === 'system') themeMode = '';
   if (themeMode) root.setAttribute('data-theme', themeMode); else root.removeAttribute('data-theme');
 
+  // View style: 'warm' (default paper tone) or 'plain' (pure white). It only
+  // swaps the neutral tokens, so it combines with any theme above.
+  var styleLabels = {
+    en: { warm: 'Warm', plain: 'Plain' },
+    vi: { warm: 'Ấm', plain: 'Trắng' }
+  };
+  var styleTips = {
+    en: { warm: 'View style: warm paper tone', plain: 'View style: pure white' },
+    vi: { warm: 'Phong cách: nền giấy ấm', plain: 'Phong cách: trắng thuần' }
+  };
+  var viewStyle = read('af-style') === 'plain' ? 'plain' : 'warm';
+  root.setAttribute('data-style', viewStyle);
+
   function applyThemeLabel() {
     var label = document.getElementById('themeLabel');
     if (!label) return;
     var set = themeLabels[lang] || themeLabels.en;
     label.textContent = set[themeMode] || set[''];
+  }
+
+  function applyStyleLabel() {
+    var label = document.getElementById('styleLabel');
+    var btn = document.getElementById('styleBtn');
+    if (label) label.textContent = (styleLabels[lang] || styleLabels.en)[viewStyle];
+    if (btn) btn.setAttribute('title', (styleTips[lang] || styleTips.en)[viewStyle]);
   }
 
   function applyLang(l) {
@@ -38,6 +58,7 @@
     if (en) en.setAttribute('aria-pressed', String(lang === 'en'));
     if (vi) vi.setAttribute('aria-pressed', String(lang === 'vi'));
     applyThemeLabel();
+    applyStyleLabel();
   }
 
   function setLang(l) {
@@ -53,6 +74,13 @@
     if (next) root.setAttribute('data-theme', next); else root.removeAttribute('data-theme');
     write('af-theme', next || 'system');
     applyThemeLabel();
+  }
+
+  function style() {
+    viewStyle = viewStyle === 'plain' ? 'warm' : 'plain';
+    root.setAttribute('data-style', viewStyle);
+    write('af-style', viewStyle);
+    applyStyleLabel();
   }
 
   function toast(msg) {
@@ -121,5 +149,5 @@
     applyLang(lang);
   })();
 
-  window.AF = { setLang: setLang, theme: theme, toast: toast, spin: spin, checkOne: checkOne, checkAll: checkAll, toggleRes: toggleRes, get lang() { return lang; } };
+  window.AF = { setLang: setLang, theme: theme, style: style, toast: toast, spin: spin, checkOne: checkOne, checkAll: checkAll, toggleRes: toggleRes, get lang() { return lang; } };
 })();

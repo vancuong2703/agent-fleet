@@ -34,7 +34,7 @@
 .chart .val{fill:var(--muted);font:700 12px var(--mono)}
 
 /* short window: drop the KPI sub-line and the table caption */
-@media(max-height:870px){
+@media(max-height:870px),(max-width:1250px){
   .kpis .panel{padding:10px 12px}
   .kpis .ksub{display:none}
   .panel-head{margin-bottom:4px}

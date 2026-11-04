@@ -15,11 +15,26 @@
   --r:14px;
   --donut:80px;
 }
+/* ---- view style: warm (default paper tone) vs plain (pure white) ---------
+   Two looks over the same layout. Only the neutral tokens differ; the accent
+   colours are shared, so every state keeps the same meaning. Order matters:
+   the plain blocks sit before the dark ones and get a [data-style] qualifier,
+   so a dark window is never overridden by the plain-light palette. */
+:root[data-style="plain"]{
+  --bg:#ffffff; --surface:#ffffff; --surface-2:#f5f5f6; --border:#e6e6e8; --border-strong:#d2d2d6;
+  --ink:#0a0a0c; --muted:#63636b; --faint:#6e6e76;
+  --ring-track:#ececee; --track:#ececee; --accent-soft:#fdeee6;
+}
 :root[data-theme="dark"]{
   --bg:#111110; --surface:#191917; --surface-2:#212120; --border:#2e2e2a; --border-strong:#3c3c37;
   --ink:#f4f4ef; --muted:#9b9b90; --faint:#8a8a80;
   --accent:#ff6a33; --accent-soft:#2c1a12; --ring-track:#2f2f2b; --track:#2f2f2b;
   --ok:#34d07f; --ok-soft:#12281d; --warn:#e0a53a; --warn-soft:#2b2110; --bad:#f0745f; --bad-soft:#2c1714;
+}
+:root[data-theme="dark"][data-style="plain"]{
+  --bg:#0a0a0b; --surface:#131315; --surface-2:#1c1c1f; --border:#2a2a2e; --border-strong:#3a3a40;
+  --ink:#f5f5f7; --muted:#a2a2ab; --faint:#90909a;
+  --ring-track:#2a2a2e; --track:#2a2a2e; --accent-soft:#2a1a13;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -27,6 +42,11 @@
     --ink:#f4f4ef; --muted:#9b9b90; --faint:#8a8a80;
     --accent:#ff6a33; --accent-soft:#2c1a12; --ring-track:#2f2f2b; --track:#2f2f2b;
     --ok:#34d07f; --ok-soft:#12281d; --warn:#e0a53a; --warn-soft:#2b2110; --bad:#f0745f; --bad-soft:#2c1714;
+  }
+  :root:not([data-theme="light"])[data-style="plain"]{
+    --bg:#0a0a0b; --surface:#131315; --surface-2:#1c1c1f; --border:#2a2a2e; --border-strong:#3a3a40;
+    --ink:#f5f5f7; --muted:#a2a2ab; --faint:#90909a;
+    --ring-track:#2a2a2e; --track:#2a2a2e; --accent-soft:#2a1a13;
   }
 }
 *{box-sizing:border-box}
@@ -100,17 +120,6 @@ h1.title.sm{font-size:40px}
   h1.title{font-size:40px}
   h1.title.sm{font-size:32px}
 }
-/* ---- short windows --------------------------------------------------------
-   The app shell is one window tall, so a short window compresses by height
-   instead of by width: it drops the eyebrow and lets each page shrink its own
-   densest blocks (see the matching blocks in compare.css / resources.css).
-   Windows >= 851 px tall keep the roomy layout. */
-@media(max-height:870px){
-  .eyebrow{display:none}
-  h1.title.sm{font-size:32px}
-  .head{margin-bottom:12px}
-  .panel h4{margin-bottom:10px}
-}
 .head .actions{display:flex;align-items:center;gap:10px}
 .stamp{font:600 12px var(--mono);color:var(--muted)}
 
@@ -142,22 +151,52 @@ h1.title.sm{font-size:40px}
 .card-title{flex:1;min-width:0}
 .card-title h3{margin:0;font-family:var(--display);font-size:18px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .card-title .ver{font:500 10.5px var(--mono);color:var(--faint)}
+/* ---- tool logos ----
+   Real brand marks (assets/logos/*.svg). Each mark needs its own bed: the
+   Codex icon carries a white square of its own, Qoder's mark is white,
+   Antigravity is full colour on transparent, and the OpenCode mark is
+   light-on-transparent so it needs the dark tile. */
+.logo{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;overflow:hidden;background:var(--surface-2);color:var(--ink);font-family:var(--display);font-weight:800;font-size:13px}
+.logo img{width:100%;height:100%;display:block;object-fit:contain}
+.logo.lg-codex{background:#fff}
+.logo.lg-qoder{background:linear-gradient(135deg,#2ad18f,#0f9f6e)}
+.logo.lg-qoder img{padding:15%}
+.logo.lg-agy{background:var(--surface-2);border:1px solid var(--border)}
+.logo.lg-agy img{padding:0}
+.logo.lg-opencode{background:#141416}
+.logo.lg-opencode img{padding:15%}
+.logo.lg-none{background:var(--surface-2);border:1px dashed var(--border-strong);color:var(--muted)}
 .tier{font:800 9.5px var(--mono);letter-spacing:.08em;padding:3px 6px;border-radius:4px;color:#fff}
 .tier.plus{background:var(--plus)} .tier.pro{background:var(--pro)} .tier.trial{background:var(--trial)} .tier.free{background:var(--free)} .tier.byok{background:var(--byok)}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
 .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
-/* Ring sizes are a density system, not an accident:
-   the dashboard hero row 96px, an ordinary card 80px, the dense Antigravity
-   matrix 56px (.donut.sm) where three models x two windows share one card. */
-.zones .donut{--donut:96px}
-.zones .donut .pct{font-size:20px}
-.zones .donut .trk,.zones .donut .val{stroke-width:7}
+/* Ring sizes form a density system, not an accident: a normal card is 80px
+   (dashboard and compare share it, so the same number always draws at the same
+   size) and .donut.sm is 56px for the dense Antigravity matrix, where three
+   models x two windows have to fit one card row. */
 .zones .gauge{gap:7px}
-.zones .m{padding:11px 2px}
-.zones .credit b{font-size:36px}
+.zones .mtx td{padding:4px 0}
+.zones .m{padding:10px 2px}
+.zones .credit b{font-size:34px}
 .statusline{font:600 11.5px var(--mono);color:var(--muted)}
 .foot{margin-top:auto;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap}
 .foot .when{flex:1;font:500 11px var(--mono);color:var(--faint)}
+/* three numbers side by side (dashboard cards, compare cards) */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;
+  border-top:1px solid var(--border);padding-top:9px}
+.stat{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .k{font:600 10px var(--mono);letter-spacing:.04em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .v{font:700 13px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* the job this agent touched last, linking to the jobs page */
+.lastjob{display:flex;flex-direction:column;gap:3px;text-decoration:none}
+.lastjob .lj-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.lastjob .lj-k{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.lastjob .lj-s{font:600 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.lastjob .lj-t{font:600 11.5px var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lastjob .lj-t b{color:var(--ink)}
+.lastjob .lj-s.ok{color:var(--ok)} .lastjob .lj-s.warn{color:var(--warn)} .lastjob .lj-s.bad{color:var(--bad)}
+.lastjob:hover .lj-t{color:var(--accent)}
+.lastjob:hover .lj-t b{color:var(--accent)}
 
 /* ---- donut gauge (chuẩn: viền ngoài tách khỏi ring) ---- */
 .gauges{display:flex;gap:18px;flex-wrap:wrap}
@@ -243,3 +282,36 @@ h1.title.sm{font-size:40px}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .empty{border:1px dashed var(--border-strong);border-radius:var(--r);padding:34px 20px;text-align:center;color:var(--muted)}
 .empty b{display:block;color:var(--ink);font-family:var(--display);font-size:17px;margin-bottom:6px}
+
+/* =========================================================================
+   Short / narrow windows — LAST WORD on purpose.
+   The app shell is one window tall, so a window that is short OR narrow
+   compresses: it drops the eyebrow, tightens panel padding, and lets each page
+   shrink its own densest blocks (see compare.css / resources.css /
+   dashboard.css). A roomy window (>= 871 px tall AND >= 1251 px wide) keeps
+   the full layout. Living at the end of the file is what lets these rules win
+   over the base declarations they override without extra specificity.
+   ========================================================================= */
+@media(max-height:870px),(max-width:1250px){
+  .eyebrow{display:none}
+  h1.title.sm{font-size:32px}
+  .head{margin-bottom:12px}
+  .panel{padding:14px}
+  .panel h4{margin-bottom:10px}
+  .table td{padding:8px 6px}
+  /* four tool zones in a narrow window: shrink the logo, let the status dot
+     sit out of the flex flow, and trim the two lines that would otherwise
+     wrap; the second child keeps its natural place in the card */
+  .zones .card{padding:12px;gap:10px;position:relative}
+  .zones .card-top{gap:9px}
+  .zones .card-top .dot{position:absolute;top:12px;right:12px}
+  .zones .logo{width:28px;height:28px;border-radius:8px}
+  .zones .card-title h3{font-size:15px}
+  .zones .card-title .ver{font-size:10px}
+  .zones .statusline{font-size:11px}
+  .zones .gauges{gap:10px}
+  .zones .gauge{min-width:64px}
+  .zones .foot{gap:6px}
+  .zones .foot .when{display:none}
+  .zones .foot .btn{padding:0 9px;font-size:11px}
+}

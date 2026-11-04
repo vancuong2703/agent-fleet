@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-lang="en">
+<html lang="en" data-lang="en" data-style="warm">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -53,6 +53,7 @@
       </div>
       <button class="tbtn" id="resToggle" aria-pressed="true" aria-label="Hardware" onclick="AF.toggleRes()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i><span data-en="Hardware" data-vi="Phần cứng">Hardware</span></button>
       <button class="tbtn" onclick="AF.theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i><span id="themeLabel" data-en="System" data-vi="Theo hệ thống">System</span></button>
+      <button class="tbtn" id="styleBtn" onclick="AF.style()" aria-label="View style" title="View style: warm paper tone"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 2.7 6.6 8.1a7.6 7.6 0 1 0 10.8 0z'/%3E%3C/svg%3E&quot;)"></i><span id="styleLabel">Warm</span></button>
     </div>
 
     <div class="wrap">
@@ -187,7 +188,7 @@
             </tr></thead>
             <tbody>
               <tr>
-                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>Codex</span></td>
+                <td><span class="row" style="gap:8px"><span class="logo lg-codex" style="width:24px;height:24px;border-radius:7px"><img src="assets/logos/codex.svg" alt="Codex"></span>Codex</span></td>
                 <td><span class="tier plus">PLUS</span></td>
                 <td class="model mono">gpt-6.1-sol</td>
                 <td class="mono small" data-en="included in plan" data-vi="nằm trong gói">included in plan</td>
@@ -196,7 +197,7 @@
                 <td><span class="badge warn" title="Only 22% of the 5-hour window is left" data-en="QUOTA 22%" data-vi="HẠN MỨC 22%">QUOTA 22%</span></td>
               </tr>
               <tr>
-                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
+                <td><span class="row" style="gap:8px"><span class="logo lg-qoder" style="width:24px;height:24px;border-radius:7px"><img src="assets/logos/qoder.svg" alt="Qoder"></span>Qoder</span></td>
                 <td><span class="tier trial">PRO TRIAL</span></td>
                 <td class="model mono">Qwen3.8-Flash</td>
                 <td class="mono small">760 / 2,000</td>
@@ -205,7 +206,7 @@
                 <td><span class="badge ok">OK</span></td>
               </tr>
               <tr>
-                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>Antigravity CLI</span></td>
+                <td><span class="row" style="gap:8px"><span class="logo lg-agy" style="width:24px;height:24px;border-radius:7px"><img src="assets/logos/agy.svg" alt="Antigravity CLI"></span>Antigravity CLI</span></td>
                 <td><span class="tier pro">PRO</span></td>
                 <td class="model mono">Gemini 4 Argon</td>
                 <td class="mono small" data-en="included in plan" data-vi="nằm trong gói">included in plan</td>
@@ -214,7 +215,7 @@
                 <td><span class="badge ok">OK</span></td>
               </tr>
               <tr>
-                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>OpenCode</span></td>
+                <td><span class="row" style="gap:8px"><span class="logo lg-opencode" style="width:24px;height:24px;border-radius:7px"><img src="assets/logos/opencode.svg" alt="OpenCode"></span>OpenCode</span></td>
                 <td><span class="tier byok">BYOK</span></td>
                 <td class="model mono"><span title="harbor-pool/deepseek-v4.1-flash:free">harbor-pool/…flash:free</span></td>
                 <td class="mono small" data-en="1.56M of 3.4M tokens" data-vi="1,56M / 3,4M token">1.56M of 3.4M tokens</td>

@@ -31,13 +31,8 @@
    where three models x two windows have to fit one card row — so a 56 px
    ring is a density choice there, not a second way to draw the same number. */
 
-/* per-agent stat row: three numbers side by side instead of three stacked
-   rows, which is what used to push the cards past the fold */
-.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;
-  border-top:1px solid var(--border);padding-top:9px}
-.stat{display:flex;flex-direction:column;gap:2px;min-width:0}
-.stat .k{font:600 10px var(--mono);letter-spacing:.04em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stat .v{font:700 13px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* per-agent stat row and the last-job link now live in app.css, because the
+   dashboard cards use the same two blocks */
 
 /* absolute figure under a gauge (credits / tokens), above its reset time */
 .g-num{font:700 10.5px var(--mono);color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
@@ -53,7 +48,7 @@
 .summary .tablenote{margin-top:8px}
 
 /* short window: shrink the rings, drop the two long captions */
-@media(max-height:870px){
+@media(max-height:870px),(max-width:1250px){
   .cmp .card{padding:12px;gap:10px}
   .stats{padding-top:6px}
   .donut{--donut:64px}
