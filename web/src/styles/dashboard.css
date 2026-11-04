@@ -33,6 +33,27 @@
 .dash-toast-info { background:var(--accent-soft); border-color:color-mix(in srgb, var(--accent) 35%, var(--border)); color:var(--text); }
 .dash-toast-info>svg { color:var(--accent); }
 
+/* ── dải "Nên dùng ngay" (T6) ────────────────────────────────────────────── */
+.dash-picks { margin:0 0 18px; min-width:0; }
+.dash-picks-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; }
+.dash-pick { display:flex; align-items:center; gap:10px; min-width:0; padding:11px 13px; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface); box-shadow:var(--shadow); color:var(--text); font:inherit; text-align:left; }
+button.dash-pick { cursor:pointer; }
+button.dash-pick:hover { background:var(--surface-2); }
+button.dash-pick:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.dash-pick-rank { flex:none; display:grid; place-items:center; width:26px; height:26px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:var(--text-sm); font-weight:700; }
+.dash-pick-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.dash-pick-body b { display:block; font-weight:600; overflow-wrap:break-word; }
+.dash-pick-body small { color:var(--muted); font-size:var(--text-sm); line-height:1.45; overflow-wrap:break-word; }
+.dash-pick-go { display:inline-flex; align-items:center; gap:5px; margin-top:3px; color:var(--accent); font-size:var(--text-xs); font-weight:600; white-space:nowrap; }
+.dash-pick.is-warn { background:var(--warn-soft); border-color:color-mix(in srgb, var(--warn) 38%, var(--border)); }
+.dash-pick.is-warn .dash-pick-rank { background:var(--warn); color:#fff; }
+.dash-pick.is-warn small { color:var(--warn-text); }
+.dash-picks-empty { display:flex; align-items:flex-start; gap:var(--space-2); margin:0; padding:9px 11px; border:1px dashed var(--border-strong); border-radius:var(--radius-sm); background:var(--surface-2); color:var(--muted); font-size:var(--text-sm); line-height:1.6; }
+.dash-picks-empty>svg { flex:none; margin-top:2px; }
+@container (max-width:470px) {
+  .dash-picks-list { grid-template-columns:minmax(0,1fr); }
+}
+
 /* ── lưới thẻ ─────────────────────────────────────────────────────────────── */
 .dash-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-4); align-items:start; }
 @container (min-width:1000px) { .dash-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
