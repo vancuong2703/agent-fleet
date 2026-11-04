@@ -60,7 +60,7 @@ test('CLI tabs and navigation keep the same terminal connections alive',async({p
  await expect(page.getByRole('tab')).toHaveCount(2);
  await page.getByRole('tab',{name:'codex workspace'}).click();
  await expect(page.locator('.terminal-session:not([hidden]) .xterm-rows')).toContainText('history-line-199');
- await page.getByRole('button',{name:'Tasks',exact:true}).click();
+ await page.getByRole('button',{name:'Công việc',exact:true}).click();
  await page.getByRole('button',{name:'Terminal',exact:true}).click();
  await page.getByRole('tab',{name:'agy workspace'}).click();
  await page.getByRole('tab',{name:'codex workspace'}).click();

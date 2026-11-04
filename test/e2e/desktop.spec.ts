@@ -68,7 +68,7 @@ test('dashboard is the default entry and never runs CLI checks on open', async (
   await expect(page.getByRole('button', { name: 'Bảng điều khiển' })).toBeVisible();
   await page.waitForTimeout(1_000);
   expect(posts).toHaveLength(0);
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Bảng điều khiển', exact: true })).toBeHidden();
   await expect(page.locator('.main:visible')).toBeVisible();
   await page.screenshot({ path: '.tmp/ui-qa/dashboard-light.png', fullPage: true });
@@ -83,7 +83,7 @@ test('sidebar rows show the vendor logo before the title and status after it', a
     await route.fulfill({response,json:tasks.map(entry=>entry.id===task.id?{...entry,agent:'codex'}:entry)});
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   const row = page.locator('.task-row', { hasText: 'Logo order task' });
   await expect(row).toBeVisible();
   await row.click();
@@ -104,7 +104,7 @@ test('sidebar rows show the vendor logo before the title and status after it', a
 test('sidebar and inspector widths follow the pointer and persist across reload', async ({ page }) => {
   await createFakeTask(page, 'Layout anchor task', 'Desktop layout smoke');
   await page.reload();
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: /Layout anchor task/ }).click();
   const sidebar = page.locator('.workspace-sidebar');
   const before = (await sidebar.boundingBox())!;
@@ -118,7 +118,7 @@ test('sidebar and inspector widths follow the pointer and persist across reload'
   await page.waitForTimeout(400);
   await page.reload();
   await expect.poll(async () => ((await sidebar.boundingBox())!.width - before.width)).toBeGreaterThan(40);
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: /Layout anchor task/ }).click();
   const inspectorHandle = page.getByRole('separator', { name: 'Điều chỉnh độ rộng bảng thông tin' });
   const inspectorBox = (await inspectorHandle.boundingBox())!;
@@ -161,7 +161,7 @@ test('keyboard resize clamps inside min and max bounds', async ({ page }) => {
 test('terminal keeps the CMD black palette in light and dark and persists its height', async ({ page }) => {
   const { task } = await createFakeTask(page, 'Terminal palette task', 'Desktop terminal smoke');
   await page.reload();
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: /Terminal palette task/ }).click();
   await page.getByRole('button', { name: 'Mở terminal', exact: true }).click();
   const panel = page.locator('.terminal-panel');
@@ -183,7 +183,7 @@ test('terminal keeps the CMD black palette in light and dark and persists its he
   await expect(panel.locator('.terminal-host')).toHaveCSS('background-color', 'rgb(12, 12, 12)');
   await page.waitForTimeout(400);
   await page.reload();
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: /Terminal palette task/ }).click();
   await page.getByRole('button', { name: 'Mở terminal', exact: true }).click();
   await expect.poll(async () => (await panel.locator('.terminal-host').boundingBox())!.height).toBeGreaterThan(200);
@@ -210,7 +210,11 @@ test('creates work in the app, filters the sidebar and exports measured usage', 
   await expect(page.locator('.task-header .status-badge')).toHaveClass(/status-done/);
   await page.getByLabel('Tìm task hoặc dự án').fill('no-such-desktop-task');
   await expect(page.locator('.sidebar')).toContainText('Không tìm thấy task phù hợp.');
+  // Ctrl+K opens the command palette; the sidebar search is a separate filter.
   await page.keyboard.press('Control+k');
+  const palette = page.getByRole('dialog', { name: 'Ô lệnh nhanh' });
+  await expect(palette.getByRole('combobox', { name: 'Tìm lệnh' })).toBeFocused();
+  await page.keyboard.press('Escape');
   await expect(page.getByLabel('Tìm task hoặc dự án')).toBeFocused();
   await page.getByLabel('Tìm task hoặc dự án').fill('Desktop composer');
   await expect(page.locator('.sidebar .task-row')).toHaveCount(1);
@@ -237,15 +241,15 @@ test('native file action uses task identity and relative path, without exposing 
   });
   await page.reload();
   const { task } = await createFakeTask(page, 'Native bridge task', 'Native bridge smoke');
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: /Native bridge task/ }).click();
-  await page.getByRole('button', { name: 'Diff (1)', exact: true }).click();
+  await page.getByRole('tab', { name: 'Diff (1)', exact: true }).click();
   await page.getByRole('button', { name: 'Mở vị trí tệp', exact: true }).click();
   const requests = await page.evaluate(() => (window as unknown as { nativeRequests: Array<{ type: string }> }).nativeRequests.filter((entry) => entry.type === 'fleet:open-path'));
   expect(requests).toEqual([expect.objectContaining({ type: 'fleet:open-path', taskId: task.id, relativePath: 'fake.txt', action: 'reveal' })]);
   expect(requests[0]).not.toHaveProperty('command');
   await page.screenshot({ path: '.tmp/ui-qa/workspace-light.png', fullPage: true });
-  await page.getByRole('button', { name: 'Log', exact: true }).click();
+  await page.getByRole('tab', { name: 'Log', exact: true }).click();
   await page.getByRole('button', { name: 'Giao diện tối' }).click();
   await page.getByRole('button', { name: 'Mở terminal', exact: true }).click();
   await expect(page.locator('.terminal-connection')).toHaveText('Đã kết nối');

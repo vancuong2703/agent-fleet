@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
+import { setTheme } from './nav-helpers.js';
 
 // Deliberately use synthetic API data: foundation checks never start an agent.
 test.beforeEach(async ({ page }) => {
@@ -22,18 +23,22 @@ for (const theme of ['light', 'dark'] as const) {
   for (const width of [375, 768, 1440]) {
     test(`${theme} foundation fits ${width}px and preserves responsive sidebar`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 900 });
-      await page.getByRole('button', { name: theme === 'light' ? 'Giao diện sáng' : 'Giao diện tối', exact: true }).click();
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      // The theme switch lives in the sidebar, which is a rail/drawer at these
+      // widths, so the palette is the width-independent way to change it.
+      await setTheme(page, theme);
       const sizes = await page.evaluate(() => {
         const sidebar = document.querySelector('.workspace-sidebar')!;
         const dashboard = document.querySelector('.dashboard-host')!;
-        return { sidebar: sidebar.getBoundingClientRect().width, page: document.documentElement.scrollWidth, viewport: innerWidth, dashboard: dashboard.scrollWidth, available: dashboard.clientWidth };
+        const box = sidebar.getBoundingClientRect();
+        return { sidebar: box.width, left: box.left, right: box.right, page: document.documentElement.scrollWidth, viewport: innerWidth, dashboard: dashboard.scrollWidth, available: dashboard.clientWidth };
       });
       await page.screenshot({ path: testInfo.outputPath(`foundation-${width}-${theme}.png`), fullPage: true, animations: 'disabled' });
       expect(sizes.page).toBeLessThanOrEqual(sizes.viewport);
       // Check the scroll container as well; overflow:hidden on .app can mask clipping.
       expect(sizes.dashboard).toBeLessThanOrEqual(sizes.available);
-      if (width === 768) expect(sizes.sidebar).toBe(224);
+      // ≤900px the sidebar is an icon rail; ≤600px it is a closed off-canvas drawer.
+      if (width === 768) expect(sizes.sidebar).toBe(56);
+      if (width === 375) expect(sizes.right).toBeLessThanOrEqual(0);
       if (width === 1440) expect(sizes.sidebar).toBe(420);
     });
   }

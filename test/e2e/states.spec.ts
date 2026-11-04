@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { setTheme } from './nav-helpers.js';
 import type { Plan, Run, Task, TaskResult } from '../../shared/types.js';
 
 // Loading and failure states: every read must have a skeleton or a retry, and
@@ -73,7 +74,7 @@ test('a slow task sweep shows a skeleton and never the empty welcome', async ({ 
   await page.route((url) => url.pathname === '/api/tasks', (route) => route.fulfill({ json: [] }));
   // Do not wait for the connection here: the skeleton must be visible during the read.
   await page.goto(`/auth?token=${encodeURIComponent(token)}`);
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await expect(page.locator('.welcome-skeleton')).toBeVisible();
   await expect(page.getByText('Bắt đầu một công việc mới.', { exact: true })).toHaveCount(0);
   await expect(page.getByText('Tạo task đầu tiên', { exact: true })).toHaveCount(0);
@@ -89,7 +90,7 @@ test('a failing task sweep shows an error with retry instead of the empty welcom
   // A successful retry must land on the empty fleet, not on another spec's task.
   await page.route((url) => url.pathname === '/api/tasks', (route) => route.fulfill({ json: [] }));
   await login(page);
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   const errorScreen = page.locator('.welcome-error');
   await expect(errorScreen).toContainText('Chưa tải được danh sách công việc.');
   await expect(errorScreen).toContainText('sweep down');
@@ -108,7 +109,7 @@ test('a slow log read shows a skeleton instead of "Chưa có sự kiện."', asy
     await route.fulfill({ json: [] });
   });
   await login(page);
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await expect(page.locator('.task-header h2')).toHaveText(task.title);
   await expect(page.locator('.log-skeleton')).toBeVisible();
   await expect(page.getByText('Chưa có sự kiện.', { exact: true })).toHaveCount(0);
@@ -127,7 +128,7 @@ test('a failed log read shows the error and a retry instead of empty copy', asyn
     await route.fulfill({ json: [] });
   });
   await login(page);
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await expect(page.locator('.task-header h2')).toHaveText(task.title);
   const banner = page.locator('.log-view .banner-error');
   await expect(banner).toContainText('Không tải được nhật ký: 500');
@@ -166,7 +167,7 @@ test('at 1000px the inspector starts closed and its close button hides it', asyn
   await page.setViewportSize({ width: 1_000, height: 900 });
   await login(page);
   const task = await createTask(page, 'Narrow inspector state', 'Narrow inspector smoke');
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: task.title, exact: false }).click();
   const toggle = page.getByRole('button', { name: 'Ẩn hoặc hiện thông tin workspace', exact: true });
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -184,7 +185,7 @@ test('the empty work screen hides the inspector and lists the three steps', asyn
   await page.route((url) => url.pathname === '/api/plans' || url.pathname === '/api/tasks',
     (route) => route.fulfill({ json: [] }));
   await login(page);
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await expect(page.locator('.welcome-steps li')).toHaveCount(3);
   await expect(page.locator('.welcome-steps')).toContainText('Chọn repo');
   await expect(page.locator('.welcome-steps')).toContainText('Viết yêu cầu');
@@ -196,7 +197,7 @@ test('the empty work screen hides the inspector and lists the three steps', asyn
 test('expanded raw log rows are real buttons', async ({ page }) => {
   await login(page);
   const task = await createTask(page, 'Raw log rows', '[[raw]] raw log rows');
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: task.title, exact: false }).click();
   const toggle = page.locator('button.raw-toggle');
   await expect(toggle).toBeVisible();
@@ -214,11 +215,11 @@ test('the empty work screen fits three widths in both themes', async ({ page }) 
   await page.route((url) => url.pathname === '/api/plans' || url.pathname === '/api/tasks',
     (route) => route.fulfill({ json: [] }));
   await login(page);
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   for (const width of [375, 768, 1440]) {
     for (const theme of ['light', 'dark'] as const) {
       await page.setViewportSize({ width, height: 900 });
-      await page.getByRole('button', { name: theme === 'light' ? 'Giao diện sáng' : 'Giao diện tối', exact: true }).click();
+      await setTheme(page, theme);
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await expect(page.locator('.welcome-steps')).toBeVisible();

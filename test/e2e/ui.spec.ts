@@ -12,7 +12,7 @@ test.beforeEach(async ({ page, baseURL }) => {
   repoPath = (await readFile(path.join(dataDir, 'repo-path'), 'utf8')).trim();
   await page.goto(`/auth?token=${encodeURIComponent(token)}`);
   await expect(page).toHaveURL(`${baseURL}/`);
-  await expect(page.getByRole('button', { name: 'Tasks', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Công việc', exact: true })).toBeVisible();
   await expect(page.locator('.connection')).toHaveAttribute('title', 'Đã kết nối');
 });
 
@@ -63,7 +63,7 @@ test('new task and log lines arrive live without reloading', async ({ page }) =>
 test('finished task shows fake.txt and its patch in Diff', async ({ page }) => {
   const task = await createTask(page, 'Diff smoke');
   await waitForDone(page, task);
-  await page.getByRole('button', { name: 'Diff (1)', exact: true }).click();
+  await page.getByRole('tab', { name: 'Diff (1)', exact: true }).click();
   await expect(page.getByRole('button', { name: /fake\.txt/ })).toBeVisible();
   await expect(page.locator('.diff-pane .diff-add')).toContainText('fake agent completed');
 });

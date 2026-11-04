@@ -10,6 +10,7 @@ import type {
   TaskStatus,
 } from '../../shared/types.js';
 import { api, type DiffResult, type MergeResult } from './api.js';
+import type { IconName } from './components/Icon.js';
 import { connectBus } from './ws.js';
 
 // ── state ───────────────────────────────────────────────────────────────────
@@ -90,20 +91,46 @@ export function addEvents(
 export interface TaskCounts {
   running: number;
   waiting: number;
+  failed: number;
   done: number;
 }
 
-/** Counts for the top bar: "N đang chạy · N chờ · N xong". */
+/**
+ * Statuses the topbar chips stand for. "Lỗi" covers every run the user has to
+ * act on: a failed check, a timeout and an interrupted attempt all need a person.
+ */
+export const FILTER_STATUSES = {
+  running: ['running'],
+  waiting: ['queued'],
+  failed: ['failed', 'timeout', 'interrupted'],
+} as const satisfies Record<string, readonly TaskStatus[]>;
+
+/** `all` is the neutral state: no chip is pressed and the sidebar lists every task. */
+export type StatusFilter = 'all' | keyof typeof FILTER_STATUSES;
+
+export function matchesFilter(status: TaskStatus, filter: StatusFilter): boolean {
+  if (filter === 'all') return true;
+  return (FILTER_STATUSES[filter] as readonly TaskStatus[]).includes(status);
+}
+
+/** Sidebar rows for one chip; `all` keeps the incoming order. */
+export function filterTasks(tasks: Task[], filter: StatusFilter): Task[] {
+  return filter === 'all' ? tasks : tasks.filter((task) => matchesFilter(task.status, filter));
+}
+
+/** Counts for the top bar: "N đang chạy · N chờ · N lỗi". */
 export function taskCounts(tasks: Task[]): TaskCounts {
   let running = 0;
   let waiting = 0;
+  let failed = 0;
   let done = 0;
   for (const task of tasks) {
     if (task.status === 'running') running += 1;
     else if (task.status === 'queued') waiting += 1;
-    else if (task.status === 'done' || task.status === 'merged') done += 1;
+    else if ((FILTER_STATUSES.failed as readonly TaskStatus[]).includes(task.status)) failed += 1;
+    if (task.status === 'done' || task.status === 'merged') done += 1;
   }
-  return { running, waiting, done };
+  return { running, waiting, failed, done };
 }
 
 export interface Progress {
@@ -263,23 +290,27 @@ export function eventText(event: FleetEvent): string {
 
 // ── status display ──────────────────────────────────────────────────────────
 
-const STATUS_META: Record<TaskStatus, { label: string; icon: string }> = {
-  queued: { label: 'đang chờ', icon: '○' },
-  running: { label: 'đang chạy', icon: '◐' },
-  done: { label: 'xong', icon: '✓' },
-  failed: { label: 'lỗi', icon: '✗' },
-  timeout: { label: 'quá hạn', icon: '⏱' },
-  interrupted: { label: 'bị dừng', icon: '■' },
-  taken_over: { label: 'tiếp quản', icon: '⌨' },
-  merged: { label: 'đã merge', icon: '⑂' },
-  discarded: { label: 'đã huỷ', icon: '✕' },
+/**
+ * Status glyphs are lucide icon names, never Unicode symbols: the old `◐ ○ ⑂ ⏱`
+ * characters render unevenly in Segoe UI and carry no accessible name.
+ */
+const STATUS_META: Record<TaskStatus, { label: string; icon: IconName }> = {
+  queued: { label: 'đang chờ', icon: 'status-queued' },
+  running: { label: 'đang chạy', icon: 'status-running' },
+  done: { label: 'xong', icon: 'status-done' },
+  failed: { label: 'lỗi', icon: 'status-failed' },
+  timeout: { label: 'quá hạn', icon: 'status-timeout' },
+  interrupted: { label: 'bị dừng', icon: 'status-interrupted' },
+  taken_over: { label: 'tiếp quản', icon: 'status-taken-over' },
+  merged: { label: 'đã merge', icon: 'status-merged' },
+  discarded: { label: 'đã huỷ', icon: 'status-discarded' },
 };
 
 export function statusLabel(status: TaskStatus): string {
   return STATUS_META[status].label;
 }
 
-export function statusIcon(status: TaskStatus): string {
+export function statusIcon(status: TaskStatus): IconName {
   return STATUS_META[status].icon;
 }
 

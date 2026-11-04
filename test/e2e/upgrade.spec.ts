@@ -47,7 +47,7 @@ test('dashboard stays mounted across navigation and reuses live terminal session
   await page.getByRole('button', {name:'Phiên workspace',exact:true}).click();
   await expect(page.locator('.terminal-workspace-host .terminal-panel')).toBeVisible();
   await expect(page.locator('.terminal-workspace-host .terminal-panel')).toHaveCSS('background-color', 'rgb(12, 12, 12)');
-  await page.getByRole('button', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await expect(page.locator('.dashboard-host')).toBeHidden();
   await page.getByRole('button', { name: 'Terminal',exact:true }).click();
   await expect(page.locator('.terminal-workspace-host .terminal-panel')).toBeVisible();
