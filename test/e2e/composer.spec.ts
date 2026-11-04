@@ -26,12 +26,12 @@ async function createPlan(page: Page, name: string, repoPath: string): Promise<P
   const response = await page.request.post('/api/plans', { data: { name, repoPath } });
   expect(response.ok()).toBeTruthy();
   const plan = await response.json() as Plan;
-  // The composer reads plans from the live store, which receives them over the socket.
-  await expect(page.locator('.plan-name', { hasText: name })).toBeVisible();
+  // Plans now appear in the composer and jobs table, not in the navigation sidebar.
   return plan;
 }
 
 async function openComposer(page: Page) {
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: /Công việc mới/ }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();

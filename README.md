@@ -1,10 +1,10 @@
 # Agent Fleet Desktop
 
-Bản **2.3.0**: Dashboard v3 theo từng CLI (gói, hạn mức, credit, key pool, hệ số
-model), dải **Nên dùng ngay**, trang **Tài nguyên & sử dụng** mới và nền tảng giao
-diện dùng chung. Vẫn là ứng dụng Windows `.exe` với giao diện sáng/tối, cột kéo
-giãn, Terminal riêng giữ nhiều phiên CLI và cuộn chuột theo vùng.
-Xem [ghi chú 2.3.0](docs/releases/2.3.0.md) và [kế hoạch hiện tại](docs/dashboard-v3-plan.md).
+Bản **2.5.0** xây lại toàn bộ UI theo bản OpenCode: khung điều hướng, Dashboard,
+Jobs hai cột, Terminal, Compare, Resources và trang chi tiết từng công cụ.
+Có EN/VI, giấy ấm/trắng thuần, sáng/tối và **Hướng dẫn leader** để sao chép
+kết nối cùng quy trình giao việc vào hội thoại.
+Xem [ghi chú 2.5.0](docs/releases/2.5.0.md) và [kế hoạch nền tảng](docs/dashboard-v3-plan.md).
 
 Agent Fleet là ứng dụng local cho Windows giúp một model leader giao việc cho
 các coding agent `codex`, `qodercli`, `agy`, `opencode`. Mỗi công việc có git worktree
@@ -14,34 +14,35 @@ so sánh agent. Leader quyết định việc cần làm và review trước khi
 
 ## Mở ứng dụng Windows
 
-Đóng bản cũ rồi mở [AgentFleet.exe](dist/AgentFleet-2.3.0/AgentFleet.exe), hoặc giải nén toàn bộ
-[AgentFleet-2.3.0-win-x64.zip](dist/AgentFleet-2.3.0-win-x64.zip) rồi mở `AgentFleet.exe`. Giữ thư mục `app/`
+Đóng bản cũ rồi mở [AgentFleet.exe](dist/AgentFleet-2.5.0/AgentFleet.exe), hoặc giải nén toàn bộ
+[AgentFleet-2.5.0-win-x64.zip](dist/AgentFleet-2.5.0-win-x64.zip) rồi mở `AgentFleet.exe`. Giữ thư mục `app/`
 và `runtime/` cạnh EXE. Bản portable mặc định đã kèm Node và .NET; không cần mở
 CMD hoặc trình duyệt riêng. Máy cần Windows 11 x64, WebView2, Git và agent CLI
 đã cài/đăng nhập để giao việc cho agent thật.
 
-**Bảng điều khiển** hiện mỗi CLI một thẻ: gói và tier, thanh hạn mức theo **cửa sổ
-thấp hơn**, credit, key pool của OpenCode và danh sách model kèm hệ số. Dải
-**Nên dùng ngay** gợi ý tối đa 3 lựa chọn rẻ/miễn phí kèm 1 cảnh báo: bấm gợi ý
-model để sao chép lệnh `--model`, bấm gợi ý tool để mở CLI. Dashboard **không tự
-chạy lệnh nào** khi mở màn hình; chỉ **Kiểm tra** hoặc **Kiểm tra tất cả** (chạy
-tuần tự, có tiến độ) mới đọc trạng thái, và kết quả được lưu lại cho lần mở sau.
-Dữ liệu thiếu luôn hiện "Chưa có dữ liệu", không bị đổi thành 0.
+**Bảng điều khiển** chia thành bốn vùng CLI liền nhau: gói, vòng hạn mức,
+credit Qoder, ma trận AGY và pool OpenCode. Bấm **Chi tiết** để xem model,
+giá catalog, lệnh kiểm tra và mở CLI. **Kiểm tra tất cả** chạy tuần tự;
+app không tự kiểm tra tài khoản khi mở màn hình. Giá trị thiếu giữ là “—”,
+không đổi thành 0 hay suy ra hạn mức tổng từ nhiều bucket credit.
 
-**Mở CLI** trên thẻ chuyển sang mục **Terminal**.
-Mỗi CLI có tab riêng; chuyển tab hoặc màn hình giữ nguyên tiến trình và lịch sử.
-Chuột trong vùng terminal cuộn history/pager CLI; chuột bên ngoài cuộn giao diện.
-Nhấn **Kiểm tra** để đọc trạng thái; AGY đọc `/usage` để hiện quota từng nhóm model;
-quota/credit còn lại hiện chưa có dữ liệu nếu CLI không cung cấp. Không tự kiểm tra tài khoản khi mở màn hình.
-Chọn **Công việc mới** để tạo plan từ một Git repository và giao việc; chọn công việc ở
-sidebar để xem **Nhật ký**, **Thay đổi**, **Yêu cầu** và terminal. Chọn **Giao diện** ở góc dưới trái
-để dùng sáng/tối/theo hệ thống, hoặc **Ô lệnh nhanh** (Ctrl K) ở mọi độ rộng màn hình.
-Kéo đường phân cách để chỉnh cột và chiều cao terminal.
-**Tài nguyên & sử dụng** tổng hợp số liệu theo công cụ/model và xuất JSON, kèm badge
-tier và credit của từng công cụ; khi chưa có lần chạy, biểu đồ hiện hướng dẫn thay
-vì đường phẳng. Số liệu token/credit được lấy từ lần chạy task có dữ liệu CLI,
-không ước tính từ nội dung terminal tương tác.
-Ảnh và mô tả chi tiết ở [ghi chú 2.3.0](docs/releases/2.3.0.md).
+**Terminal** có danh sách CLI và các tab phiên. Chuyển tab/màn hình hoặc ẩn
+terminal giữ nguyên tiến trình và lịch sử. Có chỉnh cỡ chữ, tìm kiếm,
+sao chép/dán và kết nối lại. Terminal giữ màu ANSI của CLI ở cả hai theme.
+
+Vào **Công việc** → **Công việc mới** để chọn/tạo dự án Git và giao việc.
+Danh sách nằm bên trái; bên phải là **Nhật ký**, **Thay đổi**, **Yêu cầu**,
+hành động duyệt và terminal tiếp quản. Ctrl+K mở ô lệnh nhanh.
+Thanh trên chuyển EN/VI, sáng/tối/hệ thống, sắc giấy và phần cứng.
+Màn hình hẹp dùng menu điều hướng thu gọn.
+
+**So sánh agent** có bốn thẻ vòng hạn mức, bảng tổng hợp, bộ lọc 7/30 ngày
+và xuất CSV. **Tài nguyên & sử dụng** có KPI, biểu đồ token và bảng theo agent,
+xuất báo cáo JSON; số liệu thiếu không được ước tính từ nội dung terminal.
+
+Mở **Hướng dẫn leader** → **Sao chép gửi hội thoại** để lấy đúng hồ sơ dữ liệu,
+cổng và CLI của app đang chạy. Gói portable đã kèm CLI nên không cần npm/tsx.
+Ảnh và mô tả chi tiết ở [ghi chú 2.5.0](docs/releases/2.5.0.md).
 
 Dữ liệu desktop nằm ở `%LOCALAPPDATA%\AgentFleetDesktop\`, độc lập với dữ liệu
 CLI cũ. Không sao chép database/worktree đang chạy từ bản cũ sang khi server

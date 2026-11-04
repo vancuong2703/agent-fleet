@@ -36,6 +36,8 @@ function userFacingText(source: string): string[] {
   let text = source
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/^\s*\/\/.*$/gm, ' ')
+    // Explicit EN/VI pairs keep the Vietnamese branch under this glossary guard.
+    .replace(/\bt\(\s*"(?:\\.|[^"\\])*"\s*,\s*"((?:\\.|[^"\\])*)"\s*\)/g, '"$1"')
     .replace(/^import\b[\s\S]*?;\s*$/gm, ' ')
     .replace(/^export\b[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, ' ');
 
@@ -66,6 +68,8 @@ describe('glossary scan', () => {
     expect(bannedHits(`import { LogView } from './LogView.js';\nconst Copy = 1;\nexport const label = 'Task mới';`)).toEqual(['Task mới']);
     expect(bannedHits(`<p>Brief</p>`)).toEqual(['Brief']);
     expect(bannedHits(`const className = 'log-view'; const Tasks = 2;`)).toEqual([]);
+    expect(bannedHits(`t("Copy", "Sao chép")`)).toEqual([]);
+    expect(bannedHits(`t("Copy", "Copy")`)).toEqual(['Copy']);
   });
 });
 

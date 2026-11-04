@@ -15,13 +15,14 @@ async function setup(page:Page){
  });
  const token=(await readFile(path.join(process.env.FLEET_DATA_DIR!,'token'),'utf8')).trim();
  await page.goto(`/auth?token=${encodeURIComponent(token)}`);
+ await page.getByRole('button',{name:'Terminal',exact:true}).click();
  return state;
 }
 
 test('wheel scrolls terminal history and TUI pagers without leaking to the page',async({page})=>{
  const state=await setup(page);
  await page.getByRole('button',{name:'Mở Codex',exact:true}).click();
- await expect(page.getByRole('button',{name:'Terminal',exact:true})).toHaveClass('active');
+ await expect(page.getByRole('button',{name:'Terminal',exact:true})).toHaveAttribute('aria-current','page');
  const rows=page.locator('.terminal-session:not([hidden]) .xterm-rows');
  await expect(rows).toContainText('history-line-199');
  const outer=page.locator('.terminal-page');
@@ -55,8 +56,8 @@ test('CLI tabs and navigation keep the same terminal connections alive',async({p
  const state=await setup(page);
  await page.getByRole('button',{name:'Mở Codex',exact:true}).click();
  await expect(page.locator('.terminal-connection')).toHaveText('Đã kết nối');
- await page.getByRole('button',{name:'Bảng điều khiển',exact:true}).click();
- await page.getByRole('button',{name:'Mở Antigravity (AGY)',exact:true}).click();
+ await page.getByRole('button',{name:'Phiên mới',exact:true}).click();
+ await page.locator('.session-picker').getByRole('button',{name:'Mở Antigravity (AGY)',exact:true}).click();
  await expect(page.getByRole('tab')).toHaveCount(2);
  await page.getByRole('tab',{name:'codex workspace'}).click();
  await expect(page.locator('.terminal-session:not([hidden]) .xterm-rows')).toContainText('history-line-199');
@@ -65,15 +66,15 @@ test('CLI tabs and navigation keep the same terminal connections alive',async({p
  await page.getByRole('tab',{name:'agy workspace'}).click();
  await page.getByRole('tab',{name:'codex workspace'}).click();
  expect(state.connections).toBe(2);
- await expect(page.locator('.sidebar-brand svg')).toHaveCount(0);
+ await expect(page.locator('.brand .mk')).toHaveText('AF');
 });
 
 test('a tab can be closed after its CLI has already exited on the server',async({page})=>{
  await setup(page);
  await page.route('**/api/terminal-sessions/session-codex',route=>route.fulfill({status:404,json:{message:'Terminal session not found'}}));
  await page.getByRole('button',{name:'Mở Codex',exact:true}).click();
- await page.getByRole('button',{name:'Kết thúc tiến trình codex workspace',exact:true}).click();
+ await page.locator('.terminal-session:not([hidden])').getByRole('button',{name:'Kết thúc tiến trình',exact:true}).click();
  await page.getByRole('dialog').getByRole('button',{name:'Kết thúc tiến trình',exact:true}).click();
  await expect(page.getByRole('tab')).toHaveCount(0);
- await expect(page.getByRole('heading',{name:'Mở một phiên terminal'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Mở phiên CLI'})).toBeVisible();
 });

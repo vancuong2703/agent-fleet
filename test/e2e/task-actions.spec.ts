@@ -155,8 +155,7 @@ test('running terminal takeover explains that the agent stops and can be cancell
 test('actions and confirmation fit three widths in both themes', async ({ page }) => {
   test.setTimeout(60_000);
   await selectedTask(page, 'Action layout matrix');
-  // The inspector's narrow-screen default belongs to T11; hide it using the existing control.
-  await page.getByRole('button', { name: 'Ẩn hoặc hiện thông tin workspace', exact: true }).click();
+  // The rebuilt jobs detail is inside the page; there is no overlay inspector.
   for (const width of [375, 768, 1440]) for (const theme of ['light', 'dark'] as const) {
     await page.setViewportSize({ width, height: 900 });
     await setTheme(page, theme);

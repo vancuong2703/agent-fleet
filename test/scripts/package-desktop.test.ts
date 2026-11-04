@@ -25,6 +25,12 @@ import helper from 'runtime-helper';
 import { answer } from '../shared/value.js';
 console.log(JSON.stringify({ platform, answer, helper: helper() }));`);
   put('shared/value.ts', 'export const answer = 42;');
+  put('cli/fleet.ts', 'import helper from "cli-helper"; console.log(helper());');
+  pkg('cli-helper');
+  put('node_modules/cli-helper/index.js', 'module.exports = () => "portable-cli";');
+  put('node_modules/cli-helper/LICENSE', 'CLI helper license');
+  put('docs/leader-guide.md', '# Leader guide fixture');
+  put('docs/agent-cli-guide.md', '# Agent CLI guide fixture');
   // Previous compiler output lets the old packager run and expose payload bugs.
   put('.tmp/desktop-compiled/server/main.js', 'console.log("unbundled");');
   put('.tmp/desktop-compiled/shared/value.js', 'export const answer = 42;');
@@ -60,6 +66,11 @@ describe.skipIf(process.platform !== 'win32' || process.arch !== 'x64')('desktop
     const app = path.join(root, 'dist/AgentFleet/app');
     expect(readdirSync(path.join(app, 'server'))).toEqual(['main.js']);
     expect(existsSync(path.join(app, 'shared'))).toBe(false);
+    expect(execFileSync(process.execPath, [path.join(app, 'cli/fleet.js')], { encoding: 'utf8' }).trim()).toBe('portable-cli');
+    expect(readFileSync(path.join(app, 'docs/leader-guide.md'), 'utf8')).toContain('Leader guide fixture');
+    expect(readFileSync(path.join(root, 'dist/AgentFleet/licenses/cli-helper-1.0.0/LICENSE'), 'utf8')).toBe('CLI helper license');
+    const manifest = JSON.parse(readFileSync(path.join(root, 'dist/AgentFleet/runtime-manifest.json'), 'utf8'));
+    expect(manifest.packages).toContainEqual(expect.objectContaining({ name: 'cli-helper', bundled: true }));
     expect(JSON.parse(execFileSync(process.execPath, [path.join(app, 'server/main.js')], { encoding: 'utf8' }))).toEqual({ platform: 'win32-x64', answer: 42, helper: 'bundled' });
   });
 

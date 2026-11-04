@@ -5,7 +5,7 @@ import type { CommandPolicy, Run, Task } from '../../../shared/types.js';
 import { api } from '../api.js';
 import { mergeErrorMessage, taskActions } from '../store.js';
 import { ConfirmDialog } from './ConfirmDialog.js';
-import '../styles/actions.css';
+import { useLanguage } from '../ui/language.js';
 const TerminalPanel = lazy(() => import('./TerminalPanel.js').then((module) => ({ default: module.TerminalPanel })));
 
 export interface TaskActionsProps {
@@ -24,6 +24,7 @@ type Pending = 'merge' | 'discard' | 'terminal' | null;
  * Merge failures are translated to Vietnamese and shown above the buttons.
  */
 export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalHeight }: TaskActionsProps) {
+  const { t } = useLanguage();
   const actions = taskActions(task.status);
   const [pending, setPending] = useState<Pending>(null);
   const [busy, setBusy] = useState(false);
@@ -116,8 +117,8 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
   const confirm = (() => {
     if (pending === 'merge') {
       return {
-        title: 'Merge nhánh này?',
-        message: `Merge ${task.branch} vào ${baseBranch}?`,
+        title: t('Merge this branch?', 'Merge nhánh này?'),
+        message: t(`Merge ${task.branch} into ${baseBranch}?`, `Merge ${task.branch} vào ${baseBranch}?`),
         confirmLabel: 'Merge',
         danger: false,
         onConfirm: merge,
@@ -125,18 +126,18 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
     }
     if (pending === 'discard') {
       return {
-        title: 'Xoá công việc này?',
-        message: 'Worktree, nhánh và mọi thay đổi chưa Merge của công việc sẽ bị xoá. Lịch sử vẫn được giữ lại.',
-        confirmLabel: 'Xoá worktree và thay đổi',
+        title: t('Discard this job?', 'Xoá công việc này?'),
+        message: t('This deletes the worktree, branch and unmerged changes. Run history is kept.', 'Worktree, nhánh và mọi thay đổi chưa Merge của công việc sẽ bị xoá. Lịch sử vẫn được giữ lại.'),
+        confirmLabel: t('Delete worktree and changes', 'Xoá worktree và thay đổi'),
         danger: true,
         onConfirm: () => invoke(() => api.discard(task.id)),
       };
     }
     if (pending === 'terminal') {
       return {
-        title: 'Tiếp quản terminal?',
-        message: 'Agent đang chạy sẽ bị dừng trước khi mở terminal. Công việc chuyển sang trạng thái tiếp quản để bạn thao tác trong worktree.',
-        confirmLabel: 'Dừng agent và tiếp quản',
+        title: t('Take over this terminal?', 'Tiếp quản terminal?'),
+        message: t('The running agent will stop before opening the terminal. You can then work in its worktree.', 'Agent đang chạy sẽ bị dừng trước khi mở terminal. Công việc chuyển sang trạng thái tiếp quản để bạn thao tác trong worktree.'),
+        confirmLabel: t('Stop agent and take over', 'Dừng agent và tiếp quản'),
         danger: false,
         onConfirm: () =>
           invoke(async () => {
@@ -164,10 +165,10 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
         <div className="task-actions-secondary">
           {terminalAvailable && (
             <button type="button" className={`action-btn${terminalOpen ? ' action-primary' : ''}`} disabled={busy} onClick={openTerminal}>
-              {task.status === 'running' ? 'Tiếp quản terminal' : 'Mở terminal'}
+              {task.status === 'running' ? t('Take over terminal', 'Tiếp quản terminal') : t('Open CLI', 'Mở terminal')}
             </button>
           )}
-          {['done', 'failed', 'timeout', 'interrupted'].includes(task.status) && <button type="button" className="action-btn" disabled={busy} onClick={() => setRetryOpen((open) => !open)}>Thử lại</button>}
+          {['done', 'failed', 'timeout', 'interrupted'].includes(task.status) && <button type="button" className="action-btn" disabled={busy} onClick={() => setRetryOpen((open) => !open)}>{t('Retry', 'Thử lại')}</button>}
           {actions.includes('discard') && <div className="task-overflow">
             <button ref={menuButton} type="button" className="action-btn task-overflow-trigger" aria-label="Thao tác khác" title="Thao tác khác" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={busy}
               onClick={() => setMenuOpen(open => !open)} onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setMenuOpen(true); } }}>
@@ -177,7 +178,7 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
               if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) { event.preventDefault(); menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(); }
               if (event.key === 'Tab') { setMenuOpen(false); menuButton.current?.focus(); }
             }}>
-              <button type="button" role="menuitem" tabIndex={-1} className="action-btn action-danger" onClick={() => { menuButton.current?.focus(); setMenuOpen(false); setPending('discard'); }}>Huỷ công việc…</button>
+              <button type="button" role="menuitem" tabIndex={-1} className="action-btn action-danger" onClick={() => { menuButton.current?.focus(); setMenuOpen(false); setPending('discard'); }}>{t('Discard job…', 'Huỷ công việc…')}</button>
             </div>}
           </div>}
         </div>
@@ -189,7 +190,7 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
             disabled={busy}
             onClick={() => invoke(() => api.stop(task.id))}
           >
-            Dừng
+            {t('Stop', 'Dừng')}
           </button>
         )}
         {actions.includes('markDone') && (
@@ -199,7 +200,7 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
             disabled={busy}
             onClick={() => invoke(() => api.markDone(task.id))}
           >
-            Đánh dấu xong
+            {t('Mark done', 'Đánh dấu xong')}
           </button>
         )}
         {actions.includes('merge') && (
@@ -229,6 +230,7 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
           title={confirm.title}
           message={confirm.message}
           confirmLabel={confirm.confirmLabel}
+          cancelLabel={t('Cancel', 'Huỷ bỏ')}
           danger={confirm.danger}
           busy={busy}
           onConfirm={confirm.onConfirm}

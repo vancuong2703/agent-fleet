@@ -1,0 +1,56 @@
+/* =========================================================================
+   Terminal page — page-scoped styles on top of app.css.
+   Keeps long content from widening the page, and defines a fixed dark
+   terminal palette that stays dark in both themes.
+   ========================================================================= */
+
+/* Shared rules (.wrap, .grid2, .btn.sm, .stab) live in assets/pages.css. */
+
+/* ---- session toolbar ---- */
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px}
+.toolbar .tlabel{font:700 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.hint{margin:0 0 12px}
+
+/* ---- session tabs (ARIA tablist lives inside) ---- */
+.sessions{display:flex;align-items:center;gap:8px;min-width:0;
+  border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto}
+.stablist{display:inline-flex;align-items:center;gap:4px;min-width:0}
+.sessions .newbtn{margin-left:auto;flex:none}
+
+/* ---- terminal frame (fixed dark palette, independent of theme) ---- */
+.termwrap{
+  --t-bg:#0e0f13; --t-line:#25262c; --t-fg:#e7e7e1; --t-dim:#8f8f8a;
+  --t-prompt:#7dd3fc; --t-accent:#ff8a4c; --t-ok:#5ee08a;
+  background:var(--t-bg);border:1px solid var(--t-line);border-radius:12px;
+  padding:14px 16px;overflow-x:auto;overflow-y:auto;max-height:440px}
+.term{color:var(--t-fg);margin:0;font:400 var(--fs,12.5px)/1.65 var(--mono);
+  white-space:pre-wrap;overflow-wrap:anywhere}
+.term .t-p{color:var(--t-prompt)}
+.term .t-a{color:var(--t-accent)}
+.term .t-d{color:var(--t-dim)}
+.term .t-ok{color:var(--t-ok)}
+.term .t-cur{color:var(--t-ok);animation:blink 1.1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ---- warning / reconnect notice ---- */
+/* display:flex beats the hidden attribute, so the off state needs its own rule */
+.notice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  border:1px solid var(--warn);background:var(--warn-soft);border-radius:var(--r);padding:12px 14px}
+.notice[hidden]{display:none}
+.notice .ic{color:var(--warn)}
+.notice .txt{flex:1;min-width:160px;color:var(--warn);font:600 12px var(--sans)}
+.toolbar .btn:disabled{opacity:.45;cursor:default}
+.toolbar .btn:disabled:hover{background:transparent}
+
+/* ---- session info key/value rows ---- */
+.kv{display:flex;flex-direction:column}
+.kv .k{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  padding:9px 0;border-bottom:1px solid var(--border)}
+.kv .k:last-child{border-bottom:0}
+.kv .kl{flex:none;font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.kv .v{font:600 11.5px var(--mono);text-align:right;overflow-wrap:anywhere}
+
+/* ---- narrow screens: keep the topbar from overflowing ---- */
+@media(max-width:640px){.topbar .tbtn span{display:none}}
+@media(max-width:520px){.topbar{padding:13px 14px;gap:8px}.wrap{padding:20px 14px}}

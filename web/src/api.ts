@@ -10,6 +10,7 @@ import type {
   TaskStatus,
 } from '../../shared/types.js';
 import type { RepositoryValidation } from '../../shared/repository.js';
+import type { LeaderGuide } from '../../shared/leader-guide.js';
 export type { RepositoryValidation } from '../../shared/repository.js';
 
 /** `GET /api/agents` row. */
@@ -75,6 +76,7 @@ function jsonInit(method: string, body?: unknown): RequestInit {
  * and never builds an auth header.
  */
 export const api = {
+  leaderGuide: (): Promise<LeaderGuide> => request('/api/leader-guide'),
   health: (): Promise<{ ok: boolean }> => request('/api/health'),
 
   plans: (): Promise<Plan[]> => request('/api/plans'),

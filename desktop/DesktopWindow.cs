@@ -49,7 +49,7 @@ internal sealed class DesktopWindow : Form
             view.CoreWebView2.Settings.AreDevToolsEnabled = false;
             view.CoreWebView2.Settings.IsStatusBarEnabled = false;
             view.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
-            var marker = JsonSerializer.Serialize(new { version = "2.3.0", platform = "win32", theme = preferences.Theme, layout = preferences.Layout }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            var marker = JsonSerializer.Serialize(new { version = "2.5.0", platform = "win32", theme = preferences.Theme, layout = preferences.Layout }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             await view.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync($"window.__FLEET_DESKTOP__ = Object.freeze({marker}); window.dispatchEvent(new Event('fleet:desktop-ready'));");
             view.CoreWebView2.NavigationStarting += (_, e) =>
             {
@@ -222,6 +222,9 @@ internal sealed class DesktopWindow : Form
     private async Task RunCheckAllSmokeTestAsync()
     {
         var agents = new[] { "codex", "qodercli", "agy", "opencode" };
+        await ClickSmokeButtonAsync("VI");
+        await Task.Delay(100);
+        await ClickSmokeButtonAsync("Bảng điều khiển");
         var started = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         await ClickSmokeButtonAsync("Kiểm tra tất cả");
         var pending = new HashSet<string>(agents);
@@ -276,9 +279,12 @@ internal sealed class DesktopWindow : Form
     private async Task RunCliSmokeTestsAsync()
     {
         var reports = new List<object>();
+        await ClickSmokeButtonAsync("VI");
+        await Task.Delay(100);
         foreach (var (agent, title) in new[] { ("codex", "Codex"), ("qodercli", "Qoder CLI"), ("agy", "Antigravity (AGY)"), ("opencode", "OpenCode") })
         {
             var started = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            await ClickSmokeButtonAsync("Terminal");
             await ClickSmokeButtonAsync("Mở " + title);
             var settled = await WaitForSettledFrameAsync(agent, title);
             await Task.Delay(1500);

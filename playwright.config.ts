@@ -25,6 +25,9 @@ export default defineConfig({
   use: {
     ...devices['Desktop Chrome'],
     baseURL,
+    // Functional workflow specs exercise Vietnamese; visual fidelity specs
+    // explicitly select English to match the supplied OpenCode reference.
+    storageState: { cookies: [], origins: [{ origin: baseURL, localStorage: [{ name: 'fleet.language', value: 'vi' }] }] },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

@@ -1,138 +1,45 @@
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { card, dashboardFixture, login, navigate, stubDashboard } from './dashboard-fixture.js';
 
-/**
- * T6 — dải "Nên dùng ngay". Dữ liệu là tổng hợp, `/api/dashboard/check` không
- * được gọi, và clipboard được thay bằng bộ ghi trong trang để test không phụ
- * thuộc quyền của trình duyệt.
- */
-
-const checkedAt = Date.parse('2026-11-03T11:40:12Z');
-
-const baseCheck = (over: Record<string, unknown> = {}) => ({
-  checkedAt,
-  status: 'ready',
-  version: '1.0.0',
-  account: { state: 'authenticated', label: '***@example.com', source: 'cli status', reason: null },
-  quota: { remaining: null, unit: null, resetAt: null, source: 'cli status', reason: null },
-  credits: { remaining: null, unit: null, resetAt: null, source: 'cli status', reason: null },
-  probes: [{ command: 'status', ok: true, exitCode: 0, summary: 'ok' }],
-  ...over,
+/** The approved reference replaces the former recommendation strip with an attention panel. */
+test('attention panel links low quota and exhausted keys to the corresponding real detail view', async ({ page }) => {
+  await stubDashboard(page);
+  const checks: string[] = []; const launches: string[] = [];
+  page.on('request', request => { if (request.method() !== 'POST') return; if (request.url().includes('/api/dashboard/check')) checks.push(request.url()); if (request.url().includes('/api/terminal-sessions')) launches.push(request.url()); });
+  await login(page);
+  const attention = page.locator('.dashboard-page .panel').filter({ has: page.locator('.attn') });
+  await expect(attention).toContainText('Cần chú ý');
+  await expect(attention.locator('.attn li')).toHaveCount(3);
+  await expect(attention.locator('.attn li').first()).toContainText('Codex');
+  await attention.locator('.attn li').first().getByRole('button', { name: 'Mở', exact: true }).click();
+  await expect(page.locator('.tool-page').getByRole('heading', { name: 'Codex', exact: true })).toBeVisible();
+  expect(checks).toEqual([]); expect(launches).toEqual([]);
 });
 
-const win = (group: string, remainingPct: number) => ({ group, window: 'week', remainingPct, unit: 'percent', resetAt: null });
-const offer = (id: string, label: string, multiplier: number) => ({ id, label, multiplier, source: 'pty' });
-
-const tools = [
-  {
-    agent: 'qodercli', title: 'Qoder', configuredBin: null, installed: true, suggestions: [],
-    lastCheck: baseCheck({
-      plan: { name: 'Pro Trial', tier: 'trial', source: 'status -o json' },
-      models: [offer('qwen-flash', 'Qwen3.8-Flash', 0), offer('ds-flash', 'DeepSeek-Flash', 0.1)],
-      quotaWindows: [win('Credit gói', 62)],
-    }),
-  },
-  { agent: 'agy', title: 'Antigravity', configuredBin: null, installed: true, suggestions: [], lastCheck: baseCheck({ quotaWindows: [win('GEMINI 4 ARGON', 78)] }) },
-  { agent: 'codex', title: 'Codex', configuredBin: null, installed: true, suggestions: [], lastCheck: baseCheck({ quotaWindows: [win('Codex', 22)] }) },
-  { agent: 'opencode', title: 'OpenCode', configuredBin: null, installed: true, suggestions: [], lastCheck: baseCheck({ quotaWindows: [win('OpenCode', 67)] }) },
-];
-
-const snapshot = { generatedAt: checkedAt, tools, terminalSessions: [] };
-
-async function login(page: Page) {
-  const token = (await readFile(path.join(process.env.FLEET_DATA_DIR!, 'token'), 'utf8')).trim();
-  await page.goto(`/auth?token=${encodeURIComponent(token)}`);
-  await expect(page.getByRole('heading', { name: 'Bảng điều khiển', exact: true })).toBeVisible();
-}
-
-async function stubDashboard(page: Page) {
-  await page.route('**/api/dashboard', (route) => route.fulfill({ json: snapshot }));
-  await page.route('**/api/plans', (route) => route.fulfill({ json: [] }));
-  await page.route('**/api/tasks', (route) => route.fulfill({ json: [] }));
-}
-
-/** Ghi lại mọi lần mở CLI; sao chép model không được tạo phiên terminal nào. */
-function trackLaunches(page: Page): string[] {
-  const launches: string[] = [];
-  page.on('request', (request) => {
-    if (request.method() === 'POST' && request.url().includes('/api/terminal-sessions')) launches.push(request.url());
-  });
-  return launches;
-}
-
-test('ba gợi ý cộng một cảnh báo; bấm gợi ý model thì sao chép lệnh --model', async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText: async (text: string) => { (window as unknown as { __copied?: string }).__copied = text; } },
-    });
-  });
-  const launches = trackLaunches(page);
-  await stubDashboard(page);
-  await login(page);
-
-  const strip = page.locator('.dash-picks');
-  await expect(strip).toContainText('Nên dùng ngay');
-  await expect(strip.locator('button.dash-pick')).toHaveCount(3);
-  await expect(strip.locator('.dash-pick.is-warn')).toHaveCount(1);
-  // Gợi ý thứ 4 (OpenCode 67%) bị cắt; cảnh báo là Codex 22%.
-  await expect(strip).not.toContainText('OpenCode');
-  await expect(strip.locator('.dash-pick.is-warn')).toContainText('Codex');
-  await expect(strip.locator('.dash-pick.is-warn')).toContainText('22%');
-  // Cảnh báo không phải nút: không có hành động ẩn nào để bấm.
-  await expect(strip.locator('.dash-pick.is-warn')).not.toHaveAttribute('role', 'button');
-
-  await page.getByRole('button', { name: 'Sao chép lệnh --model qwen-flash' }).click();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __copied?: string }).__copied)).toBe('--model qwen-flash');
-  const toast = page.locator('.dash-toast');
-  await expect(toast).toContainText('Đã sao chép --model qwen-flash');
-  await expect(toast).toHaveClass(/dash-toast-success/);
-  // Sao chép không được điều hướng khỏi dashboard.
-  await expect(page.getByRole('heading', { name: 'Bảng điều khiển', exact: true })).toBeVisible();
-  // Và tuyệt đối không mở CLI: gợi ý model chỉ sao chép.
-  expect(launches).toEqual([]);
+test('health markers agree on dashboard, compare, resources and tool details', async ({ page }) => {
+  await stubDashboard(page); await login(page);
+  const headerDot = card(page, 'opencode').locator('.card-top .dot');
+  await expect(headerDot).toHaveClass(/warn/);
+  await expect(headerDot).toHaveAttribute('aria-label', /key cạn/);
+  await navigate(page, 'So sánh agent');
+  await expect(page.locator('.compare-page article[data-tool="opencode"] .card-top .dot')).toHaveClass(/warn/);
+  await navigate(page, 'Tài nguyên & sử dụng');
+  await expect(page.getByRole('table', { name: 'Mức sử dụng theo agent' }).getByRole('row').filter({ hasText: 'OpenCode' }).locator('.badge')).toHaveClass(/warn/);
 });
 
-test('trình duyệt chặn clipboard thì báo lỗi kèm lệnh để tự gõ, không mở CLI', async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText: async () => { throw new Error('NotAllowedError'); } },
-    });
-  });
-  const launches = trackLaunches(page);
-  await stubDashboard(page);
-  await login(page);
-
-  await page.getByRole('button', { name: 'Sao chép lệnh --model qwen-flash' }).click();
-  const toast = page.locator('.dash-toast');
-  await expect(toast).toHaveAttribute('role', 'alert');
-  await expect(toast).toHaveClass(/dash-toast-error/);
-  // Người dùng phải đọc được đúng lệnh để tự dán.
-  await expect(toast).toContainText('Không sao chép được. Lệnh cần dùng: --model qwen-flash');
-  await expect(page.getByRole('heading', { name: 'Bảng điều khiển', exact: true })).toBeVisible();
-  expect(launches).toEqual([]);
-});
-
-test('bấm gợi ý tool mở CLI đúng agent như nút Mở CLI', async ({ page }) => {
-  const launched: unknown[] = [];
-  await stubDashboard(page);
-  await page.route('**/api/terminal-sessions', async (route) => {
-    if (route.request().method() !== 'POST') return route.fallback();
-    launched.push(route.request().postDataJSON());
-    await route.fulfill({
-      json: {
-        id: 'session-t6-1', agent: 'agy', title: 'Antigravity · workspace', cwd: 'C:\\workspace',
-        source: 'workspace', planId: null, taskId: null, createdAt: Date.now(),
-        connected: false, reconnectGraceMs: 300_000,
-      },
-    });
-  });
-  await login(page);
-
-  await page.getByRole('button', { name: 'Mở CLI Antigravity' }).click();
-  await expect.poll(() => launched.length).toBe(1);
-  expect(launched[0]).toEqual({ agent: 'agy' });
-  await expect(page.getByRole('heading', { name: 'Terminal', exact: true })).toBeVisible();
+test('unchecked or healthy tools do not invent attention warnings and never trigger automatic checks', async ({ page }) => {
+  const snapshot = dashboardFixture();
+  const checks: string[] = [];
+  page.on('request', request => { if (request.method() === 'POST' && request.url().includes('/api/dashboard/check')) checks.push(request.url()); });
+  snapshot.tools = snapshot.tools.map(tool => ({ ...tool, lastCheck: null }));
+  await stubDashboard(page, snapshot); await login(page);
+  await expect(page.locator('.dashboard-page .attn li')).toHaveCount(0);
+  await expect(page.locator('.dashboard-page')).toContainText('Chưa có cảnh báo trong lần kiểm tra gần nhất.');
+  await expect(page.locator('.dashboard-page .card-top .dot.plain')).toHaveCount(4);
+  snapshot.tools = dashboardFixture().tools.map(tool => ({ ...tool, lastCheck: { ...tool.lastCheck!, quotaWindows: tool.lastCheck!.quotaWindows?.map(row => ({ ...row, remainingPct: 80 })), keyPools: tool.lastCheck!.keyPools?.map(pool => ({ ...pool, exhausted: 0 })) } }));
+  await page.reload();
+  await expect(page.locator('.dashboard-page .attn li')).toHaveCount(0);
+  await expect(page.locator('.dashboard-page .card-top .dot')).toHaveCount(4);
+  await expect(page.locator('.dashboard-page .card-top .dot.warn, .dashboard-page .card-top .dot.bad, .dashboard-page .card-top .dot.plain')).toHaveCount(0);
+  expect(checks).toEqual([]);
 });

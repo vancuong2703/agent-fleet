@@ -13,7 +13,7 @@ import { describe, expect, test } from 'vitest';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (file: string): string => readFileSync(path.join(root, file), 'utf8');
-const RELEASE = '2.3.0';
+const RELEASE = '2.5.0';
 
 describe('release version consistency', () => {
   test('package.json, lockfile, csproj, native marker and server fallback share one version', () => {
@@ -33,7 +33,7 @@ describe('release version consistency', () => {
     expect(read('server/observability.ts')).toContain(`this.version = '${pkg.version}'`);
   });
 
-  test('current docs point at the 2.3.0 build and keep the historical 2.0 section', () => {
+  test('current docs point at the 2.5.0 build and keep the historical 2.0 section', () => {
     const readme = read('README.md');
     expect(readme).toContain(`dist/AgentFleet-${RELEASE}/AgentFleet.exe`);
     expect(readme).toContain(`dist/AgentFleet-${RELEASE}-win-x64.zip`);
@@ -75,9 +75,10 @@ describe('native smoke helpers stay compatible with the shipped UI', () => {
       .filter((match) => match[1] in titles)
       .map((match) => [match[1], match[2]]);
     expect(pairs).toEqual(Object.entries(titles));
-    // The buttons the smoke helper clicks are still rendered by the v3 dashboard.
-    expect(read('web/src/components/dashboard/ToolCard.tsx')).toContain('aria-label={`Mở ${tool.title}`}');
-    expect(read('web/src/components/dashboard/ToolCard.tsx')).toContain('aria-label={`Kiểm tra ${tool.title}`}');
+    // The rebuilt terminal picker retains the exact API title in its launch label.
+    expect(read('web/src/ui/Terminal.tsx')).toContain("t('Open', 'Mở')");
+    expect(read('web/src/ui/Terminal.tsx')).toContain('${tool.title}');
+    expect(read('web/src/ui/Dashboard.tsx')).toContain("t('Check', 'Kiểm tra')");
   });
 
   test('Check All has its own opt-in smoke path and still verifies readiness', () => {

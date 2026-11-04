@@ -17,6 +17,7 @@ test.beforeEach(async ({ page, baseURL }) => {
 });
 
 async function createTask(page: Page, title: string, brief = 'UI smoke test', checkCmd?: string): Promise<Task> {
+  await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   const planResponse = await page.request.post('/api/plans', {
     data: { name: title, repoPath },
   });
@@ -37,7 +38,7 @@ async function waitForDone(page: Page, task: Task): Promise<void> {
   const results = await response.json() as TaskResult[];
   expect(results[0]?.task.status).toBe('done');
   await page.getByRole('button', { name: task.title, exact: false }).click();
-  await expect(page.locator('.task-header .status-badge')).toHaveClass(/status-done/);
+  await expect(page.locator('.detail-title .badge')).toHaveText('Chờ duyệt');
 }
 
 test('new task and log lines arrive live without reloading', async ({ page }) => {
@@ -56,7 +57,7 @@ test('new task and log lines arrive live without reloading', async ({ page }) =>
   expect(initialCount).toBeLessThan(5);
   await expect.poll(() => messages.count()).toBeGreaterThan(initialCount);
   await expect(messages).toHaveText(['slow 1', 'slow 2', 'slow 3', 'slow 4', 'slow 5']);
-  await expect(page.locator('.task-header .status-badge')).toHaveClass(/status-done/);
+  await expect(page.locator('.detail-title .badge')).toHaveText('Chờ duyệt');
   expect(navigations).toBe(0);
 });
 
@@ -75,9 +76,10 @@ test('failed check is visible and cannot be merged', async ({ page }) => {
   const results = await response.json() as TaskResult[];
   expect(results[0]?.run).toMatchObject({ status: 'failed', errorCategory: 'check', checkPassed: false });
   await page.getByRole('button', { name: task.title, exact: false }).click();
-  await expect(page.locator('.task-header .status-badge')).toHaveClass(/status-failed/);
-  await expect(page.locator('.task-check')).toHaveText('Kiểm tra: FAIL');
-  await expect(page.getByRole('alert')).toContainText('Kiểm tra thất bại');
+  await expect(page.locator('.detail-title .badge')).toHaveText('Lỗi');
+  await expect(page.locator('.job-check')).toHaveText('Kiểm tra: FAIL');
+  await expect(page.locator('.kind-line-check .log-text')).toContainText('exit 1');
+  await expect(page.locator('.kind-line-error .log-text')).toContainText('[check] Check failed: exit 1');
   await expect(page.getByRole('button', { name: 'Merge', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Mở terminal', exact: true })).toBeVisible();
   await page.screenshot({ path: test.info().outputPath('failed-check.png'), fullPage: true });
@@ -115,8 +117,7 @@ test('Compare shows the fake agent and its completed runs', async ({ page }) => 
   const fake = stats.find((entry) => entry.agent === 'fake')!;
   expect(fake.runs).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'So sánh agent', exact: true }).click();
-  const row = page.getByRole('row').filter({ has: page.getByText('fake', { exact: true }) });
+  const row = page.getByRole('row').filter({ has: page.getByText('Test agent', { exact: true }) });
   await expect(row).toBeVisible();
-  await expect(row.getByRole('cell').nth(1)).toHaveText(String(fake.runs));
-  await expect(row.getByRole('cell').nth(2)).toHaveText(`${Math.round(fake.successRate * 100)}%`);
+  await expect(row.getByRole('cell').last()).toHaveText(`${+(fake.successRate * 100).toFixed(1)}%`);
 });

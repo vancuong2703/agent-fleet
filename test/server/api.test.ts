@@ -31,6 +31,17 @@ let bus: Bus;
 let app: FastifyInstance;
 let sockets: WsClient[];
 
+test('leader instructions require authentication, reflect this profile and contain no token', async () => {
+  const anonymous = await app.inject({ url: '/api/leader-guide' });
+  expect(anonymous.statusCode).toBe(401);
+  const response = await app.inject({ url: '/api/leader-guide', headers });
+  expect(response.statusCode).toBe(200);
+  expect(response.headers['cache-control']).toBe('no-store');
+  expect(response.json().dataDir).toBe(root);
+  expect(response.json().content).toContain('function fleet');
+  expect(response.body).not.toContain(token);
+});
+
 beforeEach(async () => {
   root = await mkdtemp(path.join(os.tmpdir(), 'fleet api-'));
   vi.stubEnv('FLEET_DATA_DIR', root);

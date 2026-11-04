@@ -24,6 +24,7 @@ test('reconnect recovers missed tasks, terminal status and log without page relo
   const taskResponse = await request.post('/api/tasks',{headers,data:{planId:plan.id,agent:'fake',title:'Recover interrupted run',brief:'[[hang]]'}});
   expect(taskResponse.ok()).toBeTruthy();
   const task = await taskResponse.json() as Task;
+  await page.getByRole('button',{name:'Công việc',exact:true}).click();
   await page.getByRole('button',{name:task.title,exact:false}).click();
   await expect(page.locator('.log-text')).toContainText(['bắt đầu treo']);
   let navigations = 0;
@@ -41,7 +42,7 @@ test('reconnect recovers missed tasks, terminal status and log without page relo
   await context.setOffline(false);
   await expect(page.locator('.connection')).toHaveAttribute('title','Đã kết nối');
   await expect(page.getByRole('button',{name:'Created during disconnection',exact:false})).toBeVisible();
-  await expect(page.locator('.task-header .status-badge')).toHaveClass(/status-interrupted/);
+  await expect(page.locator('.detail-title .badge')).toHaveText('interrupted');
   await expect(page.locator('.kind-line-status .log-text').last()).toContainText('interrupted');
   expect(navigations).toBe(0);
 });

@@ -4,6 +4,7 @@ import type { ObservabilitySnapshot } from '../../shared/observability.js';
 export function useObservability(planId?: string) {
   const [snapshot, setSnapshot] = useState<ObservabilitySnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
   useEffect(() => {
     let disposed = false;
     let timer: number | undefined;
@@ -27,8 +28,8 @@ export function useObservability(planId?: string) {
     const resume = () => { if (!document.hidden) { window.clearTimeout(timer); void refresh(); } };
     document.addEventListener('visibilitychange', resume);
     return () => { disposed = true; controller?.abort(); window.clearTimeout(timer); document.removeEventListener('visibilitychange', resume); };
-  }, [planId]);
-  return { snapshot, error };
+  }, [planId, revision]);
+  return { snapshot, error, reload: () => setRevision(value => value + 1) };
 }
 
 export const formatNumber = (value: number | null | undefined) => value == null ? '—' : new Intl.NumberFormat('vi-VN').format(value);

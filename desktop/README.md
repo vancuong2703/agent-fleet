@@ -10,11 +10,11 @@ open a console window or an external browser for the workspace.
 From the repository root with Node.js 24, npm dependencies and .NET 10 SDK:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/package-desktop.ps1 -OutputName AgentFleet-2.3.0
+powershell -ExecutionPolicy Bypass -File scripts/package-desktop.ps1 -OutputName AgentFleet-2.5.0
 ```
 
-Output: `dist/AgentFleet-2.3.0/AgentFleet.exe` and
-`dist/AgentFleet-2.3.0-win-x64.zip`. Close the older app first. Extract the whole folder before opening the
+Output: `dist/AgentFleet-2.5.0/AgentFleet.exe` and
+`dist/AgentFleet-2.5.0-win-x64.zip`. Close the older app first. Extract the whole folder before opening the
 EXE. The default build includes the .NET runtime, Node and only reachable
 production Node dependencies. The server is compiled to JavaScript before packaging,
 so no TypeScript runner or esbuild process stays running. WebView2 Evergreen
@@ -53,13 +53,13 @@ GPU is `null` when neither source works; no usage or billing numbers are invente
 
 ## Native bridge
 
-The host injects `window.__FLEET_DESKTOP__ = { version: '2.3.0', platform: 'win32' }`.
+The host injects `window.__FLEET_DESKTOP__ = { version: '2.5.0', platform: 'win32' }`.
 The marker also includes the saved `theme` preference (`system`, `light`, `dark`).
 Trusted `{type:'fleet:set-theme', theme}` messages persist the choice in
 `desktop-settings.json` and update the native title bar, surviving random-port
-changes between launches. The saved `layout` stores sidebar/inspector width and terminal
-height through `fleet:set-layout`. Small viewports clamp only the rendered size, preserving
-the preferred size for a larger window. Browser-local storage remains a web fallback.
+changes between launches. The rebuilt UI uses the fixed-width reference navigation and responsive page panels.
+The legacy `fleet:set-layout` bridge remains compatible with older clients.
+Browser-local storage remains a web fallback for theme selection.
 Only messages from the exact authenticated loopback origin are accepted:
 
 ```javascript
@@ -80,7 +80,7 @@ Reports downloaded from the trusted origin use a native Save dialog.
 ## Smoke test
 
 ```powershell
-Start-Process -FilePath .\dist\AgentFleet-2.3.0\AgentFleet.exe -ArgumentList '--smoke-test --data-dir "C:\Qoder\agent-fleet-upgrade\.tmp\desktop-smoke"' -WindowStyle Hidden -Wait
+Start-Process -FilePath .\dist\AgentFleet-2.5.0\AgentFleet.exe -ArgumentList '--smoke-test --data-dir "C:\Qoder\agent-fleet-upgrade\.tmp\desktop-smoke"' -WindowStyle Hidden -Wait
 ```
 
 The app boots, authenticates, verifies the React `.app` root and native marker,
@@ -112,7 +112,7 @@ no longer be screenshotted blank. The Check All run writes
 `desktop-check-all.png` and a redacted `desktop-check-all.json` (status, plan
 name/tier, quota-window count and model/pool counts only).
 
-See [2.3 release verification](../docs/releases/2.3.0.md) for the current build.
+See [2.4 release verification](../docs/releases/2.5.0.md) for the current build.
 
 ## Historical 2.0 build — 03/11/2026
 

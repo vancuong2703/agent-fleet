@@ -79,6 +79,16 @@ const bundle = await build({
   metafile: true,
 });
 cpSync(path.join(workspace, 'web/dist'), path.join(app, 'web/dist'), { recursive: true });
+// The copied leader instructions must work from a portable release without npm/tsx.
+const cliBundle = await build({
+  absWorkingDir: workspace, entryPoints: ['cli/fleet.ts'], outfile: path.join(app, 'cli/fleet.js'),
+  bundle: true, platform: 'node', target: 'node24', format: 'esm', minify: true, metafile: true,
+  banner: { js: "import { createRequire as __fleetCreateRequire } from 'node:module'; const require = __fleetCreateRequire(import.meta.url);" },
+});
+mkdirSync(path.join(app, 'docs'), { recursive: true });
+for (const guide of ['leader-guide.md', 'agent-cli-guide.md']) {
+  cpSync(path.join(workspace, 'docs', guide), path.join(app, 'docs', guide));
+}
 const manifest = JSON.parse(readFileSync(path.join(workspace, 'package.json'), 'utf8'));
 writeFileSync(path.join(app, 'package.json'), JSON.stringify({ name: 'agent-fleet-desktop-runtime', version: manifest.version, private: true, type: 'module' }, null, 2));
 const deployed = [];
@@ -105,7 +115,7 @@ for (const name of ['@lydell/node-pty', '@lydell/node-pty-win32-x64']) {
 // Preserve notices for JS dependencies now embedded in main.js, including the
 // server's headless terminal parser. No frontend dependency tree is deployed.
 const bundledPackages = new Set();
-for (const input of Object.keys(bundle.metafile.inputs)) {
+for (const input of [...Object.keys(bundle.metafile.inputs), ...Object.keys(cliBundle.metafile.inputs)]) {
   if (!input.replaceAll('\\', '/').includes('node_modules/')) continue;
   let directory = path.dirname(path.resolve(workspace, input));
   while (directory !== path.dirname(directory)) {
@@ -133,7 +143,10 @@ function fingerprint(directory, prefix = '') {
     else if (/\.(?:ts|tsx|cs|csproj|json|js|css|html|svg|ico)$/.test(entry.name)) sourceSha256[relative.replaceAll('\\', '/')] = createHash('sha256').update(readFileSync(source)).digest('hex');
   }
 }
-for (const source of ['server', 'shared', 'desktop', 'web/dist']) fingerprint(path.join(workspace, source), source);
+for (const source of ['server', 'shared', 'cli', 'desktop', 'web/dist']) fingerprint(path.join(workspace, source), source);
+for (const guide of ['leader-guide.md', 'agent-cli-guide.md']) {
+  sourceSha256[`docs/${guide}`] = createHash('sha256').update(readFileSync(path.join(workspace, 'docs', guide))).digest('hex');
+}
 writeFileSync(path.join(output, 'runtime-manifest.json'), JSON.stringify({ app: 'Agent Fleet Desktop', version: manifest.version, sourcePackageVersion: manifest.version, builtAt: new Date().toISOString(), node: process.version, platform: process.platform, arch: process.arch, sourceSha256, packages: deployed.sort((a, b) => a.name.localeCompare(b.name)) }, null, 2));
 writeFileSync(path.join(output, 'README.txt'), `AGENT FLEET DESKTOP ${manifest.version}\r\n\r\nOpen AgentFleet.exe. Keep the app/ and runtime/ folders next to it.\r\nWindows 11 x64 and Microsoft Edge WebView2 Evergreen Runtime are required.\r\nNode.js and the .NET runtime are included in the default self-contained build.\r\nData: %LOCALAPPDATA%\\AgentFleetDesktop\\\r\nLogs: desktop.log and server.log in the data directory.\r\nThe first build is unsigned; it is a local portable build, not a signed installer.\r\n\r\nTHIRD-PARTY NOTICES\r\nBundled Node package licenses are in licenses/. External PTY licenses are in app/node_modules/.\r\nMicrosoft .NET and WebView2 are redistributed under their respective licenses.\r\n`);
 function size(directory) {

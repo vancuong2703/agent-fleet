@@ -8,7 +8,7 @@ import {
   saveComposerPrefs,
   COMPOSER_PREFS_KEY,
 } from '../../web/src/components/TaskComposer.js';
-import { tabIndexForKey } from '../../web/src/components/TerminalPage.js';
+import { tabIndexForKey } from '../../web/src/ui/model.js';
 import {
   clampTerminalFontSize,
   readTerminalFontSize,

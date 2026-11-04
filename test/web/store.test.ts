@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 import { TaskActions } from '../../web/src/components/TaskActions.js';
-import { TaskHeader } from '../../web/src/components/TaskHeader.js';
+import { JobCheck } from '../../web/src/ui/JobCheck.js';
 
 vi.mock('../../web/src/components/TerminalPanel.js', () => ({ TerminalPanel: () => null }));
 
@@ -322,8 +322,8 @@ describe('taskActions', () => {
   });
 
   test('header distinguishes a passing fleet check from a blocked agent', () => {
-    const html = renderToStaticMarkup(createElement(TaskHeader, {
-      task: taskWith('failed'), run: makeRun('r-1', { status: 'failed', checkPassed: true, errorCategory: 'permission' }),
+    const html = renderToStaticMarkup(createElement(JobCheck, {
+      run: makeRun('r-1', { status: 'failed', checkPassed: true, errorCategory: 'permission' }),
     }));
     expect(html).toContain('Kiểm tra: PASS');
     expect(html).toContain('role="alert"');

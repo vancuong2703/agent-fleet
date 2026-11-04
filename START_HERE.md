@@ -2,13 +2,13 @@
 
 Thư mục dự án: `C:\Qoder\agent-fleet-upgrade`.
 
-**Bản làm việc hiện tại: Agent Fleet Desktop 2.3.0.** Đóng bản cũ rồi mở
-`dist/AgentFleet-2.3.0/AgentFleet.exe`; xem [ghi chú 2.3.0](docs/releases/2.3.0.md) và
-[hướng dẫn desktop](desktop/README.md). Kết quả cuối: 690 test unit/integration,
-106 E2E, 25 native policy; smoke thật 4/4 CLI `ready` với khung terminal đọc được.
-Tổng gói 142.96 MiB / ZIP 79.06 MiB — **mục tiêu < 115 MB chưa đạt** vì Node và
-.NET portable, không đổi stack. Những số liệu 1.1.0 bên dưới là lịch sử
-bàn giao, không phải mô tả đầy đủ của bản desktop hiện tại.
+**Bản làm việc hiện tại: Agent Fleet Desktop 2.5.0.** Mở
+`dist/AgentFleet-2.5.0/AgentFleet.exe`; xem [ghi chú 2.5.0](docs/releases/2.5.0.md) và
+[hướng dẫn desktop](desktop/README.md). UI đã xây lại theo toàn bộ bố cục OpenCode;
+mục **Hướng dẫn leader** sao chép kết nối hiện tại và quy trình vào hội thoại.
+Mục tiêu tổng gói <115 MB vẫn **chưa đạt** vì Node và .NET portable.
+Kết quả nghiệm thu 2.3.0 trước đây: 690 unit/integration, 106 E2E, 25 native policy;
+smoke thật 4/4 CLI `ready`. Các số liệu 1.1.0 bên dưới là lịch sử bàn giao.
 
 Chọn thư mục này khi tạo dự án mới trong Codex. Mã nguồn ở ngay thư mục gốc,
 không cần ghép thêm dữ liệu từ các thư mục thử nghiệm cũ.

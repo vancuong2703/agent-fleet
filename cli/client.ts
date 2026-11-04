@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import { createRequire } from 'node:module';
@@ -24,9 +25,9 @@ export async function ensureServer(): Promise<string> {
   const baseUrl = `http://127.0.0.1:${loadConfig().port}`;
   if (await healthy(baseUrl, 3_000)) return baseUrl;
 
-  const child = spawn(process.execPath, [
-    require.resolve('tsx/cli', { paths: [root] }),
-    path.win32.resolve(root, 'server/main.ts'),
+  const compiled = path.win32.resolve(root, 'server/main.js');
+  const child = spawn(process.execPath, existsSync(compiled) ? [compiled] : [
+    require.resolve('tsx/cli', { paths: [root] }), path.win32.resolve(root, 'server/main.ts'),
   ], {
     detached: true, windowsHide: true, shell: false, stdio: 'ignore', env: { ...process.env },
   });

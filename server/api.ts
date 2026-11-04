@@ -18,6 +18,7 @@ import { computeStats } from './stats.js';
 import type { Store } from './store.js';
 import { diffWorktree } from './worktree.js';
 import { validateRepository } from './repository-validation.js';
+import { leaderGuide } from './leader-guide.js';
 
 const agentIds = ['codex', 'qodercli', 'agy', 'opencode', 'fake'];
 const statuses = ['queued', 'running', 'done', 'failed', 'timeout', 'interrupted', 'taken_over', 'merged', 'discarded'];
@@ -140,6 +141,10 @@ export function buildServer(o: {
     const removeWorktreeGuard = service.addWorktreeGuard(taskId => dashboardTerminals.closeForTask(taskId));
     routes.addHook('onClose', async () => { removeWorktreeGuard(); });
     routes.get('/api/health', async () => ({ ok: true }));
+    routes.get('/api/leader-guide', async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+      return leaderGuide(o.port ?? request.raw.socket.localPort ?? loadConfig().port);
+    });
     routes.post('/api/shutdown', async (_request, reply) => {
       reply.raw.once('finish', () => { setImmediate(() => { void o.shutdown?.(); }); });
       return reply.code(202).send({ ok: true });

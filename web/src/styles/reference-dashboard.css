@@ -1,0 +1,51 @@
+/* =========================================================================
+   Dashboard · web demo extra layout. Depends on assets/app.css.
+   Header, the four tool zones, one three-panel info row, one legend row.
+   ========================================================================= */
+
+/* The tool zones keep their natural height; the info row below is what
+   absorbs the leftover window height, so the page still ends flush. */
+.zones{margin-bottom:16px;gap:10px}
+.zones .card{padding:16px;gap:11px}
+.zones .foot{padding-top:10px}
+.zones .stats{padding-top:7px}
+.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.row3 .panel{display:flex;flex-direction:column;min-height:0;padding:16px 18px}
+@media(max-width:1100px){.row3{grid-template-columns:1fr}.zones{margin-bottom:14px}}
+
+/* ---- jobs today: six-segment status strip ---- */
+.stackbar{display:flex;gap:3px;height:9px;margin-top:12px}
+.stackbar .sg{flex:1;border-radius:2px;background:var(--track)}
+.stackbar .sg.ok{background:var(--ok)} .stackbar .sg.warn{background:var(--warn)}
+.stackbar .sg.bad{background:var(--bad)} .stackbar .sg.plain{background:var(--border-strong)}
+.minilegend{margin:9px 0 0;font:500 10.5px/1.5 var(--mono);color:var(--muted)}
+
+/* ---- tokens today: 7-bar sparkline ---- */
+.spark{width:100%;height:auto;display:block;margin-top:12px}
+.spark .sb{fill:var(--accent)} .spark .sb.last{fill:var(--ink)}
+
+/* ---- needs attention ---- */
+.attn{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.attn li{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);font:600 12px var(--sans)}
+.attn li:last-child{border-bottom:0;padding-bottom:0}
+.attn .at-t{flex:1;min-width:0;color:var(--muted)}
+.attn .at-t b{color:var(--ink)}
+
+/* ---- short window (see the note in app.css) ---- */
+@media(max-height:870px),(max-width:1250px){
+  .zones .donut{--donut:64px}
+  .zones .mtx .donut{--donut:44px}
+  .row3 .panel{padding:12px 14px}
+}
+/* short window: what is missing is vertical space, so drop the two secondary
+   blocks, the sparkline and the long caption */
+@media(max-height:870px){
+  .lastjob,.minilegend,.spark{display:none}
+  .noterow .tablenote{display:none}
+}
+/* narrow window: there is height to spare, so the three info panels spread
+   their content over the leftover space instead of leaving one gap */
+@media(max-width:1250px){
+  .noterow .tablenote{display:none}
+  .row3 .panel{justify-content:space-between}
+}

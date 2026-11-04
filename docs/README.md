@@ -3,6 +3,8 @@
 - [Bắt đầu và tiếp nhận dự án](../START_HERE.md)
 - [Cài đặt, cấu hình và phát triển](../README.md)
 - [Ứng dụng Windows và đóng gói EXE](../desktop/README.md)
+- [Xây lại UI OpenCode, sao chép hướng dẫn leader 2.5](releases/2.5.0.md)
+- [Review bản demo OpenCode trước tích hợp](reviews/editorial-demo-review-2.md)
 - [Dashboard v3 và nền tảng giao diện 2.3](releases/2.3.0.md)
 - [Terminal riêng, cuộn chuột và quota AGY 2.2](releases/2.2.0.md)
 - [Bản vá CLI và kiểm tra trạng thái 2.1.1](releases/2.1.1.md)
