@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="vi" data-lang="vi" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup v4 · A — Aurora</title>
+<!--
+  MOCKUP dieu huong - phuong an A "Aurora".
+  Chi de xem truoc bo cuc / phong chu / mau. So lieu MINH HOA.
+  Tinh nang mo phong: doi ngon ngu VI/EN, bat tat hang CPU-RAM-GPU,
+  hieu ung xoay khi bam Kiem tra, trang chi tiet cong cu, 4 vung cong cu deu nhau.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f5f9; --surface:#ffffff; --surface-2:#f0f1f6; --border:#e6e8ef; --border-2:#d8dbe6;
+    --text:#14161d; --muted:#6b7280; --faint:#9aa1ad;
+    --accent:#5b5bf6; --accent-2:#8b5cf6; --accent-soft:#eef0ff;
+    --ok:#10b981; --ok-soft:#e8faf3; --ok-text:#047857;
+    --warn:#f59e0b; --warn-soft:#fef6e7; --warn-text:#b45309;
+    --bad:#ef4444; --bad-soft:#fdecec; --bad-text:#b91c1c;
+    --track:#eceef4;
+    --plus:#7a5af8; --pro:#dd2590; --trial:#f59e0b; --free:#0d9488;
+    --r-lg:18px; --r-md:13px; --r-sm:9px;
+    --sh:0 1px 2px rgba(20,22,29,.04), 0 10px 30px -18px rgba(20,22,29,.28);
+    --mono:'JetBrains Mono', ui-monospace, Consolas, monospace;
+    --display:'Space Grotesk', 'Inter', system-ui, sans-serif;
+    --sans:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  html[data-theme="dark"]{
+    --bg:#0e1016; --surface:#171a22; --surface-2:#1d212b; --border:#262b36; --border-2:#333a48;
+    --text:#eef0f6; --muted:#98a0af; --faint:#6b7280;
+    --accent:#8b8cff; --accent-2:#b79cff; --accent-soft:#23264a;
+    --ok-soft:#0b2b21; --ok-text:#34d399; --warn-soft:#2e2410; --warn-text:#fbbf24;
+    --bad-soft:#2e1618; --bad-text:#f87171; --track:#2a3040;
+    --sh:0 1px 2px rgba(0,0,0,.3), 0 14px 40px -20px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .app{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+  @media(max-width:900px){.app{grid-template-columns:1fr}}
+
+  /* Sidebar */
+  .side{background:var(--surface);border-right:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:6px}
+  @media(max-width:900px){.side{display:none}}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
+  .brand .mk{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;color:#fff;font-weight:700;font-family:var(--display)}
+  .brand b{font-family:var(--display);font-size:16px;letter-spacing:-.01em}
+  .brand small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+  .nav{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--r-sm);color:var(--muted);font-weight:500;text-decoration:none;cursor:pointer}
+  .nav a:hover{background:var(--surface-2);color:var(--text)}
+  .nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .nav .sep{margin:14px 8px 6px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .side .foot{margin-top:auto;font-size:11.5px;color:var(--faint)}
+
+  /* Main */
+  .main{display:flex;flex-direction:column;min-width:0}
+  .topbar{display:flex;align-items:center;gap:10px;padding:12px 22px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:5}
+  .topbar .crumb{font-size:13px;color:var(--muted);font-weight:600}
+  .topbar .spacer{flex:1}
+  .toggle{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:2px}
+  .toggle button{border:0;background:transparent;font:inherit;font-weight:600;font-size:12px;color:var(--muted);padding:5px 11px;border-radius:999px;cursor:pointer}
+  .toggle button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:var(--sh)}
+  .tbtn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px;border:1px solid var(--border-2);background:var(--surface);border-radius:var(--r-sm);font:inherit;font-weight:600;font-size:12.5px;color:var(--text);cursor:pointer}
+  .tbtn:hover{background:var(--surface-2)}
+  .tbtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .wrap{padding:22px;max-width:1360px;width:100%;margin:0 auto}
+
+  /* Headline */
+  .head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+  .eyebrow{font:600 11px/1 var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 9px}
+  h1.title{font-family:var(--display);font-size:46px;line-height:1;margin:0;letter-spacing:-.03em;font-weight:700;
+    background:linear-gradient(100deg,var(--text) 10%,var(--accent) 55%,var(--accent-2) 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .head p.sub{margin:10px 0 0;color:var(--muted);max-width:52ch}
+  .head .actions{display:flex;align-items:center;gap:10px}
+  .check-all{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:0;border-radius:var(--r-md);background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font:inherit;font-weight:600;cursor:pointer;box-shadow:0 10px 24px -12px var(--accent)}
+  .check-all:disabled{opacity:.7;cursor:default}
+  .stamp{font:500 12px var(--mono);color:var(--muted)}
+
+  /* Resource strip */
+  .res{display:flex;align-items:center;gap:22px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh);padding:12px 18px;margin-bottom:20px;flex-wrap:wrap}
+  .res .rlabel{font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .res .r{display:flex;align-items:center;gap:10px;min-width:150px;flex:1}
+  .res .r b{font:700 17px var(--display);font-variant-numeric:tabular-nums;min-width:44px}
+  .res .rname{font-size:12px;color:var(--muted);width:34px}
+  .res .bar{flex:1}
+  .bar{height:7px;border-radius:99px;background:var(--track);overflow:hidden}
+  .bar>span{display:block;height:100%;border-radius:99px;background:var(--accent)}
+  .bar.ok>span{background:var(--ok)} .bar.warn>span{background:var(--warn)} .bar.bad>span{background:var(--bad)}
+  .res[hidden]{display:none}
+
+  /* 4 equal tool zones */
+  .zones{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+  @media(max-width:1100px){.zones{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:560px){.zones{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh);padding:17px;display:flex;flex-direction:column;gap:15px;min-width:0}
+  .card-top{display:flex;align-items:center;gap:11px}
+  .logo{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;color:#fff;flex:none;font-family:var(--display);font-weight:700}
+  .card-title{flex:1;min-width:0}
+  .card-title h3{margin:0;font-family:var(--display);font-size:17px;letter-spacing:-.01em;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .card-title .ver{font:500 11px var(--mono);color:var(--faint)}
+  .tier{font:800 10px var(--sans);letter-spacing:.06em;padding:2px 6px;border-radius:5px;color:#fff}
+  .tier.plus{background:var(--plus)} .tier.pro{background:var(--pro)} .tier.trial{background:var(--trial)} .tier.free{background:var(--free)} .tier.byok{background:#64748b}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none;box-shadow:0 0 0 3px var(--ok-soft)}
+
+  .rings{display:flex;gap:14px;flex-wrap:wrap}
+  .ring{position:relative;width:72px;height:72px;display:grid;place-items:center}
+  .ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .ring circle{fill:none;stroke-width:6;stroke-linecap:round}
+  .ring .bg{stroke:var(--track)}
+  .ring .fg{stroke:var(--accent);stroke-dasharray:calc(var(--pct)) 100}
+  .ring.g-ok .fg{stroke:var(--ok)} .ring.g-warn .fg{stroke:var(--warn)} .ring.g-bad .fg{stroke:var(--bad)}
+  .ring .val{font:700 15px var(--display);font-variant-numeric:tabular-nums}
+  .ring-cap{font:500 11px var(--muted);text-align:center;margin-top:4px;white-space:nowrap}
+  .ring-item{display:flex;flex-direction:column;align-items:center;width:auto;min-width:72px}
+
+  .grouplist{display:flex;flex-direction:column;gap:12px}
+  .grow{display:flex;align-items:center;gap:12px}
+  .grow .gn{flex:1;min-width:0;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-rings{display:flex;gap:9px}
+  .mini{position:relative;width:40px;height:40px;display:grid;place-items:center}
+  .mini svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .mini circle{fill:none;stroke-width:4;stroke-linecap:round}
+  .mini .bg{stroke:var(--track)}
+  .mini .fg{stroke:var(--ok)}
+  .mini.g-warn .fg{stroke:var(--warn)} .mini.g-bad .fg{stroke:var(--bad)}
+  .mini .mv{font:700 10px var(--mono)}
+
+  .models{display:flex;flex-direction:column;gap:7px}
+  .m{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2)}
+  .m .mn{flex:1;min-width:0;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mult{font:700 11px var(--mono);padding:2px 6px;border-radius:5px;background:var(--surface);border:1px solid var(--border)}
+  .mult.free{background:var(--ok-soft);color:var(--ok-text);border-color:transparent}
+
+  .kpi{display:flex;align-items:baseline;gap:6px}
+  .kpi b{font:700 26px var(--display);font-variant-numeric:tabular-nums}
+  .kpi small{color:var(--muted);font-size:12px}
+  .muted{color:var(--muted)} .small{font-size:12px}
+  .foot{margin-top:auto;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:13px;flex-wrap:wrap}
+  .foot .when{flex:1;font:500 11.5px var(--mono);color:var(--faint)}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border:1px solid var(--border-2);background:var(--surface);color:var(--text);border-radius:var(--r-sm);font:inherit;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap}
+  .btn:hover{background:var(--surface-2)}
+  .btn.ghost{border-color:transparent;color:var(--muted)}
+  .btn.ghost:hover{color:var(--text)}
+  i.ic{width:15px;height:15px;display:inline-block;flex:none;background:currentColor;
+    -webkit-mask:var(--u) center/contain no-repeat;mask:var(--u) center/contain no-repeat}
+  .spin{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Detail view */
+  .detail{display:none}
+  .detail.on{display:block}
+  .dash-view.off{display:none}
+  .back{display:inline-flex;align-items:center;gap:7px;background:none;border:0;color:var(--muted);font:600 13px var(--sans);cursor:pointer;padding:6px 0;margin-bottom:6px}
+  .back:hover{color:var(--text)}
+  .dhead{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+  .dgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+  @media(max-width:900px){.dgrid{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh);padding:18px}
+  .panel h4{margin:0 0 14px;font:600 11px var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .table{width:100%;border-collapse:collapse;font-size:13px}
+  .table th{text-align:left;font:600 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:8px 10px;border-bottom:1px solid var(--border)}
+  .table td{padding:10px;border-bottom:1px solid var(--border)}
+  .table tr:last-child td{border-bottom:0}
+  .wtag{margin-left:6px;font:700 10px var(--mono);padding:1px 5px;border-radius:4px;background:var(--surface-2);color:var(--muted)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:999px;font-weight:600;font-size:13px;box-shadow:var(--sh);opacity:0;transition:.25s;pointer-events:none}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="mk">AF</span><span><b>Agent Fleet</b><small>KHÔNG GIAN LÀM VIỆC AI</small></span></div>
+    <nav class="nav">
+      <a aria-current="page" onclick="showView('dash')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='3' y='3' width='7' height='7'/%3E%3Crect x='14' y='3' width='7' height='7'/%3E%3Crect x='3' y='14' width='7' height='7'/%3E%3Crect x='14' y='14' width='7' height='7'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Bảng điều khiển" data-en="Dashboard">Bảng điều khiển</span></a>
+      <a onclick="toast('Mockup: Terminal')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Terminal" data-en="Terminal">Terminal</span></a>
+      <a onclick="toast('Mockup: Công việc')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Công việc" data-en="Jobs">Công việc</span></a>
+      <a onclick="toast('Mockup: So sánh agent')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="So sánh agent" data-en="Compare">So sánh agent</span></a>
+      <a onclick="toast('Mockup: Tài nguyên')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 3v18h18M7 15l4-5 3 3 5-7'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Tài nguyên & sử dụng" data-en="Resources & usage">Tài nguyên & sử dụng</span></a>
+    </nav>
+    <div class="foot">Mockup A · Aurora</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <span class="crumb" data-vi="Bảng điều khiển" data-en="Dashboard">Bảng điều khiển</span>
+      <span class="spacer"></span>
+      <div class="toggle" role="group" aria-label="Language">
+        <button id="lang-vi" aria-pressed="true" onclick="setLang('vi')">VI</button>
+        <button id="lang-en" aria-pressed="false" onclick="setLang('en')">EN</button>
+      </div>
+      <button class="tbtn" id="resToggle" aria-pressed="true" onclick="toggleRes()">
+        <i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i>
+        <span data-vi="CPU · RAM · GPU" data-en="CPU · RAM · GPU">CPU · RAM · GPU</span>
+      </button>
+      <button class="tbtn" onclick="theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i></button>
+    </div>
+
+    <div class="wrap">
+      <!-- ===== DASHBOARD VIEW ===== -->
+      <div class="dash-view">
+        <div class="head">
+          <div>
+            <p class="eyebrow" data-vi="Không gian làm việc AI" data-en="AI workspace">Không gian làm việc AI</p>
+            <h1 class="title">DASHBOARD</h1>
+            <p class="sub" data-vi="Nhìn nhanh: công cụ nào còn hạn mức, model nào rẻ hoặc miễn phí. Bấm biểu tượng làm mới để kiểm tra." data-en="At a glance: which tool still has quota, which model is cheap or free. Hit refresh to check.">Nhìn nhanh: công cụ nào còn hạn mức, model nào rẻ hoặc miễn phí.</p>
+          </div>
+          <div class="actions">
+            <span class="stamp" id="stamp">18:41</span>
+            <button class="check-all" id="checkAll" onclick="checkAll()">
+              <i class="ic" id="checkAllIcon" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 0 1-15 6.7L3 16'/%3E%3Cpath d='M8 16H3v5'/%3E%3C/svg%3E&quot;)"></i>
+              <span id="checkAllText" data-vi="Kiểm tra tất cả" data-en="Check all">Kiểm tra tất cả</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- resource strip (toggleable) -->
+        <div class="res" id="resStrip">
+          <span class="rlabel" data-vi="Tài nguyên" data-en="System">Tài nguyên</span>
+          <div class="r"><span class="rname">CPU</span><b>34%</b><div class="bar ok"><span style="width:34%"></span></div></div>
+          <div class="r"><span class="rname">RAM</span><b>62%</b><div class="bar warn"><span style="width:62%"></span></div></div>
+          <div class="r"><span class="rname">GPU</span><b>18%</b><div class="bar ok"><span style="width:18%"></span></div></div>
+        </div>
+
+        <!-- 4 equal tool zones -->
+        <div class="zones">
+          <!-- CODEX -->
+          <article class="card">
+            <div class="card-top">
+              <span class="logo" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>
+              <div class="card-title"><h3>Codex <span class="tier plus">PLUS</span></h3><span class="ver">codex-cli 0.166.0</span></div>
+              <span class="dot"></span>
+            </div>
+            <div class="rings">
+              <div class="ring-item"><div class="ring g-bad" style="--pct:22"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="val">22%</span></div><span class="ring-cap" data-vi="Cửa sổ 5 giờ" data-en="5-hour window">Cửa sổ 5 giờ</span></div>
+              <div class="ring-item"><div class="ring g-warn" style="--pct:34"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="val">34%</span></div><span class="ring-cap" data-vi="Cả tuần" data-en="Week">Cả tuần</span></div>
+            </div>
+            <div class="small muted">GPT-6.1-Sol · reasoning high</div>
+            <div class="foot"><span class="when">18:41:50</span><button class="btn" onclick="checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra" data-en="Check">Kiểm tra</span></button><button class="btn ghost" onclick="openDetail('codex')"><span data-vi="Chi tiết" data-en="Details">Chi tiết</span> →</button></div>
+          </article>
+
+          <!-- QODER -->
+          <article class="card">
+            <div class="card-top">
+              <span class="logo" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>
+              <div class="card-title"><h3>Qoder <span class="tier trial">PRO TRIAL</span></h3><span class="ver">qodercli 1.1.81</span></div>
+              <span class="dot"></span>
+            </div>
+            <div class="kpi"><b>1.240</b><small data-vi="/ 2.000 credit" data-en="/ 2,000 credits">/ 2.000 credit</small></div>
+            <div class="bar"><span style="width:62%"></span></div>
+            <div class="models">
+              <div class="m"><span class="mn">Qwen3.8-Flash</span><span class="mult free">x0.0 FREE</span></div>
+              <div class="m"><span class="mn">DeepSeek-Flash</span><span class="mult">x0.1</span></div>
+            </div>
+            <div class="foot"><span class="when">18:40:12</span><button class="btn" onclick="checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra" data-en="Check">Kiểm tra</span></button><button class="btn ghost" onclick="openDetail('qoder')"><span data-vi="Chi tiết" data-en="Details">Chi tiết</span> →</button></div>
+          </article>
+
+          <!-- ANTIGRAVITY CLI -->
+          <article class="card">
+            <div class="card-top">
+              <span class="logo" style="background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>
+              <div class="card-title"><h3>Antigravity CLI <span class="tier pro">PRO</span></h3><span class="ver">agy 1.4.12</span></div>
+              <span class="dot"></span>
+            </div>
+            <div class="grouplist">
+              <div class="grow"><span class="gn">Gemini 4 Argon</span><div class="mini-rings">
+                <div class="mini" style="--pct:78"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">78</span></div>
+                <div class="mini" style="--pct:91"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">91</span></div></div></div>
+              <div class="grow"><span class="gn">Gemini models</span><div class="mini-rings">
+                <div class="mini" style="--pct:95"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">95</span></div>
+                <div class="mini" style="--pct:100"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">100</span></div></div></div>
+              <div class="grow"><span class="gn">Claude & GPT</span><div class="mini-rings">
+                <div class="mini g-bad" style="--pct:40"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">40</span></div>
+                <div class="mini g-bad" style="--pct:12"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">12</span></div></div></div>
+            </div>
+            <div class="small muted" data-vi="Vòng ngoài = tuần · vòng trong = 5 giờ" data-en="Outer ring = week · inner ring = 5 hours">Vòng ngoài = tuần · vòng trong = 5 giờ</div>
+            <div class="foot"><span class="when">18:39:03</span><button class="btn" onclick="checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra" data-en="Check">Kiểm tra</span></button><button class="btn ghost" onclick="openDetail('agy')"><span data-vi="Chi tiết" data-en="Details">Chi tiết</span> →</button></div>
+          </article>
+
+          <!-- OPENCODE -->
+          <article class="card">
+            <div class="card-top">
+              <span class="logo" style="background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>
+              <div class="card-title"><h3>OpenCode <span class="tier byok">BYOK</span></h3><span class="ver">opencode 2.2.5</span></div>
+              <span class="dot"></span>
+            </div>
+            <div class="models">
+              <div class="m"><span class="mn">harbor-pool/deepseek-v4.1-flash:free</span><span class="mult free">FREE</span></div>
+              <div class="m"><span class="mn">opencode/deepseek-v4.1-flash-free</span><span class="mult free">FREE</span></div>
+            </div>
+            <div class="small muted" data-vi="12/13 key hoạt động · 74% token tuần" data-en="12/13 keys active · 74% weekly tokens">12/13 key hoạt động · 74% token tuần</div>
+            <div class="bar ok"><span style="width:74%"></span></div>
+            <div class="foot"><span class="when">18:41:20</span><button class="btn" onclick="checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra" data-en="Check">Kiểm tra</span></button><button class="btn ghost" onclick="openDetail('opencode')"><span data-vi="Chi tiết" data-en="Details">Chi tiết</span> →</button></div>
+          </article>
+        </div>
+      </div>
+
+      <!-- ===== TOOL DETAIL VIEW ===== -->
+      <div class="detail" id="detail">
+        <button class="back" onclick="showView('dash')">← <span data-vi="Về Dashboard" data-en="Back to Dashboard">Về Dashboard</span></button>
+        <div class="dhead">
+          <span class="logo" id="d-logo" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9);width:48px;height:48px;border-radius:13px">Cx</span>
+          <div>
+            <h1 class="title" id="d-title" style="font-size:30px">Codex</h1>
+            <span class="ver" id="d-ver" style="font:500 12px var(--mono);color:var(--muted)">codex-cli 0.166.0</span>
+          </div>
+          <span class="spacer" style="flex:1"></span>
+          <button class="check-all" onclick="checkAll()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra lại" data-en="Re-check">Kiểm tra lại</span></button>
+        </div>
+        <div class="dgrid">
+          <div>
+            <div class="panel" style="margin-bottom:16px">
+              <h4 data-vi="Hạn mức theo cửa sổ" data-en="Quota by window">Hạn mức theo cửa sổ</h4>
+              <table class="table">
+                <thead><tr><th data-vi="Nhóm" data-en="Group">Nhóm</th><th data-vi="Còn lại" data-en="Remaining">Còn lại</th><th data-vi="Làm mới" data-en="Resets">Làm mới</th></tr></thead>
+                <tbody>
+                  <tr><td data-vi="Cửa sổ 5 giờ" data-en="5-hour window">Cửa sổ 5 giờ</td><td><b>22%</b></td><td class="muted">20:30 <span data-vi="hôm nay" data-en="today">hôm nay</span></td></tr>
+                  <tr><td data-vi="Tuần" data-en="Week">Tuần</td><td><b>34%</b></td><td class="muted">15:17, 04/11</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel">
+              <h4 data-vi="Model & hệ số" data-en="Models & multipliers">Model & hệ số</h4>
+              <div class="models">
+                <div class="m"><span class="mn">gpt-6.1-sol</span><span class="wtag">default</span><span class="mult">x1.0</span></div>
+                <div class="m"><span class="mn">gpt-6.1-sol-mini</span><span class="mult">x0.3</span></div>
+                <div class="m"><span class="mn">gpt-6.0-turbo</span><span class="mult">x1.4</span></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="panel" style="margin-bottom:16px">
+              <h4 data-vi="Gói & tài khoản" data-en="Plan & account">Gói & tài khoản</h4>
+              <div class="kpi"><b>PLUS</b></div>
+              <div class="small muted" style="margin-top:6px">***@gmail.com</div>
+              <div class="small muted" style="margin-top:10px" data-vi="Credit không áp dụng cho gói ChatGPT." data-en="Credits do not apply to the ChatGPT plan.">Credit không áp dụng cho gói ChatGPT.</div>
+            </div>
+            <div class="panel">
+              <h4 data-vi="Hành động" data-en="Actions">Hành động</h4>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn" onclick="toast('Mockup: Mở CLI')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Mở CLI" data-en="Open CLI">Mở CLI</span></button>
+                <button class="btn" onclick="toast('Mockup: Đổi vị trí mở')"><span data-vi="Vị trí mở" data-en="Open location">Vị trí mở</span></button>
+                <button class="btn" onclick="toast('Mockup: Lịch sử kiểm tra')"><span data-vi="Lịch sử kiểm tra" data-en="Check history">Lịch sử kiểm tra</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  var DETAILS={
+    codex:{t:'Codex',v:'codex-cli 0.166.0',l:'Cx',g:'linear-gradient(135deg,#6d5df6,#3b2fc9)'},
+    qoder:{t:'Qoder',v:'qodercli 1.1.81',l:'Q',g:'linear-gradient(135deg,#2ad18f,#0f9f6e)'},
+    agy:{t:'Antigravity CLI',v:'agy 1.4.12',l:'Ag',g:'linear-gradient(135deg,#4f8cff,#1d4ed8)'},
+    opencode:{t:'OpenCode',v:'opencode 2.2.5',l:'oc',g:'linear-gradient(135deg,#3f3f46,#111827)'}
+  };
+  function setLang(l){
+    document.documentElement.setAttribute('data-lang',l);
+    document.querySelectorAll('[data-'+l+']').forEach(function(n){n.textContent=n.getAttribute('data-'+l);});
+    document.getElementById('lang-vi').setAttribute('aria-pressed',String(l==='vi'));
+    document.getElementById('lang-en').setAttribute('aria-pressed',String(l==='en'));
+  }
+  function theme(){var r=document.documentElement;r.setAttribute('data-theme',r.getAttribute('data-theme')==='dark'?'light':'dark');}
+  function toggleRes(){
+    var s=document.getElementById('resStrip'),b=document.getElementById('resToggle');
+    var on=b.getAttribute('aria-pressed')==='true';
+    b.setAttribute('aria-pressed',String(!on));s.hidden=on;
+  }
+  function showView(v){
+    document.querySelector('.dash-view').classList.toggle('off',v!=='dash');
+    document.getElementById('detail').classList.toggle('on',v==='detail');
+    window.scrollTo({top:0});
+  }
+  function openDetail(id){
+    var d=DETAILS[id];
+    document.getElementById('d-title').textContent=d.t;
+    document.getElementById('d-ver').textContent=d.v;
+    var logo=document.getElementById('d-logo');logo.textContent=d.l;logo.style.background=d.g;
+    showView('detail');
+  }
+  function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on');},1600);}
+  function checkOne(btn){
+    var ic=btn.querySelector('.ic');ic.classList.add('spin');btn.disabled=true;
+    setTimeout(function(){ic.classList.remove('spin');btn.disabled=false;toast('Đã kiểm tra — mockup');},1400);
+  }
+  function checkAll(){
+    var ic=document.getElementById('checkAllIcon'),txt=document.getElementById('checkAllText'),btn=document.getElementById('checkAll');
+    ic.classList.add('spin');btn.disabled=true;
+    var lang=document.documentElement.getAttribute('data-lang'),n=0;
+    var iv=setInterval(function(){
+      n++;
+      txt.textContent=(lang==='en'?'Checking ':'Đang kiểm tra ')+Math.min(n,4)+'/4';
+      if(n>=4){clearInterval(iv);ic.classList.remove('spin');btn.disabled=false;document.getElementById('stamp').textContent=new Date().toTimeString().slice(0,5);txt.textContent=(lang==='en'?'Check all':'Kiểm tra tất cả');toast('Hoàn tất — mockup');}
+    },450);
+  }
+</script>
+</body>
+</html>

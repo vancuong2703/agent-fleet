@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="vi" data-lang="vi" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup v4 · C — Editorial</title>
+<!--
+  MOCKUP dieu huong - phuong an C "Editorial / Bold minimal".
+  Nen sang, chu tieu de rat dam, mot mau nhan duy nhat, duong ke manh. So lieu MINH HOA.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbfbf9; --surface:#ffffff; --surface-2:#f4f4f0; --border:#e4e4dd; --ink:#12120f; --muted:#6d6d63; --faint:#a3a399;
+    --accent:#e8551f; --accent-ink:#12120f; --accent-soft:#fdeee6;
+    --ok:#0f8a4d; --warn:#c47a09; --bad:#d33d2b;
+    --track:#ececE5;
+    --plus:#6d4bf0; --pro:#c2185b; --trial:#c47a09; --free:#0f8a4d;
+    --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+    --display:'Bricolage Grotesque','Inter',system-ui,sans-serif; --sans:'Inter',system-ui,'Segoe UI',sans-serif;
+  }
+  html[data-theme="dark"]{
+    --bg:#111110; --surface:#191917; --surface-2:#212120; --border:#2e2e2a; --ink:#f4f4ef; --muted:#9b9b90; --faint:#6c6c62;
+    --accent:#ff6a33; --accent-soft:#2c1a12; --track:#2a2a27;
+    --ok:#34d07f; --warn:#e0a53a; --bad:#f0745f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .app{display:grid;grid-template-columns:212px 1fr;min-height:100vh}
+  @media(max-width:900px){.app{grid-template-columns:1fr}}
+  .side{border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;gap:2px}
+  @media(max-width:900px){.side{display:none}}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 6px 20px}
+  .brand .mk{width:34px;height:34px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:13px}
+  .brand b{font-family:var(--display);font-size:17px;font-weight:800;letter-spacing:-.02em}
+  .brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.14em;font-weight:600}
+  .nav{display:flex;flex-direction:column;gap:1px;margin-top:6px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:0;color:var(--muted);font-weight:600;text-decoration:none;cursor:pointer;font-size:13px;border-left:2px solid transparent}
+  .nav a:hover{color:var(--ink)}
+  .nav a[aria-current="page"]{color:var(--ink);border-left-color:var(--accent)}
+  .side .foot{margin-top:auto;font:600 10px var(--mono);color:var(--faint);letter-spacing:.05em;padding:8px 6px}
+  .main{display:flex;flex-direction:column;min-width:0}
+  .topbar{display:flex;align-items:center;gap:10px;padding:13px 26px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:5}
+  .topbar .crumb{font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .spacer{flex:1}
+  .toggle{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
+  .toggle button{border:0;background:transparent;font:700 11px var(--mono);letter-spacing:.06em;color:var(--muted);padding:6px 12px;cursor:pointer}
+  .toggle button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+  .tbtn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border:1px solid var(--border);background:transparent;border-radius:999px;font:600 11.5px var(--sans);color:var(--ink);cursor:pointer}
+  .tbtn:hover{border-color:var(--ink)}
+  .tbtn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+  .wrap{padding:26px;max-width:1360px;width:100%;margin:0 auto}
+
+  .head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid var(--ink)}
+  .eyebrow{font:700 10.5px/1 var(--mono);letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+  h1.title{font-family:var(--display);font-size:64px;line-height:.9;margin:0;letter-spacing:-.045em;font-weight:800;color:var(--ink)}
+  h1.title em{font-style:normal;color:var(--accent)}
+  .head .actions{display:flex;align-items:center;gap:10px}
+  .check-all{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border:0;border-radius:999px;background:var(--ink);color:var(--bg);font:700 13px var(--sans);cursor:pointer}
+  .check-all:disabled{opacity:.65;cursor:default}
+  .stamp{font:600 11.5px var(--mono);color:var(--muted)}
+
+  .res{display:flex;align-items:center;gap:24px;border:1px solid var(--border);border-radius:14px;padding:14px 20px;margin-bottom:24px;flex-wrap:wrap}
+  .res .rlabel{font:700 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .res .r{display:flex;align-items:center;gap:11px;flex:1;min-width:180px}
+  .res .rname{font:700 11px var(--mono);color:var(--muted);width:30px}
+  .res b{font:800 18px var(--display);font-variant-numeric:tabular-nums;min-width:46px}
+  .res .bar{flex:1}
+  .bar{height:8px;border-radius:2px;background:var(--track);overflow:hidden}
+  .bar>span{display:block;height:100%;background:var(--ink)}
+  .bar.ok>span{background:var(--ok)} .bar.warn>span{background:var(--warn)} .bar.bad>span{background:var(--bad)}
+  .res[hidden]{display:none}
+
+  .zones{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--surface)}
+  .card{padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0;border-right:1px solid var(--border)}
+  .card:last-child{border-right:0}
+  @media(max-width:1100px){
+    .zones{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .card:nth-child(2){border-right:0}
+    .card:nth-child(1),.card:nth-child(2){border-bottom:1px solid var(--border)}
+  }
+  @media(max-width:560px){
+    .zones{grid-template-columns:1fr}
+    .card{border-right:0;border-bottom:1px solid var(--border)}
+    .card:last-child{border-bottom:0}
+  }
+  .card-top{display:flex;align-items:center;gap:11px}
+  .logo{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:800;flex:none;font-size:13px}
+  .card-title{flex:1;min-width:0}
+  .card-title h3{margin:0;font-family:var(--display);font-size:17px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .card-title .ver{font:500 10px var(--mono);color:var(--faint)}
+  .tier{font:800 9px var(--mono);letter-spacing:.08em;padding:3px 6px;border-radius:4px;color:#fff}
+  .tier.plus{background:var(--plus)} .tier.pro{background:var(--pro)} .tier.trial{background:var(--trial)} .tier.free{background:var(--free)} .tier.byok{background:#82827a}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
+
+  .rings{display:flex;gap:16px;flex-wrap:wrap}
+  .ring-item{display:flex;flex-direction:column;align-items:center;width:78px}
+  .ring{position:relative;width:74px;height:74px;display:grid;place-items:center}
+  .ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .ring circle{fill:none;stroke-width:7;stroke-linecap:butt}
+  .ring .bg{stroke:var(--track)}
+  .ring .fg{stroke:var(--ink);stroke-dasharray:calc(var(--pct)) 100}
+  .ring.g-ok .fg{stroke:var(--ok)} .ring.g-warn .fg{stroke:var(--warn)} .ring.g-bad .fg{stroke:var(--bad)}
+  .ring .val{font:800 16px var(--display);font-variant-numeric:tabular-nums}
+  .ring-cap{font:700 10px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:center;margin-top:6px}
+
+  .grouplist{display:flex;flex-direction:column;gap:14px}
+  .grow{display:flex;align-items:center;gap:12px}
+  .grow .gn{flex:1;min-width:0;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-rings{display:flex;gap:8px}
+  .mini{position:relative;width:44px;height:44px;display:grid;place-items:center}
+  .mini svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+  .mini circle{fill:none;stroke-width:5;stroke-linecap:butt}
+  .mini .bg{stroke:var(--track)}
+  .mini .fg{stroke:var(--ink);stroke-dasharray:calc(var(--pct)) 100}
+  .mini.g-ok .fg{stroke:var(--ok)} .mini.g-warn .fg{stroke:var(--warn)} .mini.g-bad .fg{stroke:var(--bad)}
+  .mini .mv{font:700 10px var(--mono)}
+
+  .models{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--border)}
+  .m{display:flex;align-items:center;gap:9px;padding:9px 2px;border-bottom:1px solid var(--border)}
+  .m .mn{flex:1;min-width:0;font:600 11.5px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mult{font:700 10.5px var(--mono);padding:3px 7px;border-radius:4px;border:1px solid var(--border)}
+  .mult.free{background:var(--ok);color:#fff;border-color:transparent}
+
+  .kpi{display:flex;align-items:baseline;gap:6px}
+  .kpi b{font:800 30px var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .kpi small{color:var(--muted);font:600 11px var(--mono)}
+  .muted{color:var(--muted)} .small{font-size:11.5px}
+  .foot{margin-top:auto;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:14px;flex-wrap:wrap}
+  .foot .when{flex:1;font:500 10.5px var(--mono);color:var(--faint)}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--border);background:transparent;color:var(--ink);border-radius:999px;font:700 11.5px var(--sans);cursor:pointer;white-space:nowrap}
+  .btn:hover{background:var(--surface-2)}
+  .btn.ghost{border-color:transparent;color:var(--muted)}
+  .btn.ghost:hover{color:var(--accent)}
+  i.ic{width:15px;height:15px;display:inline-block;flex:none;background:currentColor;-webkit-mask:var(--u) center/contain no-repeat;mask:var(--u) center/contain no-repeat}
+  .spin{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+
+  .detail{display:none}.detail.on{display:block}.dash-view.off{display:none}
+  .back{display:inline-flex;align-items:center;gap:7px;background:none;border:0;color:var(--muted);font:700 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:6px 0;margin-bottom:12px}
+  .back:hover{color:var(--accent)}
+  .dhead{display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid var(--ink)}
+  .dgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:18px}
+  @media(max-width:900px){.dgrid{grid-template-columns:1fr}}
+  .panel{border:1px solid var(--border);border-radius:14px;padding:20px;background:var(--surface)}
+  .panel h4{margin:0 0 16px;font:700 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  .table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .table th{text-align:left;font:700 9.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:8px 6px;border-bottom:2px solid var(--ink)}
+  .table td{padding:11px 6px;border-bottom:1px solid var(--border)}
+  .table tr:last-child td{border-bottom:0}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(10px);background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:999px;font:700 12px var(--sans);opacity:0;transition:.25s;pointer-events:none}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="mk">AF</span><span><b>Agent Fleet</b><small>AI WORKSPACE</small></span></div>
+    <nav class="nav">
+      <a aria-current="page" onclick="showView('dash')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='3' y='3' width='7' height='7'/%3E%3Crect x='14' y='3' width='7' height='7'/%3E%3Crect x='3' y='14' width='7' height='7'/%3E%3Crect x='14' y='14' width='7' height='7'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Bảng điều khiển" data-en="Dashboard">Bảng điều khiển</span></a>
+      <a onclick="toast('Mockup: Terminal')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i>Terminal</a>
+      <a onclick="toast('Mockup: Công việc')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Công việc" data-en="Jobs">Công việc</span></a>
+      <a onclick="toast('Mockup: So sánh agent')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="So sánh agent" data-en="Compare">So sánh agent</span></a>
+      <a onclick="toast('Mockup: Tài nguyên')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 3v18h18M7 15l4-5 3 3 5-7'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Tài nguyên & sử dụng" data-en="Resources & usage">Tài nguyên & sử dụng</span></a>
+    </nav>
+    <div class="foot">MOCKUP C · EDITORIAL</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <span class="crumb" data-vi="Bảng điều khiển" data-en="Dashboard">Bảng điều khiển</span>
+      <span class="spacer"></span>
+      <div class="toggle" role="group" aria-label="Language">
+        <button id="lang-vi" aria-pressed="true" onclick="setLang('vi')">VI</button>
+        <button id="lang-en" aria-pressed="false" onclick="setLang('en')">EN</button>
+      </div>
+      <button class="tbtn" id="resToggle" aria-pressed="true" onclick="toggleRes()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Tài nguyên" data-en="System">Tài nguyên</span></button>
+      <button class="tbtn" onclick="theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i></button>
+    </div>
+
+    <div class="wrap">
+      <div class="dash-view">
+        <div class="head">
+          <div>
+            <p class="eyebrow" data-vi="Không gian làm việc AI" data-en="AI workspace">Không gian làm việc AI</p>
+            <h1 class="title">DASH<em>BOARD</em></h1>
+          </div>
+          <div class="actions">
+            <span class="stamp" id="stamp">18:41</span>
+            <button class="check-all" id="checkAll" onclick="checkAll()">
+              <i class="ic" id="checkAllIcon" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 0 1-15 6.7L3 16'/%3E%3Cpath d='M8 16H3v5'/%3E%3C/svg%3E&quot;)"></i>
+              <span id="checkAllText" data-vi="Kiểm tra tất cả" data-en="Check all">Kiểm tra tất cả</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="res" id="resStrip">
+          <span class="rlabel" data-vi="Tài nguyên" data-en="System">Tài nguyên</span>
+          <div class="r"><span class="rname">CPU</span><b>34%</b><div class="bar ok"><span style="width:34%"></span></div></div>
+          <div class="r"><span class="rname">RAM</span><b>62%</b><div class="bar warn"><span style="width:62%"></span></div></div>
+          <div class="r"><span class="rname">GPU</span><b>18%</b><div class="bar ok"><span style="width:18%"></span></div></div>
+        </div>
+
+        <div class="zones">
+          <article class="card">
+            <div class="card-top">
+              <span class="logo" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>
+              <div class="card-title"><h3>Codex <span class="tier plus">PLUS</span></h3><span class="ver">codex-cli 0.166.0</span></div>
+              <span class="dot"></span>
+            </div>
+            <div class="rings">
+              <div class="ring-item"><div class="ring g-bad" style="--pct:22"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="val">22%</span></div><span class="ring-cap" data-vi="5 giờ" data-en="5 hours">5 giờ</span></div>
+              <div class="ring-item"><div class="ring g-warn" style="--pct:34"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="val">34%</span></div><span class="ring-cap" data-vi="Tuần" data-en="Week">Tuần</span></div>
+            </div>
+            <div class="small muted">GPT-6.1-Sol · reasoning high</div>
+            <div class="foot"><span class="when">18:41:50</span><button class="btn" onclick="checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra" data-en="Check">Kiểm tra</span></button><button class="btn ghost" onclick="openDetail('codex')"><span data-vi="Chi tiết" data-en="Details">Chi tiết</span> →</button></div>
+          </article>
+
+          <article class="card">
+            <div class="card-top">
+              <span class="logo" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>
+              <div class="card-title"><h3>Qoder <span class="tier trial">PRO TRIAL</span></h3><span class="ver">qodercli 1.1.81</span></div>
+              <span class="dot"></span>
+            </div>
+            <div class="kpi"><b>1.240</b><small data-vi="/ 2.000 CREDIT" data-en="/ 2,000 CREDITS">/ 2.000 CREDIT</small></div>
+            <div class="bar"><span style="width:62%"></span></div>
+            <div class="models">
+              <div class="m"><span class="mn">Qwen3.8-Flash</span><span class="mult free">FREE</span></div>
+              <div class="m"><span class="mn">DeepSeek-Flash</span><span class="mult">x0.1</span></div>
+            </div>
+            <div class="foot"><span class="when">18:40:12</span><button class="btn" onclick="checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra" data-en="Check">Kiểm tra</span></button><button class="btn ghost" onclick="openDetail('qoder')"><span data-vi="Chi tiết" data-en="Details">Chi tiết</span> →</button></div>
+          </article>
+
+          <article class="card">
+            <div class="card-top">
+              <span class="logo" style="background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>
+              <div class="card-title"><h3>Antigravity CLI <span class="tier pro">PRO</span></h3><span class="ver">agy 1.4.12</span></div>
+              <span class="dot"></span>
+            </div>
+            <div class="grouplist">
+              <div class="grow"><span class="gn">Gemini 4 Argon</span><div class="mini-rings">
+                <div class="mini g-ok" style="--pct:78"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">78</span></div>
+                <div class="mini g-ok" style="--pct:91"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">91</span></div></div></div>
+              <div class="grow"><span class="gn">Gemini models</span><div class="mini-rings">
+                <div class="mini g-ok" style="--pct:95"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">95</span></div>
+                <div class="mini g-ok" style="--pct:100"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">100</span></div></div></div>
+              <div class="grow"><span class="gn">Claude & GPT</span><div class="mini-rings">
+                <div class="mini g-bad" style="--pct:40"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">40</span></div>
+                <div class="mini g-bad" style="--pct:12"><svg viewBox="0 0 36 36"><circle class="bg" cx="18" cy="18" r="15.9"/><circle class="fg" cx="18" cy="18" r="15.9"/></svg><span class="mv">12</span></div></div></div>
+            </div>
+            <div class="small muted" data-vi="Trái = tuần · phải = 5 giờ" data-en="Left = week · right = 5 hours">Trái = tuần · phải = 5 giờ</div>
+            <div class="foot"><span class="when">18:39:03</span><button class="btn" onclick="checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra" data-en="Check">Kiểm tra</span></button><button class="btn ghost" onclick="openDetail('agy')"><span data-vi="Chi tiết" data-en="Details">Chi tiết</span> →</button></div>
+          </article>
+
+          <article class="card">
+            <div class="card-top">
+              <span class="logo" style="background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>
+              <div class="card-title"><h3>OpenCode <span class="tier byok">BYOK</span></h3><span class="ver">opencode 2.2.5</span></div>
+              <span class="dot"></span>
+            </div>
+            <div class="models">
+              <div class="m"><span class="mn">harbor-pool/…:free</span><span class="mult free">FREE</span></div>
+              <div class="m"><span class="mn">opencode/…-flash-free</span><span class="mult free">FREE</span></div>
+            </div>
+            <div class="small muted" data-vi="12/13 key hoạt động · 74% token tuần" data-en="12/13 keys active · 74% weekly tokens">12/13 key hoạt động · 74% token tuần</div>
+            <div class="bar ok"><span style="width:74%"></span></div>
+            <div class="foot"><span class="when">18:41:20</span><button class="btn" onclick="checkOne(this)"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra" data-en="Check">Kiểm tra</span></button><button class="btn ghost" onclick="openDetail('opencode')"><span data-vi="Chi tiết" data-en="Details">Chi tiết</span> →</button></div>
+          </article>
+        </div>
+      </div>
+
+      <div class="detail" id="detail">
+        <button class="back" onclick="showView('dash')">← <span data-vi="Về Dashboard" data-en="Back to Dashboard">Về Dashboard</span></button>
+        <div class="dhead">
+          <span class="logo" id="d-logo" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9);width:48px;height:48px;border-radius:12px;font-size:16px">Cx</span>
+          <div><h1 class="title" id="d-title" style="font-size:40px">Codex</h1><span class="ver" id="d-ver" style="font:500 11px var(--mono);color:var(--muted)">codex-cli 0.166.0</span></div>
+          <span class="spacer"></span>
+          <button class="check-all" onclick="checkAll()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Kiểm tra lại" data-en="Re-check">Kiểm tra lại</span></button>
+        </div>
+        <div class="dgrid">
+          <div>
+            <div class="panel" style="margin-bottom:18px">
+              <h4 data-vi="Hạn mức theo cửa sổ" data-en="Quota by window">Hạn mức theo cửa sổ</h4>
+              <table class="table"><thead><tr><th data-vi="Nhóm" data-en="Group">Nhóm</th><th data-vi="Còn lại" data-en="Remaining">Còn lại</th><th data-vi="Làm mới" data-en="Resets">Làm mới</th></tr></thead>
+                <tbody><tr><td data-vi="Cửa sổ 5 giờ" data-en="5-hour window">Cửa sổ 5 giờ</td><td><b>22%</b></td><td class="muted">20:30</td></tr><tr><td data-vi="Tuần" data-en="Week">Tuần</td><td><b>34%</b></td><td class="muted">15:17, 04/11</td></tr></tbody></table>
+            </div>
+            <div class="panel"><h4 data-vi="Model & hệ số" data-en="Models & multipliers">Model & hệ số</h4>
+              <div class="models"><div class="m"><span class="mn">gpt-6.1-sol</span><span class="mult">DEFAULT</span><span class="mult">x1.0</span></div><div class="m"><span class="mn">gpt-6.1-sol-mini</span><span class="mult">x0.3</span></div><div class="m"><span class="mn">gpt-6.0-turbo</span><span class="mult">x1.4</span></div></div>
+            </div>
+          </div>
+          <div>
+            <div class="panel" style="margin-bottom:18px"><h4 data-vi="Gói & tài khoản" data-en="Plan & account">Gói & tài khoản</h4><div class="kpi"><b>PLUS</b></div><div class="small muted" style="margin-top:10px">***@gmail.com</div></div>
+            <div class="panel"><h4 data-vi="Hành động" data-en="Actions">Hành động</h4>
+              <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="toast('Mockup: Mở CLI')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-vi="Mở CLI" data-en="Open CLI">Mở CLI</span></button><button class="btn" onclick="toast('Mockup: Lịch sử')"><span data-vi="Lịch sử kiểm tra" data-en="Check history">Lịch sử kiểm tra</span></button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+  var DETAILS={codex:{t:'Codex',v:'codex-cli 0.166.0',l:'Cx',g:'linear-gradient(135deg,#6d5df6,#3b2fc9)'},qoder:{t:'Qoder',v:'qodercli 1.1.81',l:'Q',g:'linear-gradient(135deg,#2ad18f,#0f9f6e)'},agy:{t:'Antigravity CLI',v:'agy 1.4.12',l:'Ag',g:'linear-gradient(135deg,#4f8cff,#1d4ed8)'},opencode:{t:'OpenCode',v:'opencode 2.2.5',l:'oc',g:'linear-gradient(135deg,#3f3f46,#111827)'}};
+  function setLang(l){document.documentElement.setAttribute('data-lang',l);document.querySelectorAll('[data-'+l+']').forEach(function(n){n.textContent=n.getAttribute('data-'+l);});document.getElementById('lang-vi').setAttribute('aria-pressed',String(l==='vi'));document.getElementById('lang-en').setAttribute('aria-pressed',String(l==='en'));}
+  function theme(){var r=document.documentElement;r.setAttribute('data-theme',r.getAttribute('data-theme')==='dark'?'light':'dark');}
+  function toggleRes(){var s=document.getElementById('resStrip'),b=document.getElementById('resToggle');var on=b.getAttribute('aria-pressed')==='true';b.setAttribute('aria-pressed',String(!on));s.hidden=on;}
+  function showView(v){document.querySelector('.dash-view').classList.toggle('off',v!=='dash');document.getElementById('detail').classList.toggle('on',v==='detail');window.scrollTo({top:0});}
+  function openDetail(id){var d=DETAILS[id];document.getElementById('d-title').textContent=d.t;document.getElementById('d-ver').textContent=d.v;var lg=document.getElementById('d-logo');lg.textContent=d.l;lg.style.background=d.g;showView('detail');}
+  function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on');},1600);}
+  function checkOne(btn){var ic=btn.querySelector('.ic');ic.classList.add('spin');btn.disabled=true;setTimeout(function(){ic.classList.remove('spin');btn.disabled=false;toast('Đã kiểm tra — mockup');},1400);}
+  function checkAll(){var ic=document.getElementById('checkAllIcon'),txt=document.getElementById('checkAllText'),btn=document.getElementById('checkAll');ic.classList.add('spin');btn.disabled=true;var lang=document.documentElement.getAttribute('data-lang'),n=0;var iv=setInterval(function(){n++;txt.textContent=(lang==='en'?'Checking ':'Đang kiểm tra ')+Math.min(n,4)+'/4';if(n>=4){clearInterval(iv);ic.classList.remove('spin');btn.disabled=false;document.getElementById('stamp').textContent=new Date().toTimeString().slice(0,5);txt.textContent=(lang==='en'?'Check all':'Kiểm tra tất cả');toast('Hoàn tất — mockup');}},450);}
+</script>
+</body>
+</html>
