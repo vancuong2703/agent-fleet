@@ -51,6 +51,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);-w
 .topbar .crumb{font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .spacer{flex:1}
 .wrap{padding:26px;max-width:1400px;width:100%;margin:0 auto}
+@media(max-width:560px){
+  .topbar{flex-wrap:wrap;row-gap:8px}
+  .topbar .crumb{flex:1 0 100%}
+  .topbar .spacer{display:none}
+}
 
 /* ---- controls ---- */
 .toggle{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
