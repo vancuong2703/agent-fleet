@@ -16,8 +16,7 @@
   .cmp{grid-template-columns:1fr}
   .cmp .card{padding:14px;border-right:0;border-bottom:1px solid var(--border)}
   .cmp .card:last-child{border-bottom:0}
-  .cmp .gauges{gap:12px}
-  .cmp .gauge{min-width:64px}
+  .cmp .gbars{gap:12px}
 }
 
 /* long unbreakable labels (e.g. harbor-pool/...flash:free) must wrap */
@@ -26,10 +25,20 @@
 /* Time-window chips (.filters, button.chip) and the summary table frame
    (.tscroll) come from assets/pages.css. */
 
-/* Gauge geometry is shared with the dashboard: same data, same 80 px ring.
-   .donut.sm is reserved for the dense Antigravity matrix on the dashboard,
-   where three models x two windows have to fit one card row — so a 56 px
-   ring is a density choice there, not a second way to draw the same number. */
+/* ---- gauges are bars here, rings on the dashboard -------------------------
+   Four accounts sit side by side in narrow columns, so a ring spends the width
+   its label needs. Each quota is a horizontal meter instead: caption and
+   percent on one line, the bar under it, then the absolute figure (left) and
+   reset time (right). The dashboard keeps the donut. */
+.cmp .gbars{display:flex;flex-direction:column;gap:11px;flex:1;justify-content:space-evenly;min-height:0}
+.cmp .gbar{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"cap pct" "meter meter" "num reset";
+  align-items:baseline;column-gap:8px;row-gap:5px;min-width:0}
+.cmp .gbar .g-cap{grid-area:cap;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp .gbar .pct{grid-area:pct;font:800 13px var(--display);font-variant-numeric:tabular-nums;color:var(--ink)}
+.cmp .gbar .meter{grid-area:meter;position:relative;height:9px;border-radius:999px;background:var(--track);overflow:hidden}
+.cmp .gbar .meter i{position:absolute;inset:0 auto 0 0;width:calc(var(--pct) * 1%);background:var(--col,var(--ok));border-radius:inherit}
+.cmp .gbar .g-num{grid-area:num;text-align:left}
+.cmp .gbar .g-reset{grid-area:reset;text-align:right}
 
 /* per-agent stat row and the last-job link now live in app.css, because the
    dashboard cards use the same two blocks */
@@ -40,18 +49,23 @@
 /* note + status legend share one line under the cards (.noterow, .legend
    live in app.css because the dashboard uses them too) */
 
-/* the summary panel takes the leftover height of the window */
-.summary{margin-top:10px;padding:16px}
+/* the summary panel takes the leftover height and its rows share it, so the
+   panel never ends in a dead band */
+.summary{margin-top:10px;padding:16px;display:flex;flex-direction:column}
 .summary h4{margin-bottom:10px}
-.summary .tscroll{overflow-x:auto}
-.summary td{padding:7px 6px}
+.summary .tscroll{overflow-x:auto;flex:1;min-height:0}
+.summary table{height:100%}
+.summary td{padding:7px 6px;vertical-align:middle}
 .summary .tablenote{margin-top:8px}
 
-/* short window: shrink the rings, drop the two long captions */
+/* short window: tighten the bars, drop the two long captions */
 @media(max-height:870px),(max-width:1250px){
   .cmp .card{padding:12px;gap:10px}
   .stats{padding-top:6px}
-  .donut{--donut:64px}
+  .cmp .gbars{gap:8px}
+  .cmp .gbar{row-gap:4px}
+  .cmp .gbar .pct{font-size:12px}
+  .cmp .gbar .meter{height:7px}
   .summary h4{margin-bottom:6px}
   .summary td{padding:5px 6px}
   .summary .tablenote,.noterow .tablenote{display:none}

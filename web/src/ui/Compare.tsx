@@ -3,25 +3,26 @@ import type { DashboardAgent, DashboardCheck, DashboardTool } from '../../../sha
 import type { Plan } from '../../../shared/types.js';
 import type { CliWorkspace } from '../cli-workspace.js';
 import { Icon } from '../components/Icon.js';
-import { AgentHeader, CheckTime, Gauge, Legend, Logo, Notice, PageHead, PeriodPicker, Stats, Tier } from './Common.js';
+import { AgentHeader, Bar, CheckTime, Legend, Logo, Notice, PageHead, PeriodPicker, Stats, Tier } from './Common.js';
 import { useLanguage } from './language.js';
 import { agentNames, creditWindow, download, duration, known, lowestQuota, quotaRows, rate, tone, useStats } from './model.js';
 
 export function ComparisonGauges({ tool }: { tool: DashboardTool }) {
   const { t, language } = useLanguage(); const check = tool.lastCheck;
   const rows = quotaRows(check); const credit = creditWindow(check) ?? rows.filter(row => row.unit === 'credits' && known(row.remainingPct)).sort((a, b) => a.remainingPct! - b.remainingPct!)[0];
-  if (tool.agent === 'qodercli') return <div className="gauges"><Gauge pct={credit?.remainingPct} label={credit && rows.filter(row => row.unit === 'credits').length > 1 ? credit.group : t('Credits left', 'Credit còn lại')} number={known(credit?.limit) && known(credit?.used) ? `${(credit.limit - credit.used).toLocaleString(language)} / ${credit.limit.toLocaleString(language)}` : known(check?.credits.remaining) ? check.credits.remaining.toLocaleString(language) : null} reset={credit?.resetAt} /></div>;
+  const windowLabels: Record<string, string> = { '5h': t('5 hours', '5 giờ'), week: t('Week', 'Tuần'), day: t('Day', 'Ngày'), month: t('Month', 'Tháng') };
+  if (tool.agent === 'qodercli') return <div className="gbars"><Bar pct={credit?.remainingPct} label={credit && rows.filter(row => row.unit === 'credits').length > 1 ? credit.group : t('Credits left', 'Credit còn lại')} number={known(credit?.limit) && known(credit?.used) ? `${(credit.limit - credit.used).toLocaleString(language)} / ${credit.limit.toLocaleString(language)}` : known(check?.credits.remaining) ? check.credits.remaining.toLocaleString(language) : null} reset={credit?.resetAt} /></div>;
   if (tool.agent === 'opencode' && rows.some(row => row.unit === 'tokens' && known(row.limit) && row.limit > 0 && known(row.used))) {
     const row = rows.find(row => row.unit === 'tokens' && known(row.limit) && row.limit > 0 && known(row.used))!;
-    return <div className="gauges"><Gauge used pct={row.used! / row.limit! * 100} label={t('Tokens used', 'Token đã dùng')} number={`${(row.used! / 1e6).toFixed(2)}M / ${+(row.limit! / 1e6).toFixed(2)}M`} reset={row.resetAt} /></div>;
+    return <div className="gbars"><Bar used pct={row.used! / row.limit! * 100} label={t('Tokens used', 'Token đã dùng')} number={`${(row.used! / 1e6).toFixed(2)}M / ${+(row.limit! / 1e6).toFixed(2)}M`} reset={row.resetAt} /></div>;
   }
   if (tool.agent === 'opencode' && !rows.length) {
     const pool = check?.keyPools?.[0];
-    return <div className="gauges"><Gauge pct={pool?.remainingPct} label={t('Key pool left', 'Key pool còn lại')} number={pool && known(pool.remainingPct) ? `${pool.ok} / ${pool.total} ${t('keys available', 'key còn hạn mức')}` : null} reset={pool?.resetAt} /></div>;
+    return <div className="gbars"><Bar pct={pool?.remainingPct} label={t('Key pool left', 'Key pool còn lại')} number={pool && known(pool.remainingPct) ? `${pool.ok} / ${pool.total} ${t('keys available', 'key còn hạn mức')}` : null} reset={pool?.resetAt} /></div>;
   }
   const firstGroup = rows[0]?.group;
   const selected = tool.agent === 'agy' ? rows.filter(row => row.group === firstGroup).slice(0, 2) : rows.slice(0, 2);
-  return <div className="gauges">{selected.length ? selected.map(row => <Gauge key={`${row.group}/${row.window}`} row={row} />) : <Gauge pct={null} label={t('Quota left', 'Hạn mức còn lại')} />}</div>;
+  return <div className="gbars">{selected.length ? selected.map(row => <Bar key={`${row.group}/${row.window}`} pct={row.remainingPct} label={windowLabels[row.window] ?? row.window} reset={row.resetAt} />) : <Bar pct={null} label={t('Quota left', 'Hạn mức còn lại')} />}</div>;
 }
 
 export function CreditText({ check }: { check?: DashboardCheck | null }) {
@@ -46,7 +47,7 @@ export function Compare({ cli, plans, onDetails }: { cli: CliWorkspace; plans: P
       {tools.map(tool => <article className="card" data-tool={tool.agent} key={tool.agent}><AgentHeader tool={tool} /><div className="statusline" title={tool.lastCheck?.currentModel?.id}>{tool.lastCheck?.currentModel?.label ?? t('Model not reported', 'Chưa đọc được model')}{tool.lastCheck?.currentModel?.effort ? ` · effort ${tool.lastCheck.currentModel.effort}` : ''}</div><ComparisonGauges tool={tool} /><Stats stats={stats.error || !stats.loaded ? undefined : byAgent.get(tool.agent)} /><footer className="foot"><CheckTime tool={tool} /><button className="btn ghost" onClick={() => onDetails(tool.agent)}>{t('Details', 'Chi tiết')} →</button></footer></article>)}
       {!cli.snapshot && [0, 1, 2, 3].map(index => <article className="card skeleton-card" key={index}><div /><div /><div /></article>)}
     </div>
-    <div className="noterow"><p className="tablenote">{t('Avg time, Success and Tasks follow the selected range; the gauges show the plan window.', 'Thời gian TB, Thành công và Số công việc theo khoảng ngày đang chọn; vòng hạn mức là cửa sổ gói hiện tại.')}</p><Legend /></div>
+    <div className="noterow"><p className="tablenote">{t('Avg time, Success and Tasks follow the selected range; the bars show the plan window.', 'Thời gian TB, Thành công và Số công việc theo khoảng ngày đang chọn; thanh hạn mức là cửa sổ gói hiện tại.')}</p><Legend /></div>
     <section className="panel summary fill"><h4>{t('Side-by-side summary', 'Bảng tổng hợp')}<span className="spacer">{t(`Last ${days} days`, `${days} ngày gần nhất`)}</span></h4><div className="tscroll"><table className="table compare-table" aria-label={t('Agent comparison', 'So sánh agent')}><thead><tr>{[t('Agent', 'Agent'), t('Plan', 'Gói'), 'Model', t('Lowest quota', 'Hạn mức thấp nhất'), t('Credit / token', 'Credit / token'), t('Avg time', 'Thời gian TB'), t('Success', 'Thành công')].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>
       {tools.map(tool => { const check = tool.lastCheck; const quota = lowestQuota(check); const row = stats.error || !stats.loaded ? undefined : byAgent.get(tool.agent); return <tr key={tool.agent}><td><span className="row"><Logo agent={tool.agent} small />{agentNames[tool.agent]}</span></td><td><Tier check={check} /></td><td className="model mono" title={check?.currentModel?.id}>{check?.currentModel?.label ?? '—'}</td><td>{quota ? <span className={`badge ${tone(quota.remainingPct)}`}>{quota.remainingPct}% · {quota.window}</span> : <span className="badge plain">{t('No data', 'Chưa có dữ liệu')}</span>}</td><td><div className="mono small"><CreditText check={check} /></div></td><td className="num">{duration(row?.avgDurationMs)}</td><td className="num"><span className={`badge ${!known(row?.successRate) ? 'plain' : row.successRate >= .94 ? 'ok' : 'warn'}`}>{rate(row?.successRate)}</span></td></tr>; })}
       {stats.rows.filter(row => !tools.some(tool => tool.agent === row.agent)).map(row => <tr key={row.agent}><td>{agentNames[row.agent]}</td><td>—</td><td>—</td><td>—</td><td>—</td><td className="num">{duration(row.avgDurationMs)}</td><td className="num">{rate(row.successRate)}</td></tr>)}

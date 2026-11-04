@@ -18,6 +18,10 @@ test('the app uses the OpenCode navigation shell and compare composition', async
   await expect(side.locator('.task-row,.sidebar-search,.new-task-button')).toHaveCount(0);
   await page.getByRole('button', { name: 'Compare', exact: true }).click();
   await expect(page.locator('.cmp > .card')).toHaveCount(4);
+  // Compare draws quotas as bars (rounding to a whole percent), while the
+  // dashboard keeps the rings.
+  await expect(page.locator('.cmp .gbar')).toHaveCount(6);
+  await expect(page.locator('.cmp .donut')).toHaveCount(0);
   await expect(page.locator('.summary table')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Hardware', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'EN', exact: true })).toHaveAttribute('aria-pressed', 'true');

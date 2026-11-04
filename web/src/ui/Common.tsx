@@ -25,6 +25,20 @@ export function Ring({ pct, small = false, label, used = false }: { pct: number 
   const colour = tone(precise === null ? null : used ? 100 - precise : precise);
   return <div className={`donut${small ? ' sm' : ''} ${colour}`} style={{ '--pct': precise === null ? 0 : Math.round(precise * 10) / 10, '--col': precise === null ? 'var(--faint)' : `var(--${colour})` } as CSSProperties} role="img" aria-label={`${label}: ${value === null ? '—' : value + '%'}`}><svg viewBox="0 0 44 44" aria-hidden="true"><circle className="edge" cx="22" cy="22" r="21" /><circle className="trk" cx="22" cy="22" r="15" />{precise !== null && <circle className="val" cx="22" cy="22" r="15" pathLength="100" />}</svg><span className="pct">{value === null ? '—' : `${value}%`}</span></div>;
 }
+export function Bar({ pct, label, number, reset, used = false }: { pct: number | null | undefined; label: string; number?: string | null; reset?: string | null; used?: boolean }) {
+  const precise = known(pct) ? Math.max(0, Math.min(100, pct)) : null;
+  const value = precise === null ? null : Math.round(precise);
+  const colour = tone(precise === null ? null : used ? 100 - precise : precise);
+  const parsedReset = reset ? Date.parse(reset) : NaN;
+  const resetLabel = Number.isFinite(parsedReset) ? new Date(parsedReset).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' }) : reset;
+  return <div className={`gbar ${colour}`} style={{ '--pct': precise === null ? 0 : Math.round(precise * 10) / 10, '--col': precise === null ? 'var(--faint)' : `var(--${colour})` } as CSSProperties}>
+    <span className="g-cap">{label}</span>
+    <span className="pct">{value === null ? '—' : `${value}%`}</span>
+    <span className="meter" aria-hidden="true"><i /></span>
+    {number && <span className="g-num">{number}</span>}
+    {reset && <span className="g-reset" title={reset}>↻ {resetLabel}</span>}
+  </div>;
+}
 export function Gauge({ row, pct, label, number, reset, used = false }: { row?: QuotaWindow; pct?: number | null; label?: string; number?: string | null; reset?: string | null; used?: boolean }) {
   const { t } = useLanguage(); const windowLabels: Record<string, string> = { '5h': t('5 hours', '5 giờ'), week: t('Week', 'Tuần'), day: t('Day', 'Ngày'), month: t('Month', 'Tháng') };
   // A quota row carries its own unit: when the number is a "used" percentage a

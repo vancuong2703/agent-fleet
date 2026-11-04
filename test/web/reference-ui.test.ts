@@ -25,7 +25,8 @@ describe('reference UI preserves the meaning of real CLI data', () => {
   test('used token gauge uses remaining headroom to determine its color', () => {
     const c = check([{ group: 'Pool', window: 'plan', unit: 'tokens', used: 46, limit: 100, remainingPct: 54 }]);
     const markup = html(createElement(ComparisonGauges, { tool: tool(c, 'opencode') }));
-    expect(markup).toContain('46%'); expect(markup).toContain('donut ok');
+    expect(markup).toContain('46%'); expect(markup).toContain('gbar ok');
+    expect(markup).toContain('meter');
     expect(html(createElement(Ring, { pct: 92, used: true, label: 'Used' }))).toContain('donut bad');
   });
   test('ring labels are whole percents, so a decimal never runs over the ring', () => {
