@@ -44,71 +44,268 @@
           </div>
         </div>
         <div class="actions">
-          <button class="check-all" onclick="AF.checkAll(this,'Re-check')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 0 1-15 6.7L3 16'/%3E%3Cpath d='M8 16H3v5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Re-check" data-vi="Kiểm tra lại">Re-check</span></button>
+          <button class="check-all" data-steps="4" onclick="AF.checkAll(this,'Re-check')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 0 1-15 6.7L3 16'/%3E%3Cpath d='M8 16H3v5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Re-check" data-vi="Kiểm tra lại">Re-check</span></button>
         </div>
       </div>
 
-      <div class="grid2">
-        <div class="stack">
-          <div class="panel">
-            <h4><span data-en="Quota by window" data-vi="Hạn mức theo cửa sổ">Quota by window</span></h4>
-            <table class="table">
-              <thead><tr>
-                <th data-en="Group" data-vi="Nhóm">Group</th>
-                <th data-en="Remaining" data-vi="Còn lại">Remaining</th>
-                <th data-en="Resets in" data-vi="Thời gian hồi">Resets in</th>
-              </tr></thead>
-              <tbody>
-                <tr><td data-en="5-hour window" data-vi="Cửa sổ 5 giờ">5-hour window</td><td><b>22%</b></td><td class="muted">1h 49p</td></tr>
-                <tr><td data-en="Week" data-vi="Tuần">Week</td><td><b>34%</b></td><td class="muted">6 days</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="panel">
-            <h4><span data-en="Models &amp; multipliers" data-vi="Model &amp; hệ số">Models &amp; multipliers</span></h4>
-            <div class="models">
-              <div class="m"><span class="mn">gpt-6.1-sol</span><span class="mult">DEFAULT</span><span class="mult">x1.0</span></div>
-              <div class="m"><span class="mn">gpt-6.1-sol-mini</span><span class="mult">x0.3</span></div>
-              <div class="m"><span class="mn">gpt-6.0-turbo</span><span class="mult">x1.4</span></div>
-            </div>
-          </div>
-          <div class="panel">
-            <h4><span data-en="Check history" data-vi="Lịch sử kiểm tra">Check history</span></h4>
-            <table class="table">
-              <thead><tr><th data-en="Time" data-vi="Thời điểm">Time</th><th data-en="Result" data-vi="Kết quả">Result</th><th data-en="Note" data-vi="Ghi chú">Note</th></tr></thead>
-              <tbody>
-                <tr><td class="mono">18:41:50</td><td><span class="badge ok">OK</span></td><td class="muted">codex-cli 0.166.0</td></tr>
-                <tr><td class="mono">15:10:02</td><td><span class="badge ok">OK</span></td><td class="muted">quota read</td></tr>
-                <tr><td class="mono">12:33:41</td><td><span class="badge warn">SLOW</span></td><td class="muted">pty 8.2s</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="stack">
-          <div class="panel">
-            <h4><span data-en="Plan &amp; account" data-vi="Gói &amp; tài khoản">Plan &amp; account</span></h4>
-            <div class="kpi"><b>PLUS</b></div>
-            <div class="small muted" style="margin-top:10px">***@gmail.com</div>
-            <div class="small muted" style="margin-top:8px" data-en="Credits do not apply to the ChatGPT plan." data-vi="Credit không áp dụng cho gói ChatGPT.">Credits do not apply to the ChatGPT plan.</div>
-          </div>
-          <div class="panel">
-            <h4><span data-en="Actions" data-vi="Hành động">Actions</span></h4>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <a class="btn primary" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
-              <button class="btn" onclick="AF.toast('demo')"><span data-en="Open location" data-vi="Vị trí mở">Open location</span></button>
-            </div>
-          </div>
-          <div class="panel">
-            <h4><span data-en="Latest check" data-vi="Lần kiểm tra mới nhất">Latest check</span></h4>
-            <div class="row"><span class="badge ok">READY</span><span class="muted mono small">18:41:50 · 1.2s</span></div>
-            <div class="small muted" style="margin-top:10px" data-en="3 probes: version, login, quota window." data-vi="3 bước: phiên bản, đăng nhập, cửa sổ hạn mức.">3 probes: version, login, quota window.</div>
-          </div>
-        </div>
-      </div>
+      <!-- Per-tool content is injected here from the matching <template data-tool="...">. -->
+      <div id="t-body"></div>
     </div>
   </main>
 </div>
+
+<!-- ============================ CODEX ============================ -->
+<template data-tool="codex">
+  <div class="grid2">
+    <div class="stack">
+      <div class="panel">
+        <h4><span data-en="Quota by window" data-vi="Hạn mức theo cửa sổ">Quota by window</span></h4>
+        <div class="gauges">
+          <div class="gauge">
+            <div class="donut" style="--pct:22;--col:var(--bad)">
+              <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg>
+              <span class="pct">22%</span>
+            </div>
+            <span class="g-cap" data-en="5 hours" data-vi="5 giờ">5 hours</span>
+            <span class="g-reset" data-en="↻ 1h 49m" data-vi="↻ 1h 49p">↻ 1h 49m</span>
+          </div>
+          <div class="gauge">
+            <div class="donut" style="--pct:34;--col:var(--warn)">
+              <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg>
+              <span class="pct">34%</span>
+            </div>
+            <span class="g-cap" data-en="Week" data-vi="Tuần">Week</span>
+            <span class="g-reset" data-en="↻ 6 days" data-vi="↻ 6 ngày">↻ 6 days</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Models &amp; multipliers" data-vi="Model &amp; hệ số">Models &amp; multipliers</span></h4>
+        <div class="models">
+          <div class="m"><span class="mn">gpt-6.1-sol</span><span class="mult">DEFAULT</span><span class="mult">x1.0</span></div>
+          <div class="m"><span class="mn">gpt-6.1-sol-mini</span><span class="mult">x0.3</span></div>
+          <div class="m"><span class="mn">gpt-6.0-turbo</span><span class="mult">x1.4</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Check history" data-vi="Lịch sử kiểm tra">Check history</span></h4>
+        <table class="table">
+          <thead><tr><th data-en="Time" data-vi="Thời điểm">Time</th><th data-en="Result" data-vi="Kết quả">Result</th><th data-en="Note" data-vi="Ghi chú">Note</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">18:41:50</td><td><span class="badge ok">OK</span></td><td class="muted">codex-cli 0.166.0</td></tr>
+            <tr><td class="mono">15:10:02</td><td><span class="badge ok">OK</span></td><td class="muted" data-en="quota read" data-vi="đọc hạn mức">quota read</td></tr>
+            <tr><td class="mono">12:33:41</td><td><span class="badge warn">SLOW</span></td><td class="muted">pty 8.2s</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="panel">
+        <h4><span data-en="Plan &amp; account" data-vi="Gói &amp; tài khoản">Plan &amp; account</span></h4>
+        <div class="kpi"><b>PLUS</b></div>
+        <div class="small muted" style="margin-top:10px">***@gmail.com</div>
+        <div class="small muted" style="margin-top:8px" data-en="Credits do not apply to the ChatGPT plan." data-vi="Credit không áp dụng cho gói ChatGPT.">Credits do not apply to the ChatGPT plan.</div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Actions" data-vi="Hành động">Actions</span></h4>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn primary" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
+          <button class="btn" onclick="AF.toast(AF.lang==='vi'?'Demo: mở ~/.codex':'Demo: open ~/.codex')" title="~/.codex"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open config folder" data-vi="Mở thư mục cấu hình">Open config folder</span></button>
+        </div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Latest check" data-vi="Lần kiểm tra mới nhất">Latest check</span></h4>
+        <div class="row"><span class="badge ok">READY</span><span class="muted mono small">18:41:50 · 1.2s</span></div>
+        <div class="small muted" style="margin-top:10px" data-en="3 probes: version, login, quota window." data-vi="3 bước: phiên bản, đăng nhập, cửa sổ hạn mức.">3 probes: version, login, quota window.</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ============================ QODER ============================ -->
+<template data-tool="qoder">
+  <div class="grid2">
+    <div class="stack">
+      <div class="panel">
+        <h4><span data-en="Credits" data-vi="Credit">Credits</span></h4>
+        <div class="credit"><b>1,240</b><small>/ 2,000</small></div>
+        <div class="bar ok" style="margin-top:8px"><span style="width:62%"></span></div>
+        <div class="creditline"><span data-en="760 used" data-vi="760 đã dùng">760 used</span><span data-en="renews 28/11" data-vi="gia hạn 28/11">renews 28/11</span></div>
+        <div class="small muted" style="margin-top:10px" data-en="Credits only — no 5-hour window." data-vi="Chỉ tính credit — không có cửa sổ 5 giờ.">Credits only — no 5-hour window.</div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Models &amp; multipliers" data-vi="Model &amp; hệ số">Models &amp; multipliers</span></h4>
+        <div class="models">
+          <div class="m"><span class="mn">Qwen3.8-Flash</span><span class="mult free">FREE</span></div>
+          <div class="m"><span class="mn">DeepSeek-Flash</span><span class="mult">x0.1</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Check history" data-vi="Lịch sử kiểm tra">Check history</span></h4>
+        <table class="table">
+          <thead><tr><th data-en="Time" data-vi="Thời điểm">Time</th><th data-en="Result" data-vi="Kết quả">Result</th><th data-en="Note" data-vi="Ghi chú">Note</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">18:40:12</td><td><span class="badge ok">OK</span></td><td class="muted">qodercli 1.1.81</td></tr>
+            <tr><td class="mono">13:05:44</td><td><span class="badge ok">OK</span></td><td class="muted" data-en="credit read" data-vi="đọc credit">credit read</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="panel">
+        <h4><span data-en="Plan &amp; account" data-vi="Gói &amp; tài khoản">Plan &amp; account</span></h4>
+        <div class="kpi"><b>PRO TRIAL</b></div>
+        <div class="small muted" style="margin-top:10px">***@gmail.com</div>
+        <div class="small muted" style="margin-top:8px" data-en="Trial credits renew on 28/11." data-vi="Credit dùng thử gia hạn 28/11.">Trial credits renew on 28/11.</div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Actions" data-vi="Hành động">Actions</span></h4>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn primary" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
+          <button class="btn" onclick="AF.toast(AF.lang==='vi'?'Demo: mở ~/.qoder':'Demo: open ~/.qoder')" title="~/.qoder"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open config folder" data-vi="Mở thư mục cấu hình">Open config folder</span></button>
+        </div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Latest check" data-vi="Lần kiểm tra mới nhất">Latest check</span></h4>
+        <div class="row"><span class="badge ok">READY</span><span class="muted mono small">18:40:12 · 0.9s</span></div>
+        <div class="small muted" style="margin-top:10px" data-en="3 probes: version, login, credits." data-vi="3 bước: phiên bản, đăng nhập, credit.">3 probes: version, login, credits.</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ======================= ANTIGRAVITY CLI ======================= -->
+<template data-tool="agy">
+  <div class="grid2">
+    <div class="stack">
+      <div class="panel">
+        <h4><span data-en="Quota by model" data-vi="Hạn mức theo model">Quota by model</span></h4>
+        <table class="mtx">
+          <thead><tr>
+            <th></th>
+            <th><span data-en="5 hours" data-vi="5 giờ">5 hours</span><span class="colreset" data-en="↻ 2h" data-vi="↻ 2 giờ">↻ 2h</span></th>
+            <th><span data-en="Week" data-vi="Tuần">Week</span><span class="colreset" data-en="↻ 4d" data-vi="↻ 4 ngày">↻ 4d</span></th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td>Gemini 4 Argon</td>
+              <td><div class="donut sm" style="--pct:91;--col:var(--ok)"><svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg><span class="pct">91%</span></div></td>
+              <td><div class="donut sm" style="--pct:78;--col:var(--ok)"><svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg><span class="pct">78%</span></div></td>
+            </tr>
+            <tr>
+              <td>Gemini models</td>
+              <td><div class="donut sm" style="--pct:100;--col:var(--ok)"><svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg><span class="pct">100%</span></div></td>
+              <td><div class="donut sm" style="--pct:95;--col:var(--ok)"><svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg><span class="pct">95%</span></div></td>
+            </tr>
+            <tr>
+              <td>Claude &amp; GPT</td>
+              <td><div class="donut sm" style="--pct:12;--col:var(--bad)"><svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg><span class="pct">12%</span></div></td>
+              <td><div class="donut sm" style="--pct:40;--col:var(--bad)"><svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg><span class="pct">40%</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="creditline" style="margin-top:14px"><span data-en="Credits remaining" data-vi="Credit còn lại">Credits remaining</span><span>1,120 / 2,000</span></div>
+        <div class="small muted" style="margin-top:8px" data-en="Reset times are shared per column." data-vi="Thời gian hồi dùng chung cho mỗi cột.">Reset times are shared per column.</div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Models &amp; multipliers" data-vi="Model &amp; hệ số">Models &amp; multipliers</span></h4>
+        <div class="models">
+          <div class="m"><span class="mn">gemini-4-argon</span><span class="mult">DEFAULT</span><span class="mult">x1.0</span></div>
+          <div class="m"><span class="mn">gemini-4-flash</span><span class="mult">x0.4</span></div>
+          <div class="m"><span class="mn">claude-sonnet-4.6</span><span class="mult">x1.5</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="panel">
+        <h4><span data-en="Plan &amp; account" data-vi="Gói &amp; tài khoản">Plan &amp; account</span></h4>
+        <div class="kpi"><b>PRO</b></div>
+        <div class="small muted" style="margin-top:10px">***@gmail.com</div>
+        <div class="small muted" style="margin-top:8px" data-en="Pro plan: per-model windows plus shared credits." data-vi="Gói Pro: hạn mức theo model cộng credit dùng chung.">Pro plan: per-model windows plus shared credits.</div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Actions" data-vi="Hành động">Actions</span></h4>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn primary" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
+          <button class="btn" onclick="AF.toast(AF.lang==='vi'?'Demo: mở ~/.antigravity':'Demo: open ~/.antigravity')" title="~/.antigravity"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open config folder" data-vi="Mở thư mục cấu hình">Open config folder</span></button>
+        </div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Latest check" data-vi="Lần kiểm tra mới nhất">Latest check</span></h4>
+        <div class="row"><span class="badge ok">READY</span><span class="muted mono small">18:39:03 · 1.4s</span></div>
+        <div class="small muted" style="margin-top:10px" data-en="4 probes: version, login, per-model windows, credits." data-vi="4 bước: phiên bản, đăng nhập, hạn mức từng model, credit.">4 probes: version, login, per-model windows, credits.</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ========================== OPENCODE ========================== -->
+<template data-tool="opencode">
+  <div class="grid2">
+    <div class="stack">
+      <div class="panel">
+        <h4><span data-en="Tokens used" data-vi="Token đã dùng">Tokens used</span></h4>
+        <div class="credit"><b>1.56M</b><small>/ 3.4M</small></div>
+        <div class="bar ok" style="margin-top:8px"><span style="width:46%"></span></div>
+        <div class="creditline"><span data-en="46% of budget" data-vi="46% hạn mức">46% of budget</span><span data-en="12/13 keys" data-vi="12/13 key">12/13 keys</span></div>
+        <div class="small muted" style="margin-top:10px" data-en="Tokens + key pool — no 5-hour window." data-vi="Token + pool key — không có cửa sổ 5 giờ.">Tokens + key pool — no 5-hour window.</div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Free models" data-vi="Model miễn phí">Free models</span></h4>
+        <div class="models">
+          <div class="m"><span class="mn" title="harbor-pool/deepseek-v4.1-flash:free">harbor-pool/deepseek-v4.1-flash:free</span><span class="mult free">FREE</span><span class="tk">1.24M / 2.4M</span></div>
+          <div class="m"><span class="mn" title="opencode/grok-code-flash-free">opencode/grok-code-flash-free</span><span class="mult free">FREE</span><span class="tk">318K / 1M</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Key pool" data-vi="Pool key">Key pool</span></h4>
+        <table class="table">
+          <thead><tr><th data-en="Key" data-vi="Key">Key</th><th data-en="Status" data-vi="Trạng thái">Status</th><th data-en="Used" data-vi="Đã dùng">Used</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">key-01</td><td><span class="badge ok">OK</span></td><td class="mono">1.24M</td></tr>
+            <tr><td class="mono">key-02</td><td><span class="badge ok">OK</span></td><td class="mono">318K</td></tr>
+            <tr><td class="mono">key-13</td><td><span class="badge bad" data-en="EXPIRED" data-vi="HẾT HẠN">EXPIRED</span></td><td class="mono">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="panel">
+        <h4><span data-en="Plan &amp; account" data-vi="Gói &amp; tài khoản">Plan &amp; account</span></h4>
+        <div class="kpi"><b>BYOK</b></div>
+        <div class="small muted" style="margin-top:10px">***@gmail.com</div>
+        <div class="small muted" style="margin-top:8px" data-en="Bring your own keys; free models only in this demo." data-vi="Tự mang key; bản demo chỉ dùng model miễn phí.">Bring your own keys; free models only in this demo.</div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Actions" data-vi="Hành động">Actions</span></h4>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <a class="btn primary" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
+          <button class="btn" onclick="AF.toast(AF.lang==='vi'?'Demo: mở ~/.config/opencode':'Demo: open ~/.config/opencode')" title="~/.config/opencode"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open config folder" data-vi="Mở thư mục cấu hình">Open config folder</span></button>
+        </div>
+      </div>
+      <div class="panel">
+        <h4><span data-en="Latest check" data-vi="Lần kiểm tra mới nhất">Latest check</span></h4>
+        <div class="row"><span class="badge warn">DEGRADED</span><span class="muted mono small">18:41:20 · 2.1s</span></div>
+        <div class="small muted" style="margin-top:10px" data-en="4 probes: version, keys, token budget, free models." data-vi="4 bước: phiên bản, key, hạn mức token, model miễn phí.">4 probes: version, keys, token budget, free models.</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- ======================= UNKNOWN / EMPTY ======================= -->
+<template data-tool="__none__">
+  <div class="empty">
+    <b data-en="Tool not found" data-vi="Không tìm thấy công cụ">Tool not found</b>
+    <span class="small" data-en="This demo only has 4 tool pages. Pick one of them:" data-vi="Bản demo chỉ có 4 trang công cụ. Chọn một trang:">This demo only has 4 tool pages. Pick one of them:</span>
+    <div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px">
+      <a class="btn" href="tool.html?t=codex">Codex</a>
+      <a class="btn" href="tool.html?t=qoder">Qoder</a>
+      <a class="btn" href="tool.html?t=agy">Antigravity CLI</a>
+      <a class="btn" href="tool.html?t=opencode">OpenCode</a>
+    </div>
+  </div>
+</template>
+
 <div class="toast" id="toast"></div>
 <script src="assets/app.js"></script>
 <script>
@@ -119,13 +316,39 @@
       agy: { t: 'Antigravity CLI', v: 'agy 1.4.12', l: 'Ag', g: 'linear-gradient(135deg,#4f8cff,#1d4ed8)' },
       opencode: { t: 'OpenCode', v: 'opencode 2.2.5', l: 'oc', g: 'linear-gradient(135deg,#3f3f46,#111827)' }
     };
-    var id = (new URLSearchParams(location.search)).get('t') || 'codex';
-    var d = map[id] || map.codex;
-    document.getElementById('t-title').textContent = d.t;
-    document.getElementById('t-ver').textContent = d.v;
+    var id = (new URLSearchParams(location.search)).get('t');
+    id = id ? id.toLowerCase() : '';
+    var known = Object.prototype.hasOwnProperty.call(map, id);
+
+    var body = document.getElementById('t-body');
+    var tpl = document.querySelector('template[data-tool="' + (known ? id : '__none__') + '"]');
+    if (tpl) body.appendChild(tpl.content.cloneNode(true));
+
+    var title = document.getElementById('t-title');
+    var ver = document.getElementById('t-ver');
     var lg = document.getElementById('t-logo');
-    lg.textContent = d.l; lg.style.background = d.g;
-    document.title = d.t + ' · Agent Fleet web demo';
+
+    if (known) {
+      var d = map[id];
+      title.textContent = d.t;
+      title.removeAttribute('data-en'); title.removeAttribute('data-vi');
+      ver.textContent = d.v;
+      lg.textContent = d.l;
+      lg.style.background = d.g;
+      document.title = d.t + ' · Agent Fleet web demo';
+    } else {
+      // No data-tool match: show an empty state, never fall back to Codex.
+      title.setAttribute('data-en', 'Tool not found');
+      title.setAttribute('data-vi', 'Không tìm thấy công cụ');
+      title.textContent = AF.lang === 'vi' ? 'Không tìm thấy công cụ' : 'Tool not found';
+      ver.textContent = '';
+      lg.textContent = '?';
+      lg.style.background = 'linear-gradient(135deg,#9a9a90,#5b5b53)';
+      document.title = 'Tool not found · Agent Fleet web demo';
+    }
+
+    // <template> content is not covered by app.js's initial pass: re-apply now.
+    AF.setLang(AF.lang);
   })();
 </script>
 </body>
