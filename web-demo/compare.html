@@ -81,20 +81,16 @@
           </div>
           <div class="statusline">gpt-6.1-sol · effort high</div>
           <div class="gauges">
-            <div class="gauge">
-              <div class="donut" style="--pct:22;--col:var(--bad)">
-                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg>
-                <span class="pct">22%</span>
-              </div>
+            <div class="gauge gbar" style="--pct:22;--col:var(--bad)">
               <span class="g-cap" data-en="5 hours" data-vi="5 giờ">5 hours</span>
+              <span class="pct">22%</span>
+              <span class="meter"><i></i></span>
               <span class="g-reset" data-en="↻ 1h 49m" data-vi="↻ 1 giờ 49 phút">↻ 1h 49m</span>
             </div>
-            <div class="gauge">
-              <div class="donut" style="--pct:34;--col:var(--warn)">
-                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg>
-                <span class="pct">34%</span>
-              </div>
+            <div class="gauge gbar" style="--pct:34;--col:var(--warn)">
               <span class="g-cap" data-en="Week" data-vi="Tuần">Week</span>
+              <span class="pct">34%</span>
+              <span class="meter"><i></i></span>
               <span class="g-reset" data-en="↻ 6 days" data-vi="↻ 6 ngày">↻ 6 days</span>
             </div>
           </div>
@@ -117,12 +113,10 @@
           </div>
           <div class="statusline">Qwen3.8-Flash · FREE</div>
           <div class="gauges">
-            <div class="gauge">
-              <div class="donut" style="--pct:62;--col:var(--ok)">
-                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg>
-                <span class="pct">62%</span>
-              </div>
+            <div class="gauge gbar" style="--pct:62;--col:var(--ok)">
               <span class="g-cap" data-en="Credits left" data-vi="Credit còn lại">Credits left</span>
+              <span class="pct">62%</span>
+              <span class="meter"><i></i></span>
               <span class="g-num">1,240 / 2,000</span>
               <span class="g-reset" data-en="↻ renews 28/11" data-vi="↻ gia hạn 28/11">↻ renews 28/11</span>
             </div>
@@ -146,20 +140,16 @@
           </div>
           <div class="statusline">Gemini 4 Argon · x1.0</div>
           <div class="gauges">
-            <div class="gauge">
-              <div class="donut" style="--pct:91;--col:var(--ok)">
-                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg>
-                <span class="pct">91%</span>
-              </div>
+            <div class="gauge gbar" style="--pct:91;--col:var(--ok)">
               <span class="g-cap" data-en="5 hours" data-vi="5 giờ">5 hours</span>
+              <span class="pct">91%</span>
+              <span class="meter"><i></i></span>
               <span class="g-reset" data-en="↻ 2h" data-vi="↻ 2 giờ">↻ 2h</span>
             </div>
-            <div class="gauge">
-              <div class="donut" style="--pct:78;--col:var(--ok)">
-                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg>
-                <span class="pct">78%</span>
-              </div>
+            <div class="gauge gbar" style="--pct:78;--col:var(--ok)">
               <span class="g-cap" data-en="Week" data-vi="Tuần">Week</span>
+              <span class="pct">78%</span>
+              <span class="meter"><i></i></span>
               <span class="g-reset" data-en="↻ 4 days" data-vi="↻ 4 ngày">↻ 4 days</span>
             </div>
           </div>
@@ -182,12 +172,10 @@
           </div>
           <div class="statusline" title="harbor-pool/deepseek-v4.1-flash:free">harbor-pool/…flash:free · x0</div>
           <div class="gauges">
-            <div class="gauge">
-              <div class="donut" style="--pct:46;--col:var(--ok)">
-                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="21"/><circle class="trk" cx="22" cy="22" r="15"/><circle class="val" cx="22" cy="22" r="15" pathLength="100"/></svg>
-                <span class="pct">46%</span>
-              </div>
+            <div class="gauge gbar" style="--pct:46;--col:var(--ok)">
               <span class="g-cap" data-en="Tokens used" data-vi="Token đã dùng">Tokens used</span>
+              <span class="pct">46%</span>
+              <span class="meter"><i></i></span>
               <span class="g-num">1.56M / 3.4M</span>
               <span class="g-reset" data-en="↻ 3 days" data-vi="↻ 3 ngày">↻ 3 days</span>
             </div>
@@ -204,7 +192,7 @@
       </div>
 
       <div class="noterow">
-        <p class="tablenote" data-en="Avg time, Success and Tasks follow the selected range; the gauges show the plan window." data-vi="Thời gian TB, Thành công và Số task theo khoảng ngày đang chọn; vòng hạn mức là cửa sổ gói hiện tại.">Avg time, Success and Tasks follow the selected range; the gauges show the plan window.</p>
+        <p class="tablenote" data-en="Avg time, Success and Tasks follow the selected range; the bars show the plan window." data-vi="Thời gian TB, Thành công và Số task theo khoảng ngày đang chọn; thanh hạn mức là cửa sổ gói hiện tại.">Avg time, Success and Tasks follow the selected range; the bars show the plan window.</p>
         <p class="legend">
           <span><i class="dot"></i><span data-en="OK" data-vi="Ổn">OK</span></span>
           <span><i class="dot warn"></i><span data-en="Warning: low headroom or an expired key" data-vi="Cảnh báo: hạn mức thấp hoặc key hết hạn">Warning: low headroom or an expired key</span></span>
