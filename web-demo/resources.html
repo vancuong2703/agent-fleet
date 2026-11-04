@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/pages.css">
 <link rel="stylesheet" href="assets/resources.css">
 </head>
 <body>
@@ -43,8 +44,14 @@
           <h1 class="title">RE<em>SOURCES</em></h1>
         </div>
         <div class="actions">
+          <!-- one page-level window: it drives the KPI row and the chart -->
+          <div class="filters" role="group" aria-label="Time window">
+            <button class="chip" id="w7" aria-pressed="true" onclick="RES.win('7')" data-en="7 days" data-vi="7 ngày">7 days</button>
+            <button class="chip" id="w30" aria-pressed="false" onclick="RES.win('30')" data-en="30 days" data-vi="30 ngày">30 days</button>
+          </div>
+          <span class="stamp" id="winNote" data-en-7="Last 7 days" data-vi-7="7 ngày gần nhất" data-en-30="Last 30 days" data-vi-30="30 ngày gần nhất" data-en="Last 7 days" data-vi="7 ngày gần nhất">Last 7 days</span>
           <span class="stamp" id="stamp">18:41</span>
-          <button class="btn" onclick="AF.toast('Refreshed (demo)')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 0 1-15 6.7L3 16'/%3E%3Cpath d='M8 16H3v5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Refresh" data-vi="Làm mới">Refresh</span></button>
+          <button class="btn" onclick="RES.refresh()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 12a9 9 0 0 1 15-6.7L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3Cpath d='M21 12a9 9 0 0 1-15 6.7L3 16'/%3E%3Cpath d='M8 16H3v5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Refresh" data-vi="Làm mới">Refresh</span></button>
         </div>
       </div>
 
@@ -56,39 +63,38 @@
         <div class="r"><span class="rname">GPU</span><b>4.6</b><span class="unit">/ 12 GB</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">52°C</span></div>
       </div>
 
-      <!-- KPI row -->
+      <!-- KPI row: every figure below follows the selected window, except the
+           Qoder credit balance, which is the current plan state -->
       <div class="kpis">
         <div class="panel">
           <h4 data-en="Total tokens used" data-vi="Tổng token đã dùng">Total tokens used</h4>
-          <div class="kpi"><b>42.8M</b><small data-en="last 7 days" data-vi="7 ngày qua">last 7 days</small></div>
-          <div class="small muted" style="margin-top:10px" data-en="+6.4M vs previous week" data-vi="+6.4M so với tuần trước">+6.4M vs previous week</div>
+          <div class="kpi"><b data-7="42.8M" data-30="153.0M">42.8M</b><small data-en-7="last 7 days" data-vi-7="7 ngày qua" data-en-30="last 30 days" data-vi-30="30 ngày qua" data-en="last 7 days" data-vi="7 ngày qua">last 7 days</small></div>
+          <div class="small muted" style="margin-top:10px" data-en-7="+6.4M vs previous week" data-vi-7="+6.4M so với tuần trước" data-en-30="avg 5.1M per day" data-vi-30="trung bình 5.1M mỗi ngày" data-en="+6.4M vs previous week" data-vi="+6.4M so với tuần trước">+6.4M vs previous week</div>
         </div>
         <div class="panel">
-          <h4 data-en="Credits remaining" data-vi="Credit còn lại">Credits remaining</h4>
+          <h4 data-en="Qoder credits left" data-vi="Credit Qoder còn lại">Qoder credits left</h4>
           <div class="kpi"><b>1,240</b><small data-en="/ 2,000" data-vi="/ 2,000">/ 2,000</small></div>
           <div class="bar ok" style="margin-top:12px"><span style="width:62%"></span></div>
           <div class="creditline"><span data-en="760 used" data-vi="760 đã dùng">760 used</span><span data-en="renews 28/11" data-vi="gia hạn 28/11">renews 28/11</span></div>
+          <div class="small muted" style="margin-top:10px" data-en="current plan · not window-scoped" data-vi="gói hiện tại · không theo cửa sổ ngày">current plan · not window-scoped</div>
         </div>
         <div class="panel">
           <h4 data-en="Jobs run" data-vi="Số job đã chạy">Jobs run</h4>
-          <div class="kpi"><b>501</b><small data-en="across 4 agents" data-vi="trên 4 agent">across 4 agents</small></div>
-          <div class="small muted" style="margin-top:10px" data-en="+38 today" data-vi="+38 hôm nay">+38 today</div>
+          <div class="kpi"><b data-7="501" data-30="2,122">501</b><small data-en="across 4 agents" data-vi="trên 4 agent">across 4 agents</small></div>
+          <div class="small muted" style="margin-top:10px" data-en-7="+38 today" data-vi-7="+38 hôm nay" data-en-30="avg 71 per day" data-vi-30="trung bình 71 mỗi ngày" data-en="+38 today" data-vi="+38 hôm nay">+38 today</div>
         </div>
         <div class="panel">
           <h4 data-en="Avg duration" data-vi="Thời lượng TB">Avg duration</h4>
-          <div class="kpi"><b>46s</b><small data-en="/ task" data-vi="/ task">/ task</small></div>
-          <div class="small muted" style="margin-top:10px" data-en="↓ 3s vs previous week" data-vi="↓ 3s so với tuần trước">↓ 3s vs previous week</div>
+          <div class="kpi"><b data-7="46s" data-30="45s">46s</b><small data-en="/ task" data-vi="/ task">/ task</small></div>
+          <div class="small muted" style="margin-top:10px" data-en-7="↓ 3s vs previous week" data-vi-7="↓ 3s so với tuần trước" data-en-30="range 35.5–52.6 s per task" data-vi-30="khoảng 35.5–52.6 s mỗi task" data-en="↓ 3s vs previous week" data-vi="↓ 3s so với tuần trước">↓ 3s vs previous week</div>
         </div>
       </div>
 
-      <!-- Token trend -->
+      <!-- Token trend: 7 days = per day, 30 days = per week (4 weekly buckets,
+           the newest one being the same 42.8M the 7-day window shows) -->
       <div class="panel" style="margin-bottom:24px">
         <div class="panel-head">
-          <h4 data-en="Tokens per day" data-vi="Token theo ngày">Tokens per day</h4>
-          <div class="filters" role="group" aria-label="Trend window">
-            <button class="chip" id="w7" aria-pressed="true" onclick="resWin('7')" data-en="7 days" data-vi="7 ngày">7 days</button>
-            <button class="chip" id="w30" aria-pressed="false" onclick="resWin('30')" data-en="30 days" data-vi="30 ngày">30 days</button>
-          </div>
+          <h4 data-en-7="Tokens per day" data-vi-7="Token theo ngày" data-en-30="Tokens per week" data-vi-30="Token theo tuần" data-en="Tokens per day" data-vi="Token theo ngày">Tokens per day</h4>
         </div>
 
         <div id="win7">
@@ -123,11 +129,35 @@
           </svg>
         </div>
 
-        <!-- Empty state (30-day window has no rollup yet) -->
         <div id="win30" hidden>
+          <svg class="chart" viewBox="0 0 700 260" role="img" aria-label="Tokens used per week over the last 30 days">
+            <line class="grid-line" x1="44" y1="59" x2="660" y2="59"/>
+            <line class="grid-line" x1="44" y1="139.5" x2="660" y2="139.5"/>
+            <line class="axis" x1="44" y1="220" x2="660" y2="220"/>
+            <text class="lbl" x="38" y="63" text-anchor="end">40M</text>
+            <text class="lbl" x="38" y="143.5" text-anchor="end">20M</text>
+            <text class="lbl" x="38" y="224" text-anchor="end">0</text>
+            <rect class="bar-rect" x="76" y="62.7" width="110" height="157.3" rx="3"/>
+            <rect class="bar-rect" x="226" y="80.4" width="110" height="139.6" rx="3"/>
+            <rect class="bar-rect" x="376" y="73.6" width="110" height="146.4" rx="3"/>
+            <rect class="bar-rect last" x="526" y="47.8" width="110" height="172.2" rx="3"/>
+            <text class="val" x="131" y="54.7" text-anchor="middle">39.1M</text>
+            <text class="val" x="281" y="72.4" text-anchor="middle">34.7M</text>
+            <text class="val" x="431" y="65.6" text-anchor="middle">36.4M</text>
+            <text class="val" x="581" y="39.8" text-anchor="middle">42.8M</text>
+            <text class="lbl" x="131" y="242" text-anchor="middle">07/10</text>
+            <text class="lbl" x="281" y="242" text-anchor="middle">14/10</text>
+            <text class="lbl" x="431" y="242" text-anchor="middle">21/10</text>
+            <text class="lbl" x="581" y="242" text-anchor="middle">28/10</text>
+          </svg>
+        </div>
+
+        <!-- Empty state for a window whose series has not been synced yet.
+             Both demo windows have data, so this block stays hidden. -->
+        <div id="chartEmpty" hidden>
           <div class="empty">
             <b data-en="No data yet" data-vi="Chưa có dữ liệu">No data yet</b>
-            <span data-en="Run a job or wait for the next sync, then pick 30 days again." data-vi="Hãy chạy một job hoặc chờ lần đồng bộ kế tiếp, rồi chọn lại 30 ngày.">Run a job or wait for the next sync, then pick 30 days again.</span>
+            <span data-en="Run a job or wait for the next sync, then pick this window again." data-vi="Hãy chạy một job hoặc chờ lần đồng bộ kế tiếp, rồi chọn lại khoảng này.">Run a job or wait for the next sync, then pick this window again.</span>
           </div>
         </div>
       </div>
@@ -153,7 +183,7 @@
                 <td class="model mono">gpt-6.1-sol</td>
                 <td class="mono small" data-en="included in plan" data-vi="nằm trong gói">included in plan</td>
                 <td class="num mono">x1.0</td>
-                <td class="num mono">3.1M</td>
+                <td class="num mono" data-7="3.1M" data-30="11.6M">3.1M</td>
                 <td><span class="badge warn" data-en="QUOTA 22%" data-vi="HẠN MỨC 22%">QUOTA 22%</span></td>
               </tr>
               <tr>
@@ -161,17 +191,17 @@
                 <td><span class="tier trial">PRO TRIAL</span></td>
                 <td class="model mono">Qwen3.8-Flash</td>
                 <td class="mono small">760 / 2,000</td>
-                <td class="num mono">x0.1</td>
-                <td class="num mono">1.2M</td>
+                <td class="num mono">FREE</td>
+                <td class="num mono" data-7="1.2M" data-30="4.4M">1.2M</td>
                 <td><span class="badge ok">OK</span></td>
               </tr>
               <tr>
                 <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>Antigravity CLI</span></td>
                 <td><span class="tier pro">PRO</span></td>
                 <td class="model mono">Gemini 4 Argon</td>
-                <td class="mono small">1,120 / 2,000</td>
+                <td class="mono small" data-en="included in plan" data-vi="nằm trong gói">included in plan</td>
                 <td class="num mono">x1.0</td>
-                <td class="num mono">6.9M</td>
+                <td class="num mono" data-7="6.9M" data-30="24.1M">6.9M</td>
                 <td><span class="badge ok">OK</span></td>
               </tr>
               <tr>
@@ -180,27 +210,57 @@
                 <td class="model mono">harbor-pool/…flash:free</td>
                 <td class="mono small">1.56M / 3.4M</td>
                 <td class="num mono">x0</td>
-                <td class="num mono">31.6M</td>
+                <td class="num mono" data-7="31.6M" data-30="112.9M">31.6M</td>
                 <td><span class="badge ok">OK</span></td>
               </tr>
             </tbody>
           </table>
         </div>
+        <p class="tablenote" data-en="Tokens follow the selected window (7 days: 3.1 + 1.2 + 6.9 + 31.6 = 42.8M; 30 days: 11.6 + 4.4 + 24.1 + 112.9 = 153.0M). The Qoder and OpenCode figures in the previous column are caps of the current plan, not a range." data-vi="Cột Token theo cửa sổ đang chọn (7 ngày: 3.1 + 1.2 + 6.9 + 31.6 = 42.8M; 30 ngày: 11.6 + 4.4 + 24.1 + 112.9 = 153.0M). Số liệu Qoder và OpenCode ở cột trước là hạn mức của gói hiện tại, không theo khoảng ngày.">Tokens follow the selected window (7 days: 3.1 + 1.2 + 6.9 + 31.6 = 42.8M; 30 days: 11.6 + 4.4 + 24.1 + 112.9 = 153.0M). The Qoder and OpenCode figures in the previous column are caps of the current plan, not a range.</p>
       </div>
     </div>
   </main>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="assets/app.js"></script>
 <script>
   (function () {
-    window.resWin = function (v) {
+    function toast(en, vi) { AF.toast(AF.lang === 'vi' ? vi : en); }
+
+    /* Same rule as compare.html: one window switch moves every window-scoped
+       figure. [data-7]/[data-30] hold language-neutral numbers;
+       [data-en-7]…[data-vi-30] also refresh the EN/VI pair so switching
+       language afterwards cannot fall back to the other window's wording. */
+    function applyWindow(v) {
       var seven = v === '7';
-      document.getElementById('w7').setAttribute('aria-pressed', String(seven));
-      document.getElementById('w30').setAttribute('aria-pressed', String(!seven));
-      document.getElementById('win7').hidden = !seven;
-      document.getElementById('win30').hidden = seven;
-      AF.toast(seven ? 'Window: 7 days' : 'Window: 30 days');
+      document.querySelectorAll('[data-7]').forEach(function (n) {
+        n.textContent = n.getAttribute(seven ? 'data-7' : 'data-30');
+      });
+      document.querySelectorAll('[data-en-7]').forEach(function (n) {
+        var en = n.getAttribute(seven ? 'data-en-7' : 'data-en-30');
+        var vi = n.getAttribute(seven ? 'data-vi-7' : 'data-vi-30');
+        n.setAttribute('data-en', en);
+        n.setAttribute('data-vi', vi);
+        n.textContent = AF.lang === 'vi' ? vi : en;
+      });
+    }
+
+    window.RES = {
+      toast: toast,
+      win: function (v) {
+        var seven = v === '7';
+        document.getElementById('w7').setAttribute('aria-pressed', String(seven));
+        document.getElementById('w30').setAttribute('aria-pressed', String(!seven));
+        document.getElementById('win7').hidden = !seven;
+        document.getElementById('win30').hidden = seven;
+        applyWindow(v);
+        toast(seven ? 'Window: last 7 days' : 'Window: last 30 days',
+              seven ? 'Khoảng: 7 ngày gần nhất' : 'Khoảng: 30 ngày gần nhất');
+      },
+      refresh: function () {
+        document.getElementById('stamp').textContent = new Date().toTimeString().slice(0, 5);
+        toast('Refreshed (demo)', 'Đã làm mới (demo)');
+      }
     };
   })();
 </script>

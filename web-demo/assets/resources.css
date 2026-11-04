@@ -17,11 +17,8 @@
 .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .panel-head h4{margin:0}
 
-/* window filter chips */
-button.chip{cursor:pointer;background:transparent}
-button.chip:hover{border-color:var(--ink);color:var(--ink)}
-button.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* Window chips (.filters, button.chip) and the agent table frame (.tscroll)
+   come from assets/pages.css. */
 
 /* SVG bar chart */
 .chart{width:100%;height:auto;display:block}
@@ -31,8 +28,3 @@ button.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-co
 .chart .bar-rect.last{fill:var(--ink)}
 .chart .lbl{fill:var(--faint);font:700 11px var(--mono)}
 .chart .val{fill:var(--muted);font:700 11px var(--mono)}
-
-/* wide agent table pans inside its panel, never the page */
-.tscroll{overflow-x:auto}
-.tscroll .table{min-width:620px}
-.tscroll td.model{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

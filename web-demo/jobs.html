@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/pages.css">
 <link rel="stylesheet" href="assets/jobs.css">
 </head>
 <body>
@@ -44,10 +45,6 @@
         </div>
         <div class="actions">
           <span class="stamp" data-en="6 jobs" data-vi="6 công việc">6 jobs</span>
-          <button class="btn ghost" onclick="JOB.empty()">
-            <i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'/%3E%3C/svg%3E&quot;)"></i>
-            <span data-en="Empty state" data-vi="Trạng thái rỗng">Empty state</span>
-          </button>
           <button class="btn primary" onclick="JOB.newJob()">
             <i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 5v14'/%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E&quot;)"></i>
             <span data-en="New job" data-vi="Công việc mới">New job</span>
@@ -55,15 +52,27 @@
         </div>
       </div>
 
+      <!-- System: real values, toggled by the header button -->
+      <div class="res" id="resStrip">
+        <span class="rlabel" data-en="System" data-vi="Tài nguyên">System</span>
+        <div class="r"><span class="rname">CPU</span><b>3.8</b><span class="unit">/ 5.2 GHz</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">8/24</span></div>
+        <div class="r"><span class="rname">RAM</span><b>19.8</b><span class="unit">/ 32 GB</span><div class="bar warn"><span style="width:62%"></span></div></div>
+        <div class="r"><span class="rname">GPU</span><b>4.6</b><span class="unit">/ 12 GB</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">52°C</span></div>
+      </div>
+
       <div id="jobsList" class="stack">
-        <div class="filters" role="group" aria-label="Filter jobs">
-          <button class="chip sel" aria-pressed="true" data-en="All" data-vi="Tất cả" onclick="JOB.filter(this)">All</button>
-          <button class="chip" aria-pressed="false" data-en="Running" data-vi="Đang chạy" onclick="JOB.filter(this)">Running</button>
-          <button class="chip" aria-pressed="false" data-en="Waiting" data-vi="Đang chờ" onclick="JOB.filter(this)">Waiting</button>
-          <button class="chip" aria-pressed="false" data-en="Failed" data-vi="Lỗi" onclick="JOB.filter(this)">Failed</button>
+        <div class="filters" role="group" aria-label="Filter jobs by status">
+          <button class="chip" aria-pressed="true" data-status="all" data-en="All" data-vi="Tất cả" onclick="JOB.filter(this)">All</button>
+          <button class="chip" aria-pressed="false" data-status="running" data-en="Running" data-vi="Đang chạy" onclick="JOB.filter(this)">Running</button>
+          <button class="chip" aria-pressed="false" data-status="waiting" data-en="Waiting" data-vi="Đang chờ" onclick="JOB.filter(this)">Waiting</button>
+          <button class="chip" aria-pressed="false" data-status="queued" data-en="Queued" data-vi="Xếp hàng" onclick="JOB.filter(this)">Queued</button>
+          <button class="chip" aria-pressed="false" data-status="review" data-en="Review" data-vi="Chờ xem xét" onclick="JOB.filter(this)">Review</button>
+          <button class="chip" aria-pressed="false" data-status="done" data-en="Done" data-vi="Hoàn tất" onclick="JOB.filter(this)">Done</button>
+          <button class="chip" aria-pressed="false" data-status="failed" data-en="Failed" data-vi="Lỗi" onclick="JOB.filter(this)">Failed</button>
+          <span class="count" id="jobCount" role="status" aria-live="polite" data-en="6 of 6 jobs" data-vi="6/6 công việc">6 of 6 jobs</span>
         </div>
 
-        <div class="panel" style="padding:14px 16px">
+        <div class="panel" id="jobsTable" style="padding:14px 16px">
           <div class="tablewrap">
             <table class="table jobs">
               <thead><tr>
@@ -76,8 +85,8 @@
                 <th data-en="Actions" data-vi="Hành động">Actions</th>
               </tr></thead>
               <tbody class="rows" id="jobRows">
-                <tr class="sel" onclick="JOB.select(this)">
-                  <td><span class="cellmain" data-en="Add jobs page" data-vi="Thêm trang jobs">Add jobs page</span><span class="cellsub">#4821 · +128 −0</span></td>
+                <tr class="sel" data-job="4821" data-status="running" onclick="JOB.select(this)">
+                  <td><button class="rowbtn" type="button" aria-pressed="true" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Add jobs page" data-vi="Thêm trang jobs">Add jobs page</span></button><span class="cellsub">#4821 · +128 −0</span></td>
                   <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>Codex</span></td>
                   <td><b class="mono">agent-fleet</b><span class="cellsub">main</span></td>
                   <td><span class="badge ok">RUNNING</span></td>
@@ -89,8 +98,8 @@
                     <a class="btn ghost sm" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
                   </div></td>
                 </tr>
-                <tr onclick="JOB.select(this)">
-                  <td><span class="cellmain" data-en="Refactor quota parser" data-vi="Viết lại bộ đọc hạn mức">Refactor quota parser</span><span class="cellsub">#4820 · +312 −188</span></td>
+                <tr data-job="4820" data-status="review" onclick="JOB.select(this)">
+                  <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Refactor quota parser" data-vi="Viết lại bộ đọc hạn mức">Refactor quota parser</span></button><span class="cellsub">#4820 · +312 −188</span></td>
                   <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
                   <td><b class="mono">harbor</b><span class="cellsub">main</span></td>
                   <td><span class="badge warn">REVIEW</span></td>
@@ -102,8 +111,8 @@
                     <a class="btn ghost sm" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
                   </div></td>
                 </tr>
-                <tr onclick="JOB.select(this)">
-                  <td><span class="cellmain" data-en="Fix context overflow" data-vi="Sửa tràn ngữ cảnh">Fix context overflow</span><span class="cellsub">#4819 · +18 −6</span></td>
+                <tr data-job="4819" data-status="done" onclick="JOB.select(this)">
+                  <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Fix context overflow" data-vi="Sửa tràn ngữ cảnh">Fix context overflow</span></button><span class="cellsub">#4819 · +18 −6</span></td>
                   <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>Antigravity</span></td>
                   <td><b class="mono">agent-fleet</b><span class="cellsub">feat/ui</span></td>
                   <td><span class="badge ok">DONE</span></td>
@@ -115,8 +124,8 @@
                     <a class="btn ghost sm" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
                   </div></td>
                 </tr>
-                <tr onclick="JOB.select(this)">
-                  <td><span class="cellmain" data-en="Write e2e tests" data-vi="Viết test e2e">Write e2e tests</span><span class="cellsub">#4818 · queued</span></td>
+                <tr data-job="4818" data-status="queued" onclick="JOB.select(this)">
+                  <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Write e2e tests" data-vi="Viết test e2e">Write e2e tests</span></button><span class="cellsub" data-en="#4818 · queued" data-vi="#4818 · đã xếp hàng">#4818 · queued</span></td>
                   <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>OpenCode</span></td>
                   <td><b class="mono">agent-fleet</b><span class="cellsub">main</span></td>
                   <td><span class="badge plain">QUEUED</span></td>
@@ -128,8 +137,8 @@
                     <a class="btn ghost sm" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
                   </div></td>
                 </tr>
-                <tr onclick="JOB.select(this)">
-                  <td><span class="cellmain" data-en="Migrate auth store" data-vi="Chuyển kho lưu xác thực">Migrate auth store</span><span class="cellsub">#4817 · +204 −96</span></td>
+                <tr data-job="4817" data-status="failed" onclick="JOB.select(this)">
+                  <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Migrate auth store" data-vi="Chuyển kho lưu xác thực">Migrate auth store</span></button><span class="cellsub">#4817 · +204 −96</span></td>
                   <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>Codex</span></td>
                   <td><b class="mono">harbor</b><span class="cellsub">fix/auth</span></td>
                   <td><span class="badge bad">FAILED</span></td>
@@ -141,8 +150,8 @@
                     <a class="btn ghost sm" href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Open CLI" data-vi="Mở CLI">Open CLI</span></a>
                   </div></td>
                 </tr>
-                <tr onclick="JOB.select(this)">
-                  <td><span class="cellmain" data-en="Docs: web demo" data-vi="Tài liệu: web demo">Docs: web demo</span><span class="cellsub">#4816 · waiting slot</span></td>
+                <tr data-job="4816" data-status="waiting" onclick="JOB.select(this)">
+                  <td><button class="rowbtn" type="button" aria-pressed="false" onclick="JOB.select(this.closest('tr'))"><span class="cellmain" data-en="Docs: web demo" data-vi="Tài liệu: web demo">Docs: web demo</span></button><span class="cellsub" data-en="#4816 · waiting slot" data-vi="#4816 · chờ slot">#4816 · waiting slot</span></td>
                   <td><span class="agentchip"><span class="logo xs" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
                   <td><b class="mono">harbor</b><span class="cellsub">docs</span></td>
                   <td><span class="badge plain">WAITING</span></td>
@@ -159,8 +168,9 @@
           </div>
         </div>
 
-        <div class="panel">
-          <h4><span data-en="Selected job" data-vi="Công việc đã chọn">Selected job</span><span class="spacer" data-en="Add jobs page" data-vi="Thêm trang jobs">Add jobs page</span></h4>
+        <div class="panel" id="jobDetail">
+          <h4><span data-en="Selected job" data-vi="Công việc đã chọn">Selected job</span><span class="spacer" id="jobSelTitle">Add jobs page</span></h4>
+          <p class="jobmeta mono small muted" id="jobMeta">#4821 · RUNNING · Codex · agent-fleet/main</p>
           <div class="jtabs" role="tablist" aria-label="Job detail">
             <button class="stab" role="tab" id="jtab-log" aria-controls="jpane-log" aria-selected="true" tabindex="0" onclick="JOB.tab('log')"><span data-en="Log" data-vi="Nhật ký">Log</span></button>
             <button class="stab" role="tab" id="jtab-changes" aria-controls="jpane-changes" aria-selected="false" tabindex="-1" onclick="JOB.tab('changes')"><span data-en="Changes" data-vi="Thay đổi">Changes</span></button>
@@ -168,12 +178,7 @@
           </div>
 
           <div role="tabpanel" id="jpane-log" aria-labelledby="jtab-log">
-<pre class="logbox mono"><span class="dim">18:42:10</span> plan: 1 step · 2 files
-<span class="dim">18:42:11</span> read web-demo/dashboard.html
-<span class="dim">18:42:18</span> write web-demo/jobs.html
-<span class="dim">18:42:18</span> write web-demo/assets/jobs.css
-<span class="dim">18:42:22</span> check · node web-demo/check.mjs → OK
-<span class="dim">18:42:23</span> done · 2 files changed</pre>
+            <div class="logbox mono" id="jobLog"></div>
           </div>
 
           <div role="tabpanel" id="jpane-changes" aria-labelledby="jtab-changes" hidden>
@@ -184,40 +189,207 @@
                   <th class="num" data-en="Added" data-vi="Thêm">Added</th>
                   <th class="num" data-en="Removed" data-vi="Xoá">Removed</th>
                 </tr></thead>
-                <tbody>
-                  <tr><td class="mono">web-demo/jobs.html</td><td class="num">+128</td><td class="num">−0</td></tr>
-                  <tr><td class="mono">web-demo/assets/jobs.css</td><td class="num">+64</td><td class="num">−0</td></tr>
-                </tbody>
+                <tbody id="jobChanges"></tbody>
               </table>
             </div>
           </div>
 
           <div role="tabpanel" id="jpane-request" aria-labelledby="jtab-request" hidden>
-            <blockquote class="req" data-en="Add a jobs list with status filters, a detail panel with log / changes / request tabs, and an empty state." data-vi="Thêm danh sách công việc có bộ lọc trạng thái, panel chi tiết với tab log / thay đổi / yêu cầu, và trạng thái rỗng.">Add a jobs list with status filters, a detail panel with log / changes / request tabs, and an empty state.</blockquote>
+            <blockquote class="req" id="jobRequest">Add a jobs list with status filters, a detail panel with log / changes / request tabs, and an empty state.</blockquote>
           </div>
         </div>
-      </div>
 
-      <!-- empty state (shown when the queue has no jobs) -->
-      <div id="jobsEmpty" hidden>
-        <div class="empty">
-          <b data-en="No jobs yet" data-vi="Chưa có công việc">No jobs yet</b>
-          <span class="small" data-en="Run an agent on a repo, then review the result here." data-vi="Chạy agent trên một repo rồi xem kết quả ở đây.">Run an agent on a repo, then review the result here.</span>
-          <div class="steps" data-en="Pick repo → Write request → Review changes" data-vi="Chọn repo → Viết yêu cầu → Xem thay đổi">Pick repo → Write request → Review changes</div>
-          <button class="btn primary" onclick="JOB.newJob()">
-            <i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 5v14'/%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E&quot;)"></i>
-            <span data-en="New job" data-vi="Công việc mới">New job</span>
-          </button>
+        <!-- empty state: JS shows this block when no job is left to list -->
+        <div id="jobsEmpty" hidden>
+          <div class="empty">
+            <b id="jobsEmptyTitle" data-en="No jobs in this status" data-vi="Không có công việc ở trạng thái này">No jobs in this status</b>
+            <span class="small" id="jobsEmptyText" data-en="Pick another status filter, or run an agent on a repo to add jobs." data-vi="Chọn bộ lọc trạng thái khác, hoặc chạy agent trên một repo để thêm công việc.">Pick another status filter, or run an agent on a repo to add jobs.</span>
+            <div class="steps" data-en="Pick repo → Write request → Review changes" data-vi="Chọn repo → Viết yêu cầu → Xem thay đổi">Pick repo → Write request → Review changes</div>
+            <button class="btn primary" onclick="JOB.newJob()">
+              <i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 5v14'/%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E&quot;)"></i>
+              <span data-en="New job" data-vi="Công việc mới">New job</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </main>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="assets/app.js"></script>
 <script>
   (function () {
     function toast(en, vi) { AF.toast(AF.lang === 'vi' ? vi : en); }
+
+    /* Demo data for the six listed jobs; numbers tie to the table columns. */
+    var DATA = {
+      '4821': {
+        title: {en: 'Add jobs page', vi: 'Thêm trang jobs'},
+        meta: '#4821 · RUNNING · Codex · agent-fleet/main',
+        log: [
+          ['18:42:10', 'plan: 1 step · 2 files', 'lập kế hoạch: 1 bước · 2 tệp'],
+          ['18:42:11', 'read web-demo/dashboard.html', 'đọc web-demo/dashboard.html'],
+          ['18:42:18', 'write web-demo/jobs.html (+96 −0)', 'ghi web-demo/jobs.html (+96 −0)'],
+          ['18:42:18', 'write web-demo/assets/jobs.css (+32 −0)', 'ghi web-demo/assets/jobs.css (+32 −0)'],
+          ['18:42:22', 'check · node web-demo/check.mjs → OK', 'kiểm tra · node web-demo/check.mjs → OK'],
+          ['18:42:23', 'running · 2 files changed so far', 'đang chạy · 2 tệp đã thay đổi']
+        ],
+        changes: [['web-demo/jobs.html', '+96', '−0'], ['web-demo/assets/jobs.css', '+32', '−0']],
+        req: {en: 'Add a jobs list with status filters, a detail panel with log / changes / request tabs, and an empty state.',
+              vi: 'Thêm danh sách công việc có bộ lọc trạng thái, panel chi tiết với tab log / thay đổi / yêu cầu, và trạng thái rỗng.'}
+      },
+      '4820': {
+        title: {en: 'Refactor quota parser', vi: 'Viết lại bộ đọc hạn mức'},
+        meta: '#4820 · REVIEW · Qoder · harbor/main',
+        log: [
+          ['18:36:02', 'plan: 3 steps · 7 files', 'lập kế hoạch: 3 bước · 7 tệp'],
+          ['18:36:20', 'read server/adapters/quota.py', 'đọc server/adapters/quota.py'],
+          ['18:37:41', 'write 7 files (+312 −188)', 'ghi 7 tệp (+312 −188)'],
+          ['18:39:12', 'test · npx vitest run → 142 passed', 'test · npx vitest run → 142 đạt'],
+          ['18:39:30', 'review requested', 'đã yêu cầu xem xét']
+        ],
+        changes: [
+          ['server/adapters/quota.py', '+128', '−96'],
+          ['server/adapters/__fixtures__/codex/quota.txt', '+34', '−12'],
+          ['web/src/lib/quota.ts', '+46', '−38'],
+          ['web/src/components/QuotaCard.tsx', '+52', '−28'],
+          ['web/src/lib/quota.test.ts', '+28', '−14'],
+          ['shared/quota-schema.json', '+12', '−0'],
+          ['docs/quota-parsing.md', '+12', '−0']
+        ],
+        req: {en: 'Match quota output on end markers instead of full-line regex, and keep one fixture per CLI version.',
+              vi: 'Khớp output hạn mức theo marker kết thúc thay vì regex toàn dòng, và giữ một fixture cho mỗi phiên bản CLI.'}
+      },
+      '4819': {
+        title: {en: 'Fix context overflow', vi: 'Sửa tràn ngữ cảnh'},
+        meta: '#4819 · DONE · Antigravity · agent-fleet/feat/ui',
+        log: [
+          ['18:12:04', 'plan: 1 step · 1 file', 'lập kế hoạch: 1 bước · 1 tệp'],
+          ['18:12:20', 'read web/src/ctx/budget.ts', 'đọc web/src/ctx/budget.ts'],
+          ['18:12:41', 'patch web/src/ctx/budget.ts (+18 −6)', 'vá web/src/ctx/budget.ts (+18 −6)'],
+          ['18:13:02', 'check · npx tsc --noEmit → OK', 'kiểm tra · npx tsc --noEmit → OK'],
+          ['18:13:10', 'done · merged to feat/ui', 'hoàn tất · đã hợp nhất vào feat/ui']
+        ],
+        changes: [['web/src/ctx/budget.ts', '+18', '−6']],
+        req: {en: 'Cap the session history and summarise the oldest turns so long sessions stop overflowing the context window.',
+              vi: 'Giới hạn lịch sử phiên và tóm tắt các lượt cũ để phiên dài không còn tràn cửa sổ ngữ cảnh.'}
+      },
+      '4818': {
+        title: {en: 'Write e2e tests', vi: 'Viết test e2e'},
+        meta: '#4818 · QUEUED · OpenCode · agent-fleet/main',
+        log: [
+          ['20:05:02', 'request stored', 'đã lưu yêu cầu'],
+          ['20:05:02', 'queued at position 2 · waiting for a slot', 'đã xếp hàng vị trí 2 · chờ slot']
+        ],
+        changes: [],
+        req: {en: 'Add Playwright e2e tests for the jobs page: status filter, row select, and the three detail tabs.',
+              vi: 'Thêm test e2e Playwright cho trang jobs: lọc trạng thái, chọn dòng và ba tab chi tiết.'}
+      },
+      '4817': {
+        title: {en: 'Migrate auth store', vi: 'Chuyển kho lưu xác thực'},
+        meta: '#4817 · FAILED · Codex · harbor/fix/auth',
+        log: [
+          ['17:20:11', 'plan: 2 steps · 4 files', 'lập kế hoạch: 2 bước · 4 tệp'],
+          ['17:21:40', 'write 4 files (+204 −96)', 'ghi 4 tệp (+204 −96)'],
+          ['17:23:05', 'test · npx vitest run → 2 failed', 'test · npx vitest run → 2 lỗi'],
+          ['17:23:06', 'error · web/src/lib/auth.test.ts: expected 200, got 401', 'lỗi · web/src/lib/auth.test.ts: kỳ vọng 200, nhận 401'],
+          ['17:23:30', 'stopped after 2 retries', 'dừng sau 2 lần thử lại']
+        ],
+        changes: [
+          ['server/auth/store.py', '+88', '−40'],
+          ['server/auth/session.py', '+46', '−28'],
+          ['web/src/lib/auth.ts', '+44', '−18'],
+          ['web/src/lib/auth.test.ts', '+26', '−10']
+        ],
+        req: {en: 'Move the session store onto the new auth schema and update the login flow to match.',
+              vi: 'Chuyển kho lưu phiên sang schema xác thực mới và cập nhật luồng đăng nhập cho khớp.'}
+      },
+      '4816': {
+        title: {en: 'Docs: web demo', vi: 'Tài liệu: web demo'},
+        meta: '#4816 · WAITING · Qoder · harbor/docs',
+        log: [
+          ['19:31:44', 'request stored', 'đã lưu yêu cầu'],
+          ['19:31:44', 'waiting for a free slot · 3 running, limit 3', 'chờ slot trống · 3 đang chạy, giới hạn 3']
+        ],
+        changes: [],
+        req: {en: 'Document the web demo pages and how to run node web-demo/check.mjs.',
+              vi: 'Tài liệu hoá các trang web demo và cách chạy node web-demo/check.mjs.'}
+      }
+    };
+
+    var rows = [].slice.call(document.querySelectorAll('#jobRows tr'));
+    var current = '4821';
+
+    /* write a bilingual string into a node so later EN/VI clicks keep working */
+    function txt(el, en, vi) {
+      el.setAttribute('data-en', en);
+      el.setAttribute('data-vi', vi);
+      el.textContent = AF.lang === 'vi' ? vi : en;
+    }
+
+    function renderJob(id) {
+      var j = DATA[id];
+      if (!j) return;
+      current = id;
+      txt(document.getElementById('jobSelTitle'), j.title.en, j.title.vi);
+      document.getElementById('jobMeta').textContent = j.meta;
+
+      var log = document.getElementById('jobLog');
+      log.textContent = '';
+      j.log.forEach(function (line) {
+        var row = document.createElement('div');
+        var stamp = document.createElement('span');
+        stamp.className = 'dim';
+        stamp.textContent = line[0];
+        var msg = document.createElement('span');
+        row.appendChild(stamp);
+        row.appendChild(document.createTextNode(' '));
+        row.appendChild(msg);
+        txt(msg, line[1], line[2]);
+        log.appendChild(row);
+      });
+
+      var body = document.getElementById('jobChanges');
+      body.textContent = '';
+      if (!j.changes.length) {
+        var none = document.createElement('tr');
+        var cell = document.createElement('td');
+        cell.colSpan = 3;
+        cell.className = 'muted small';
+        txt(cell, 'No files changed yet', 'Chưa có tệp nào thay đổi');
+        none.appendChild(cell);
+        body.appendChild(none);
+      } else {
+        j.changes.forEach(function (c) {
+          var tr = document.createElement('tr');
+          ['mono', 'num', 'num'].forEach(function (cls, i) {
+            var td = document.createElement('td');
+            td.className = cls;
+            td.textContent = c[i];
+            tr.appendChild(td);
+          });
+          body.appendChild(tr);
+        });
+      }
+
+      txt(document.getElementById('jobRequest'), j.req.en, j.req.vi);
+    }
+
+    function applyFilter(status) {
+      var shown = 0;
+      rows.forEach(function (r) {
+        var hit = status === 'all' || r.getAttribute('data-status') === status;
+        r.hidden = !hit;
+        if (hit) shown++;
+      });
+      var none = shown === 0;
+      document.getElementById('jobsTable').hidden = none;
+      document.getElementById('jobDetail').hidden = none;
+      document.getElementById('jobsEmpty').hidden = !none;
+      txt(document.getElementById('jobCount'),
+          shown + ' of ' + rows.length + ' jobs',
+          shown + '/' + rows.length + ' công việc');
+    }
 
     window.JOB = {
       toast: toast,
@@ -232,29 +404,28 @@
       },
       select: function (row) {
         if (!row) return;
-        [].forEach.call(document.querySelectorAll('#jobRows tr'), function (r) {
-          r.classList.remove('sel');
+        rows.forEach(function (r) {
+          var on = r === row;
+          r.classList.toggle('sel', on);
+          var pick = r.querySelector('.rowbtn');
+          if (pick) pick.setAttribute('aria-pressed', String(on));
         });
-        row.classList.add('sel');
+        renderJob(row.getAttribute('data-job'));
       },
       filter: function (btn) {
         [].forEach.call(document.querySelectorAll('.filters .chip'), function (c) {
-          c.classList.remove('sel');
           c.setAttribute('aria-pressed', 'false');
         });
-        btn.classList.add('sel');
         btn.setAttribute('aria-pressed', 'true');
-      },
-      empty: function () {
-        var e = document.getElementById('jobsEmpty');
-        var l = document.getElementById('jobsList');
-        e.hidden = !e.hidden;
-        l.hidden = !e.hidden;
+        applyFilter(btn.getAttribute('data-status'));
       },
       newJob: function () {
         toast('New job wizard (demo)', 'Trình tạo công việc (demo)');
       }
     };
+
+    renderJob(current);
+    applyFilter('all');
   })();
 </script>
 </body>

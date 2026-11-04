@@ -4,11 +4,7 @@
    terminal palette that stays dark in both themes.
    ========================================================================= */
 
-/* containment: stop panels/tables from pushing the page wide */
-.wrap{min-width:0}
-.grid2>*{min-width:0}
-
-.btn.sm{height:28px;padding:0 10px;font-size:11px}
+/* Shared rules (.wrap, .grid2, .btn.sm, .stab) live in assets/pages.css. */
 
 /* ---- session toolbar ---- */
 .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
@@ -20,11 +16,6 @@
 .sessions{display:flex;align-items:center;gap:8px;min-width:0;
   border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto}
 .stablist{display:inline-flex;align-items:center;gap:4px;min-width:0}
-.stab{display:inline-flex;align-items:center;gap:8px;flex:none;white-space:nowrap;
-  background:transparent;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;
-  padding:9px 10px;cursor:pointer;color:var(--muted);font:600 12px var(--sans)}
-.stab:hover{color:var(--ink)}
-.stab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 .sessions .newbtn{margin-left:auto;flex:none}
 
 /* ---- terminal frame (fixed dark palette, independent of theme) ---- */
@@ -43,10 +34,14 @@
 @keyframes blink{50%{opacity:0}}
 
 /* ---- warning / reconnect notice ---- */
+/* display:flex beats the hidden attribute, so the off state needs its own rule */
 .notice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   border:1px solid var(--warn);background:var(--warn-soft);border-radius:var(--r);padding:12px 14px}
+.notice[hidden]{display:none}
 .notice .ic{color:var(--warn)}
 .notice .txt{flex:1;min-width:160px;color:var(--warn);font:600 12px var(--sans)}
+.toolbar .btn:disabled{opacity:.45;cursor:default}
+.toolbar .btn:disabled:hover{background:transparent}
 
 /* ---- session info key/value rows ---- */
 .kv{display:flex;flex-direction:column}
