@@ -20,8 +20,26 @@
       <a href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Terminal" data-vi="Terminal">Terminal</span></a>
       <a href="jobs.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'/%3E%3C/svg%3E&quot;)"></i><span data-en="Jobs" data-vi="Công việc">Jobs</span></a>
       <a href="compare.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Compare" data-vi="So sánh agent">Compare</span></a>
-      <a href="resources.html" aria-current="page"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 3v18h18M7 15l4-5 3 3 5-7'/%3E%3C/svg%3E&quot;)"></i><span data-en="Resources &amp; usage" data-vi="Tài nguyên &amp; sử dụng">Resources &amp; usage</span></a>
+      <a href="resources.html" aria-current="page"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 3v18h18M7 15l4-5 3 3 5-7'/%3E%3C/svg%3E&quot;)"></i><span data-en="Resources &amp; usage" data-vi="Tài nguyên">Resources &amp; usage</span></a>
     </nav>
+
+    <!-- Hardware: real values, toggled from the header -->
+    <div class="side-res" id="resStrip">
+      <span class="rlabel" data-en="Hardware" data-vi="Phần cứng">Hardware</span>
+      <div class="r" title="3.8 of 5.2 GHz · 8 of 24 threads busy">
+        <div class="r-top"><span class="rname">CPU</span><b>3.8</b><span class="unit">/ 5.2 GHz</span></div>
+        <div class="bar ok"><span style="width:73%"></span></div>
+      </div>
+      <div class="r" title="19.8 of 32 GB in use">
+        <div class="r-top"><span class="rname">RAM</span><b>19.8</b><span class="unit">/ 32 GB</span></div>
+        <div class="bar warn"><span style="width:62%"></span></div>
+      </div>
+      <div class="r" title="4.6 of 12 GB in use · 52 °C">
+        <div class="r-top"><span class="rname">GPU</span><b>4.6</b><span class="unit">/ 12 GB</span></div>
+        <div class="bar ok"><span style="width:38%"></span></div>
+      </div>
+    </div>
+
     <div class="foot">WEB DEMO · v5</div>
   </aside>
 
@@ -33,7 +51,7 @@
         <button id="lang-en" aria-pressed="true" onclick="AF.setLang('en')">EN</button>
         <button id="lang-vi" aria-pressed="false" onclick="AF.setLang('vi')">VI</button>
       </div>
-      <button class="tbtn" id="resToggle" aria-pressed="true" onclick="AF.toggleRes()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i><span data-en="System" data-vi="Tài nguyên">System</span></button>
+      <button class="tbtn" id="resToggle" aria-pressed="true" aria-label="Hardware" onclick="AF.toggleRes()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i><span data-en="Hardware" data-vi="Phần cứng">Hardware</span></button>
       <button class="tbtn" onclick="AF.theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i><span id="themeLabel" data-en="System" data-vi="Theo hệ thống">System</span></button>
     </div>
 
@@ -41,7 +59,7 @@
       <div class="head">
         <div>
           <p class="eyebrow" data-en="Budget &amp; hardware" data-vi="Ngân sách &amp; phần cứng">Budget &amp; hardware</p>
-          <h1 class="title">RE<em>SOURCES</em></h1>
+          <h1 class="title sm">RE<em>SOURCES</em></h1>
         </div>
         <div class="actions">
           <!-- one page-level window: it drives the KPI row and the chart -->
@@ -55,100 +73,91 @@
         </div>
       </div>
 
-      <!-- Resources: real values, not % -->
-      <div class="res" id="resStrip">
-        <span class="rlabel" data-en="System" data-vi="Tài nguyên">System</span>
-        <div class="r"><span class="rname">CPU</span><b>3.8</b><span class="unit">/ 5.2 GHz</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">8/24</span></div>
-        <div class="r"><span class="rname">RAM</span><b>19.8</b><span class="unit">/ 32 GB</span><div class="bar warn"><span style="width:62%"></span></div></div>
-        <div class="r"><span class="rname">GPU</span><b>4.6</b><span class="unit">/ 12 GB</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">52°C</span></div>
-      </div>
-
       <!-- KPI row: every figure below follows the selected window, except the
            Qoder credit balance, which is the current plan state -->
       <div class="kpis">
         <div class="panel">
           <h4 data-en="Total tokens used" data-vi="Tổng token đã dùng">Total tokens used</h4>
-          <div class="kpi"><b data-7="42.8M" data-30="153.0M">42.8M</b><small data-en-7="last 7 days" data-vi-7="7 ngày qua" data-en-30="last 30 days" data-vi-30="30 ngày qua" data-en="last 7 days" data-vi="7 ngày qua">last 7 days</small></div>
-          <div class="small muted" style="margin-top:10px" data-en-7="+6.4M vs previous week" data-vi-7="+6.4M so với tuần trước" data-en-30="avg 5.1M per day" data-vi-30="trung bình 5.1M mỗi ngày" data-en="+6.4M vs previous week" data-vi="+6.4M so với tuần trước">+6.4M vs previous week</div>
+          <div class="kpi"><b data-7="12.0M" data-30="43.0M">12.0M</b><small data-en-7="last 7 days" data-vi-7="7 ngày qua" data-en-30="last 30 days" data-vi-30="30 ngày qua" data-en="last 7 days" data-vi="7 ngày qua">last 7 days</small></div>
+          <div class="ksub" data-en-7="+1.8M vs previous week" data-vi-7="+1.8M so với tuần trước" data-en-30="avg 1.4M per day" data-vi-30="trung bình 1.4M mỗi ngày" data-en="+1.8M vs previous week" data-vi="+1.8M so với tuần trước">+1.8M vs previous week</div>
         </div>
         <div class="panel">
           <h4 data-en="Qoder credits left" data-vi="Credit Qoder còn lại">Qoder credits left</h4>
           <div class="kpi"><b>1,240</b><small data-en="/ 2,000" data-vi="/ 2,000">/ 2,000</small></div>
-          <div class="bar ok" style="margin-top:12px"><span style="width:62%"></span></div>
-          <div class="creditline"><span data-en="760 used" data-vi="760 đã dùng">760 used</span><span data-en="renews 28/11" data-vi="gia hạn 28/11">renews 28/11</span></div>
-          <div class="small muted" style="margin-top:10px" data-en="current plan · not window-scoped" data-vi="gói hiện tại · không theo cửa sổ ngày">current plan · not window-scoped</div>
+          <div class="bar ok" style="margin-top:10px"><span style="width:62%"></span></div>
+          <div class="ksub" data-en="760 used · renews 28/11 · plan state, not window-scoped" data-vi="đã dùng 760 · gia hạn 28/11 · trạng thái gói, không theo cửa sổ ngày">760 used · renews 28/11 · plan state, not window-scoped</div>
         </div>
         <div class="panel">
           <h4 data-en="Jobs run" data-vi="Số job đã chạy">Jobs run</h4>
           <div class="kpi"><b data-7="501" data-30="2,122">501</b><small data-en="across 4 agents" data-vi="trên 4 agent">across 4 agents</small></div>
-          <div class="small muted" style="margin-top:10px" data-en-7="+38 today" data-vi-7="+38 hôm nay" data-en-30="avg 71 per day" data-vi-30="trung bình 71 mỗi ngày" data-en="+38 today" data-vi="+38 hôm nay">+38 today</div>
+          <div class="ksub" data-en-7="+38 today" data-vi-7="+38 hôm nay" data-en-30="avg 71 per day" data-vi-30="trung bình 71 mỗi ngày" data-en="+38 today" data-vi="+38 hôm nay">+38 today</div>
         </div>
         <div class="panel">
           <h4 data-en="Avg duration" data-vi="Thời lượng TB">Avg duration</h4>
           <div class="kpi"><b data-7="46s" data-30="45s">46s</b><small data-en="/ task" data-vi="/ task">/ task</small></div>
-          <div class="small muted" style="margin-top:10px" data-en-7="↓ 3s vs previous week" data-vi-7="↓ 3s so với tuần trước" data-en-30="range 35.5–52.6 s per task" data-vi-30="khoảng 35.5–52.6 s mỗi task" data-en="↓ 3s vs previous week" data-vi="↓ 3s so với tuần trước">↓ 3s vs previous week</div>
+          <div class="ksub" data-en-7="↓ 3s vs previous week" data-vi-7="↓ 3s so với tuần trước" data-en-30="range 35.5–52.6 s per task" data-vi-30="khoảng 35.5–52.6 s mỗi task" data-en="↓ 3s vs previous week" data-vi="↓ 3s so với tuần trước">↓ 3s vs previous week</div>
         </div>
       </div>
 
       <!-- Token trend: 7 days = per day, 30 days = per week (4 weekly buckets,
            the newest one being the same 42.8M the 7-day window shows) -->
-      <div class="panel" style="margin-bottom:24px">
+      <div class="panel chartpanel">
         <div class="panel-head">
           <h4 data-en-7="Tokens per day" data-vi-7="Token theo ngày" data-en-30="Tokens per week" data-vi-30="Token theo tuần" data-en="Tokens per day" data-vi="Token theo ngày">Tokens per day</h4>
         </div>
 
         <div id="win7">
-          <svg class="chart" viewBox="0 0 700 260" role="img" aria-label="Tokens used per day over the last 7 days">
-            <line class="grid-line" x1="44" y1="39" x2="660" y2="39"/>
-            <line class="grid-line" x1="44" y1="129.5" x2="660" y2="129.5"/>
-            <line class="axis" x1="44" y1="220" x2="660" y2="220"/>
-            <text class="lbl" x="38" y="43" text-anchor="end">8M</text>
-            <text class="lbl" x="38" y="133.5" text-anchor="end">4M</text>
-            <text class="lbl" x="38" y="224" text-anchor="end">0</text>
-            <rect class="bar-rect" x="56" y="102.4" width="56" height="117.6" rx="3"/>
-            <rect class="bar-rect" x="145" y="63.9" width="56" height="156.1" rx="3"/>
-            <rect class="bar-rect" x="233" y="120.5" width="56" height="99.5" rx="3"/>
-            <rect class="bar-rect" x="322" y="43.6" width="56" height="176.4" rx="3"/>
-            <rect class="bar-rect" x="411" y="82" width="56" height="138" rx="3"/>
-            <rect class="bar-rect" x="499" y="30" width="56" height="190" rx="3"/>
-            <rect class="bar-rect last" x="588" y="129.5" width="56" height="90.5" rx="3"/>
-            <text class="val" x="84" y="94.4" text-anchor="middle">5.2M</text>
-            <text class="val" x="173" y="55.9" text-anchor="middle">6.9M</text>
-            <text class="val" x="261" y="112.5" text-anchor="middle">4.4M</text>
-            <text class="val" x="350" y="35.6" text-anchor="middle">7.8M</text>
-            <text class="val" x="439" y="74" text-anchor="middle">6.1M</text>
-            <text class="val" x="527" y="22" text-anchor="middle">8.4M</text>
-            <text class="val" x="616" y="121.5" text-anchor="middle">4.0M</text>
-            <text class="lbl" x="84" y="242" text-anchor="middle" data-en="Mon" data-vi="T2">Mon</text>
-            <text class="lbl" x="173" y="242" text-anchor="middle" data-en="Tue" data-vi="T3">Tue</text>
-            <text class="lbl" x="261" y="242" text-anchor="middle" data-en="Wed" data-vi="T4">Wed</text>
-            <text class="lbl" x="350" y="242" text-anchor="middle" data-en="Thu" data-vi="T5">Thu</text>
-            <text class="lbl" x="439" y="242" text-anchor="middle" data-en="Fri" data-vi="T6">Fri</text>
-            <text class="lbl" x="527" y="242" text-anchor="middle" data-en="Sat" data-vi="T7">Sat</text>
-            <text class="lbl" x="616" y="242" text-anchor="middle" data-en="Sun" data-vi="CN">Sun</text>
+          <svg class="chart" viewBox="0 0 1200 186" role="img" aria-label="Tokens used per day over the last 7 days">
+            <line class="grid-line" x1="60" y1="62.4" x2="1180" y2="62.4"/>
+            <line class="grid-line" x1="60" y1="107.2" x2="1180" y2="107.2"/>
+            <line class="axis" x1="60" y1="152" x2="1180" y2="152"/>
+            <text class="lbl" x="52" y="66.4" text-anchor="end">2M</text>
+            <text class="lbl" x="52" y="111.2" text-anchor="end">1M</text>
+            <text class="lbl" x="52" y="156" text-anchor="end">0</text>
+            <rect class="bar-rect" x="105" y="98.2" width="70" height="53.8" rx="3"/>
+            <rect class="bar-rect" x="265" y="66.9" width="70" height="85.1" rx="3"/>
+            <rect class="bar-rect" x="425" y="102.7" width="70" height="49.3" rx="3"/>
+            <rect class="bar-rect" x="585" y="49" width="70" height="103" rx="3"/>
+            <rect class="bar-rect" x="745" y="75.8" width="70" height="76.2" rx="3"/>
+            <rect class="bar-rect" x="905" y="40" width="70" height="112" rx="3"/>
+            <rect class="bar-rect last" x="1065" y="93.8" width="70" height="58.2" rx="3"/>
+            <text class="val" x="140" y="92" text-anchor="middle">1.2M</text>
+            <text class="val" x="300" y="61" text-anchor="middle">1.9M</text>
+            <text class="val" x="460" y="97" text-anchor="middle">1.1M</text>
+            <text class="val" x="620" y="43" text-anchor="middle">2.3M</text>
+            <text class="val" x="780" y="70" text-anchor="middle">1.7M</text>
+            <text class="val" x="940" y="34" text-anchor="middle">2.5M</text>
+            <text class="val" x="1100" y="88" text-anchor="middle">1.3M</text>
+            <text class="lbl" x="140" y="172" text-anchor="middle" data-en="Mon" data-vi="T2">Mon</text>
+            <text class="lbl" x="300" y="172" text-anchor="middle" data-en="Tue" data-vi="T3">Tue</text>
+            <text class="lbl" x="460" y="172" text-anchor="middle" data-en="Wed" data-vi="T4">Wed</text>
+            <text class="lbl" x="620" y="172" text-anchor="middle" data-en="Thu" data-vi="T5">Thu</text>
+            <text class="lbl" x="780" y="172" text-anchor="middle" data-en="Fri" data-vi="T6">Fri</text>
+            <text class="lbl" x="940" y="172" text-anchor="middle" data-en="Sat" data-vi="T7">Sat</text>
+            <text class="lbl" x="1100" y="172" text-anchor="middle" data-en="Sun" data-vi="CN">Sun</text>
           </svg>
         </div>
 
         <div id="win30" hidden>
-          <svg class="chart" viewBox="0 0 700 260" role="img" aria-label="Tokens used per week over the last 30 days">
-            <line class="grid-line" x1="44" y1="59" x2="660" y2="59"/>
-            <line class="grid-line" x1="44" y1="139.5" x2="660" y2="139.5"/>
-            <line class="axis" x1="44" y1="220" x2="660" y2="220"/>
-            <text class="lbl" x="38" y="63" text-anchor="end">40M</text>
-            <text class="lbl" x="38" y="143.5" text-anchor="end">20M</text>
-            <text class="lbl" x="38" y="224" text-anchor="end">0</text>
-            <rect class="bar-rect" x="76" y="62.7" width="110" height="157.3" rx="3"/>
-            <rect class="bar-rect" x="226" y="80.4" width="110" height="139.6" rx="3"/>
-            <rect class="bar-rect" x="376" y="73.6" width="110" height="146.4" rx="3"/>
-            <rect class="bar-rect last" x="526" y="47.8" width="110" height="172.2" rx="3"/>
-            <text class="val" x="131" y="54.7" text-anchor="middle">39.1M</text>
-            <text class="val" x="281" y="72.4" text-anchor="middle">34.7M</text>
-            <text class="val" x="431" y="65.6" text-anchor="middle">36.4M</text>
-            <text class="val" x="581" y="39.8" text-anchor="middle">42.8M</text>
-            <text class="lbl" x="131" y="242" text-anchor="middle">07/10</text>
-            <text class="lbl" x="281" y="242" text-anchor="middle">14/10</text>
-            <text class="lbl" x="431" y="242" text-anchor="middle">21/10</text>
-            <text class="lbl" x="581" y="242" text-anchor="middle">28/10</text>
+          <svg class="chart" viewBox="0 0 1200 186" role="img" aria-label="Tokens used per week over the last 30 days">
+            <line class="grid-line" x1="60" y1="40" x2="1180" y2="40"/>
+            <line class="grid-line" x1="60" y1="96" x2="1180" y2="96"/>
+            <line class="axis" x1="60" y1="152" x2="1180" y2="152"/>
+            <text class="lbl" x="52" y="44" text-anchor="end">12M</text>
+            <text class="lbl" x="52" y="100" text-anchor="end">6M</text>
+            <text class="lbl" x="52" y="156" text-anchor="end">0</text>
+            <rect class="bar-rect" x="135" y="54.9" width="130" height="97.1" rx="3"/>
+            <rect class="bar-rect" x="415" y="62.4" width="130" height="89.6" rx="3"/>
+            <rect class="bar-rect" x="695" y="47.5" width="130" height="104.5" rx="3"/>
+            <rect class="bar-rect last" x="975" y="41.9" width="130" height="110.1" rx="3"/>
+            <text class="val" x="200" y="49" text-anchor="middle">10.4M</text>
+            <text class="val" x="480" y="56" text-anchor="middle">9.6M</text>
+            <text class="val" x="760" y="42" text-anchor="middle">11.2M</text>
+            <text class="val" x="1040" y="36" text-anchor="middle">11.8M</text>
+            <text class="lbl" x="200" y="172" text-anchor="middle">07/10</text>
+            <text class="lbl" x="480" y="172" text-anchor="middle">14/10</text>
+            <text class="lbl" x="760" y="172" text-anchor="middle">21/10</text>
+            <text class="lbl" x="1040" y="172" text-anchor="middle">28/10</text>
           </svg>
         </div>
 
@@ -163,7 +172,7 @@
       </div>
 
       <!-- Per-agent usage -->
-      <div class="panel">
+      <div class="panel usage fill">
         <h4 data-en="Usage by agent" data-vi="Sử dụng theo agent">Usage by agent</h4>
         <div class="tscroll">
           <table class="table">
@@ -171,7 +180,7 @@
               <th data-en="Agent" data-vi="Agent">Agent</th>
               <th data-en="Tier" data-vi="Gói">Tier</th>
               <th data-en="Model" data-vi="Model">Model</th>
-              <th data-en="Credit / tokens used" data-vi="Credit / token đã dùng">Credit / tokens used</th>
+              <th data-en="Credit / tokens" data-vi="Credit / token">Credit / tokens</th>
               <th class="num" data-en="Multiplier" data-vi="Hệ số">Multiplier</th>
               <th class="num" data-en="Tokens" data-vi="Token">Tokens</th>
               <th data-en="Status" data-vi="Trạng thái">Status</th>
@@ -184,7 +193,7 @@
                 <td class="mono small" data-en="included in plan" data-vi="nằm trong gói">included in plan</td>
                 <td class="num mono">x1.0</td>
                 <td class="num mono" data-7="3.1M" data-30="11.6M">3.1M</td>
-                <td><span class="badge warn" data-en="QUOTA 22%" data-vi="HẠN MỨC 22%">QUOTA 22%</span></td>
+                <td><span class="badge warn" title="Only 22% of the 5-hour window is left" data-en="QUOTA 22%" data-vi="HẠN MỨC 22%">QUOTA 22%</span></td>
               </tr>
               <tr>
                 <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
@@ -207,16 +216,16 @@
               <tr>
                 <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>OpenCode</span></td>
                 <td><span class="tier byok">BYOK</span></td>
-                <td class="model mono">harbor-pool/…flash:free</td>
-                <td class="mono small">1.56M / 3.4M</td>
+                <td class="model mono"><span title="harbor-pool/deepseek-v4.1-flash:free">harbor-pool/…flash:free</span></td>
+                <td class="mono small" data-en="1.56M of 3.4M tokens" data-vi="1,56M / 3,4M token">1.56M of 3.4M tokens</td>
                 <td class="num mono">x0</td>
-                <td class="num mono" data-7="31.6M" data-30="112.9M">31.6M</td>
-                <td><span class="badge ok">OK</span></td>
+                <td class="num mono" data-7="0.8M" data-30="2.9M">0.8M</td>
+                <td><span class="badge warn" title="Pool key-13 has expired" data-en="KEY EXPIRED" data-vi="KEY HẾT HẠN">KEY EXPIRED</span></td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p class="tablenote" data-en="Tokens follow the selected window (7 days: 3.1 + 1.2 + 6.9 + 31.6 = 42.8M; 30 days: 11.6 + 4.4 + 24.1 + 112.9 = 153.0M). The Qoder and OpenCode figures in the previous column are caps of the current plan, not a range." data-vi="Cột Token theo cửa sổ đang chọn (7 ngày: 3.1 + 1.2 + 6.9 + 31.6 = 42.8M; 30 ngày: 11.6 + 4.4 + 24.1 + 112.9 = 153.0M). Số liệu Qoder và OpenCode ở cột trước là hạn mức của gói hiện tại, không theo khoảng ngày.">Tokens follow the selected window (7 days: 3.1 + 1.2 + 6.9 + 31.6 = 42.8M; 30 days: 11.6 + 4.4 + 24.1 + 112.9 = 153.0M). The Qoder and OpenCode figures in the previous column are caps of the current plan, not a range.</p>
+        <p class="tablenote" data-en="Tokens follow the window and add up to the total above: 7 days 3.1 + 1.2 + 6.9 + 0.8 = 12.0M; 30 days 11.6 + 4.4 + 24.1 + 2.9 = 43.0M." data-vi="Token theo cửa sổ và cộng lại đúng bằng tổng ở trên: 7 ngày 3,1 + 1,2 + 6,9 + 0,8 = 12,0M; 30 ngày 11,6 + 4,4 + 24,1 + 2,9 = 43,0M.">Tokens follow the window and add up to the total above: 7 days 3.1 + 1.2 + 6.9 + 0.8 = 12.0M; 30 days 11.6 + 4.4 + 24.1 + 2.9 = 43.0M.</p>
       </div>
     </div>
   </main>
@@ -229,7 +238,7 @@
 
     /* Same rule as compare.html: one window switch moves every window-scoped
        figure. [data-7]/[data-30] hold language-neutral numbers;
-       [data-en-7]…[data-vi-30] also refresh the EN/VI pair so switching
+       [data-en-7]...[data-vi-30] also refresh the EN/VI pair so switching
        language afterwards cannot fall back to the other window's wording. */
     function applyWindow(v) {
       var seven = v === '7';

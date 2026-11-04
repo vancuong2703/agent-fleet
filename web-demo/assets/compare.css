@@ -1,10 +1,11 @@
 /* =========================================================================
    Compare page · web demo extra layout. Depends on assets/app.css.
+   Fits one window: header, four cards, one note row, one summary panel.
    ========================================================================= */
 
 /* 4 columns; 2 columns when narrow (never 1, per brief). */
 .cmp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--surface)}
-.cmp .card{border-right:1px solid var(--border)}
+.cmp .card{padding:16px;gap:12px;border-right:1px solid var(--border)}
 .cmp .card:last-child{border-right:0}
 @media(max-width:1100px){
   .cmp{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -12,28 +13,52 @@
   .cmp .card:nth-child(1),.cmp .card:nth-child(2){border-bottom:1px solid var(--border)}
 }
 @media(max-width:560px){
-  .cmp .card{padding:14px;border-bottom:1px solid var(--border)}
-  .cmp .card:nth-child(3),.cmp .card:nth-child(4){border-bottom:0}
+  .cmp{grid-template-columns:1fr}
+  .cmp .card{padding:14px;border-right:0;border-bottom:1px solid var(--border)}
+  .cmp .card:last-child{border-bottom:0}
   .cmp .gauges{gap:12px}
   .cmp .gauge{min-width:64px}
-  h1.title{font-size:38px}
-  /* keep the sticky shell inside the viewport (no page x-scroll) */
-  .topbar{flex-wrap:wrap;padding:12px 16px}
-  .wrap{padding:18px}
 }
 
-/* long unbreakable labels (e.g. harbor-pool/…flash:free) must wrap */
+/* long unbreakable labels (e.g. harbor-pool/...flash:free) must wrap */
 .cmp .statusline,.cmp .ver{overflow-wrap:anywhere}
 
 /* Time-window chips (.filters, button.chip) and the summary table frame
    (.tscroll) come from assets/pages.css. */
 
-/* per-agent stat rows */
-.stats{border-top:1px solid var(--border)}
-.stat{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
-.stats .stat:last-child{border-bottom:0}
-.stat .k{font:600 11.5px var(--sans);color:var(--muted);min-width:0}
-.stat .v{font:700 12px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:auto}
+/* Gauge geometry is shared with the dashboard: same data, same 80 px ring.
+   .donut.sm is reserved for the dense Antigravity matrix on the dashboard,
+   where three models x two windows have to fit one card row — so a 56 px
+   ring is a density choice there, not a second way to draw the same number. */
+
+/* per-agent stat row: three numbers side by side instead of three stacked
+   rows, which is what used to push the cards past the fold */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;
+  border-top:1px solid var(--border);padding-top:9px}
+.stat{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .k{font:600 10px var(--mono);letter-spacing:.04em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .v{font:700 13px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* absolute figure under a gauge (credits / tokens), above its reset time */
 .g-num{font:700 10.5px var(--mono);color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+
+/* note + status legend share one line under the cards (.noterow, .legend
+   live in app.css because the dashboard uses them too) */
+
+/* the summary panel takes the leftover height of the window */
+.summary{margin-top:10px;padding:16px}
+.summary h4{margin-bottom:10px}
+.summary .tscroll{overflow-x:auto}
+.summary td{padding:7px 6px}
+.summary .tablenote{margin-top:8px}
+
+/* short window: shrink the rings, drop the two long captions */
+@media(max-height:870px){
+  .cmp .card{padding:12px;gap:10px}
+  .stats{padding-top:6px}
+  .donut{--donut:64px}
+  .donut .pct{font-size:14px}
+  .summary h4{margin-bottom:6px}
+  .summary td{padding:5px 6px}
+  .summary .tablenote,.noterow .tablenote{display:none}
+}

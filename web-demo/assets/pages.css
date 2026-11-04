@@ -10,26 +10,26 @@
 .grid2>*{min-width:0}
 
 /* compact button variant */
-.btn.sm{height:28px;padding:0 10px;font-size:11px}
+.btn.sm{height:28px;padding:0 10px;font-size:11.5px}
 
 /* single-select filter chips (state carried by aria-pressed) */
 .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 button.chip{cursor:pointer;background:transparent}
 button.chip:hover{border-color:var(--ink);color:var(--ink)}
 button.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.filters .count{font:600 11px var(--mono);color:var(--muted)}
+.filters .count{font:600 11.5px var(--mono);color:var(--muted)}
 
 /* tabs: terminal sessions and job details use the same tab button */
 .stab{display:inline-flex;align-items:center;gap:8px;flex:none;white-space:nowrap;
   background:transparent;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;
-  padding:9px 10px;cursor:pointer;color:var(--muted);font:600 12px var(--sans)}
+  padding:9px 10px;cursor:pointer;color:var(--muted);font:600 12.5px var(--sans)}
 .stab:hover{color:var(--ink)}
 .stab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 
-/* wide tables pan inside their own panel, never the page */
-.tscroll{overflow-x:auto}
+/* tables pan inside their own frame, never the page */
+.tablewrap,.tscroll{overflow-x:auto;min-width:0}
 .tscroll .table{min-width:620px}
 .tscroll td.model{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* caption under a table: units + which column follows the time window */
-.tablenote{margin:12px 0 0;font:500 10.5px/1.5 var(--mono);color:var(--muted)}
+.tablenote{margin:10px 0 0;font:500 11.5px/1.55 var(--mono);color:var(--muted)}
