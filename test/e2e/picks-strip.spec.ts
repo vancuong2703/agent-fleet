@@ -52,6 +52,15 @@ async function stubDashboard(page: Page) {
   await page.route('**/api/tasks', (route) => route.fulfill({ json: [] }));
 }
 
+/** Ghi lại mọi lần mở CLI; sao chép model không được tạo phiên terminal nào. */
+function trackLaunches(page: Page): string[] {
+  const launches: string[] = [];
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().includes('/api/terminal-sessions')) launches.push(request.url());
+  });
+  return launches;
+}
+
 test('ba gợi ý cộng một cảnh báo; bấm gợi ý model thì sao chép lệnh --model', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'clipboard', {
@@ -59,6 +68,7 @@ test('ba gợi ý cộng một cảnh báo; bấm gợi ý model thì sao chép 
       value: { writeText: async (text: string) => { (window as unknown as { __copied?: string }).__copied = text; } },
     });
   });
+  const launches = trackLaunches(page);
   await stubDashboard(page);
   await login(page);
 
@@ -80,6 +90,29 @@ test('ba gợi ý cộng một cảnh báo; bấm gợi ý model thì sao chép 
   await expect(toast).toHaveClass(/dash-toast-success/);
   // Sao chép không được điều hướng khỏi dashboard.
   await expect(page.getByRole('heading', { name: 'Bảng điều khiển', exact: true })).toBeVisible();
+  // Và tuyệt đối không mở CLI: gợi ý model chỉ sao chép.
+  expect(launches).toEqual([]);
+});
+
+test('trình duyệt chặn clipboard thì báo lỗi kèm lệnh để tự gõ, không mở CLI', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async () => { throw new Error('NotAllowedError'); } },
+    });
+  });
+  const launches = trackLaunches(page);
+  await stubDashboard(page);
+  await login(page);
+
+  await page.getByRole('button', { name: 'Sao chép lệnh --model qwen-flash' }).click();
+  const toast = page.locator('.dash-toast');
+  await expect(toast).toHaveAttribute('role', 'alert');
+  await expect(toast).toHaveClass(/dash-toast-error/);
+  // Người dùng phải đọc được đúng lệnh để tự dán.
+  await expect(toast).toContainText('Không sao chép được. Lệnh cần dùng: --model qwen-flash');
+  await expect(page.getByRole('heading', { name: 'Bảng điều khiển', exact: true })).toBeVisible();
+  expect(launches).toEqual([]);
 });
 
 test('bấm gợi ý tool mở CLI đúng agent như nút Mở CLI', async ({ page }) => {
