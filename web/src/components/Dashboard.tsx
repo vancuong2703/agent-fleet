@@ -31,7 +31,7 @@ export function Dashboard({ plans, tasks, cli }: { plans: Plan[]; tasks: Task[];
           <label className="dashboard-location">
             Vị trí mở CLI
             <select aria-label="Vị trí mở CLI" value={cli.selection} onChange={(event) => cli.setSelection(event.target.value)}>
-              <option value="workspace">Workspace riêng của công cụ</option>
+              <option value="workspace">Không gian riêng của công cụ</option>
               {plans.map((plan) => <option key={plan.id} value={`plan:${plan.id}`}>Repo · {plan.name}</option>)}
               {busyTasks.map((task) => <option key={task.id} value={`task:${task.id}`}>Worktree · {task.title}</option>)}
             </select>

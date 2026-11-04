@@ -17,6 +17,7 @@ import {
   type ChartKind,
   type UsageKpi,
 } from '../../usage.js';
+import { appStrings } from '../../strings.js';
 import { AgentMark } from '../Icon.js';
 import { ResourceChart } from './ResourceChart.js';
 import '../../styles/usage.css';
@@ -257,7 +258,7 @@ export function UsagePage({ snapshot, error, plans, tasks, onSelectTask, tools: 
     <div className="page-heading">
       <div>
         <span className="eyebrow">WORKSPACE ANALYTICS</span>
-        <h1>Tài nguyên &amp; mức sử dụng</h1>
+        <h1>{appStrings.usageTitle}</h1>
         <p className="muted">Số liệu thực đo và dữ liệu do agent cung cấp.</p>
       </div>
       <button className="action-btn" disabled={!data} onClick={() => data && exportReport(data)}><Download size={16} strokeWidth={1.75} aria-hidden="true" />Xuất báo cáo</button>
@@ -301,7 +302,7 @@ export function UsagePage({ snapshot, error, plans, tasks, onSelectTask, tools: 
             <div className="active-job-model">{job.model ?? 'Model chưa được báo'} · {job.agent}</div>
             <p>{job.currentActivity}</p>
           </div>
-          <button className="text-button" onClick={() => onSelectTask(job.taskId)}>Xem task<ArrowRight size={14} strokeWidth={1.75} aria-hidden="true" /></button>
+          <button className="text-button" onClick={() => onSelectTask(job.taskId)}>{appStrings.usage.viewTask}<ArrowRight size={14} strokeWidth={1.75} aria-hidden="true" /></button>
         </div>)}
       </section>}
 

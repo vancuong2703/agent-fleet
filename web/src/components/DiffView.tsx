@@ -86,7 +86,7 @@ export function DiffView({ files, patch, error, taskId, loading = false, onRetry
       </ul>
       <div className="diff-detail"><div className="diff-toolbar"><span>{selectedPath}</span><button className="text-button" disabled={!isDesktop() || !taskId || !selectedPath} title={isDesktop() ? 'Hiện tệp trong Explorer' : 'Có trong ứng dụng Desktop'} onClick={() => { if (taskId && selectedPath) void openLocation({ taskId, relativePath: selectedPath, action: 'reveal' }).catch((cause) => setLocationError(String(cause))); }}><Icon name="folder" size={14} />Mở vị trí tệp</button></div>{locationError && <p className="banner banner-error">{locationError}</p>}<div className="diff-pane">
         {section === null ? (
-          <div className="placeholder">Không có diff cho file này.</div>
+          <div className="placeholder">Không có thay đổi cho tệp này.</div>
         ) : (
           section.lines.map((line, index) => (
             <div key={index} className={`diff-line diff-${line.kind}`}>

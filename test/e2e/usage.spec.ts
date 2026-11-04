@@ -177,7 +177,7 @@ async function openUsage(page: Page, options: RouteOptions): Promise<void> {
   await page.goto(`/auth?token=${encodeURIComponent(token)}`);
   await expect(page.locator('.connection')).toHaveAttribute('title', 'Đã kết nối');
   await page.getByRole('button', { name: 'Tài nguyên & sử dụng', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Tài nguyên & mức sử dụng', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tài nguyên & sử dụng', exact: true })).toBeVisible();
 }
 
 /** Relative luminance/contrast for computed colors, worst case across matches. */

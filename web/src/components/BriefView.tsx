@@ -1,4 +1,5 @@
 import type { Run } from '../../../shared/types.js';
+import { appStrings } from '../strings.js';
 
 export interface BriefViewProps {
   runs: Run[];
@@ -16,18 +17,18 @@ export function BriefView({ runs }: BriefViewProps) {
   );
 
   if (original === null) {
-    return <div className="placeholder">Chưa có brief.</div>;
+    return <div className="placeholder">{appStrings.brief.empty}</div>;
   }
 
   return (
     <div className="brief-view">
       <section className="brief-section">
-        <h3 className="brief-heading">Brief gốc</h3>
+        <h3 className="brief-heading">{appStrings.brief.original}</h3>
         <pre className="brief-text">{original}</pre>
       </section>
       {notes.map((run) => (
         <section key={run.id} className="brief-section">
-          <h3 className="brief-heading">Ghi chú lần thử {run.attempt}</h3>
+          <h3 className="brief-heading">{appStrings.brief.note(run.attempt)}</h3>
           <pre className="brief-text">{run.note}</pre>
         </section>
       ))}

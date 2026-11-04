@@ -49,11 +49,11 @@ function renderLog(props: Partial<Parameters<typeof LogView>[0]> = {}): string {
 }
 
 describe('load-state helpers', () => {
-  test('"Diff (n)" waits for the patch before showing a count', () => {
-    expect(diffBadgeLabel(false, 0)).toBe('Diff');
-    expect(diffBadgeLabel(false, 3)).toBe('Diff');
-    expect(diffBadgeLabel(true, 0)).toBe('Diff (0)');
-    expect(diffBadgeLabel(true, 3)).toBe('Diff (3)');
+  test('"Thay đổi (n)" waits for the patch before showing a count', () => {
+    expect(diffBadgeLabel(false, 0)).toBe('Thay đổi');
+    expect(diffBadgeLabel(false, 3)).toBe('Thay đổi');
+    expect(diffBadgeLabel(true, 0)).toBe('Thay đổi (0)');
+    expect(diffBadgeLabel(true, 3)).toBe('Thay đổi (3)');
   });
 
   test('a load error keeps the message for the retry banner', () => {
@@ -134,5 +134,21 @@ describe('raw log rows are real buttons', () => {
     const html = renderLog({ events: [{ runId: 'r-1', seq: 1, ts: 1000, event: { kind: 'message', text: 'hi' } }] });
     expect(html).toContain('<div class="log-line kind-line-message"');
     expect(html).not.toContain('raw-toggle');
+  });
+
+  test('event kinds display Vietnamese labels while class names and payload keep the raw kind', () => {
+    const html = renderLog({
+      events: [{ runId: 'r-1', seq: 1, ts: 1000, event: { kind: 'file_edit', path: 'src/a.ts', added: 2, removed: 1 } }],
+    });
+    expect(html).toContain('kind-file_edit');
+    expect(html).toContain('Sửa tệp');
+    expect(html).toContain('src/a.ts');
+    expect(html).not.toContain('>file_edit</span>');
+  });
+
+  test('collapsed raw runs use a Vietnamese label without hiding the payload text', () => {
+    const html = renderLog({ events: [rawEvent(1, 'payload-one'), rawEvent(2, 'payload-two')] });
+    expect(html).toContain('Dữ liệu thô');
+    expect(html).toContain('2 dòng dữ liệu thô');
   });
 });

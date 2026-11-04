@@ -194,7 +194,7 @@ test('terminal keeps the CMD black palette in light and dark and persists its he
 test('creates work in the app, filters the sidebar and exports measured usage', async ({ page }) => {
   const repoPath = (await readFile(path.join(process.env.FLEET_DATA_DIR!, 'repo-path'), 'utf8')).trim();
   await page.route('**/api/agents', (route) => route.fulfill({ json: [{ id: 'fake', ok: true, maxParallel: 4 }] }));
-  await page.getByRole('button', { name: /Task mới/ }).click();
+  await page.getByRole('button', { name: /Công việc mới/ }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Dự án / plan', { exact: true }).selectOption('__new__');
   await dialog.getByLabel('Tên plan', { exact: true }).fill('Desktop plan');
@@ -208,18 +208,18 @@ test('creates work in the app, filters the sidebar and exports measured usage', 
   await expect(dialog).toHaveCount(0);
   await expect(page.locator('.task-header-title')).toHaveText('Desktop composer task');
   await expect(page.locator('.task-header .status-badge')).toHaveClass(/status-done/);
-  await page.getByLabel('Tìm task hoặc dự án').fill('no-such-desktop-task');
-  await expect(page.locator('.sidebar')).toContainText('Không tìm thấy task phù hợp.');
+  await page.getByLabel('Tìm công việc hoặc dự án').fill('no-such-desktop-task');
+  await expect(page.locator('.sidebar')).toContainText('Không tìm thấy công việc phù hợp.');
   // Ctrl+K opens the command palette; the sidebar search is a separate filter.
   await page.keyboard.press('Control+k');
   const palette = page.getByRole('dialog', { name: 'Ô lệnh nhanh' });
   await expect(palette.getByRole('combobox', { name: 'Tìm lệnh' })).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(page.getByLabel('Tìm task hoặc dự án')).toBeFocused();
-  await page.getByLabel('Tìm task hoặc dự án').fill('Desktop composer');
+  await expect(page.getByLabel('Tìm công việc hoặc dự án')).toBeFocused();
+  await page.getByLabel('Tìm công việc hoặc dự án').fill('Desktop composer');
   await expect(page.locator('.sidebar .task-row')).toHaveCount(1);
   await page.getByRole('button', { name: 'Tài nguyên & sử dụng', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Tài nguyên & mức sử dụng', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tài nguyên & sử dụng', exact: true })).toBeVisible();
   await expect(page.locator('.usage-page')).toContainText('Desktop plan');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Xuất báo cáo', exact: true }).click();
@@ -243,13 +243,13 @@ test('native file action uses task identity and relative path, without exposing 
   const { task } = await createFakeTask(page, 'Native bridge task', 'Native bridge smoke');
   await page.getByRole('button', { name: 'Công việc', exact: true }).click();
   await page.getByRole('button', { name: /Native bridge task/ }).click();
-  await page.getByRole('tab', { name: 'Diff (1)', exact: true }).click();
+  await page.getByRole('tab', { name: 'Thay đổi (1)', exact: true }).click();
   await page.getByRole('button', { name: 'Mở vị trí tệp', exact: true }).click();
   const requests = await page.evaluate(() => (window as unknown as { nativeRequests: Array<{ type: string }> }).nativeRequests.filter((entry) => entry.type === 'fleet:open-path'));
   expect(requests).toEqual([expect.objectContaining({ type: 'fleet:open-path', taskId: task.id, relativePath: 'fake.txt', action: 'reveal' })]);
   expect(requests[0]).not.toHaveProperty('command');
   await page.screenshot({ path: '.tmp/ui-qa/workspace-light.png', fullPage: true });
-  await page.getByRole('tab', { name: 'Log', exact: true }).click();
+  await page.getByRole('tab', { name: 'Nhật ký', exact: true }).click();
   await page.getByRole('button', { name: 'Giao diện tối' }).click();
   await page.getByRole('button', { name: 'Mở terminal', exact: true }).click();
   await expect(page.locator('.terminal-connection')).toHaveText('Đã kết nối');

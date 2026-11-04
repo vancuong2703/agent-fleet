@@ -1,5 +1,6 @@
 import type { Plan, Task } from '../../../shared/types.js';
 import { filterTasks, groupByRepo, statusIcon, statusLabel, type StatusFilter } from '../store.js';
+import { appStrings } from '../strings.js';
 import { AgentMark, Icon } from './Icon.js';
 
 export interface SidebarProps {
@@ -98,9 +99,9 @@ export function Sidebar({ plans, tasks, selectedTaskId, onSelect, query = '', fi
 }
 
 function emptyCopy(needle: string, filter: StatusFilter): string {
-  if (needle) return 'Không tìm thấy task phù hợp.';
-  if (filter === 'running') return 'Không có task nào đang chạy.';
-  if (filter === 'waiting') return 'Không có task nào đang chờ.';
-  if (filter === 'failed') return 'Không có task nào lỗi.';
-  return 'Chưa có dự án. Tạo task để bắt đầu.';
+  if (needle) return appStrings.sidebar.emptySearch;
+  if (filter === 'running') return appStrings.sidebar.emptyRunning;
+  if (filter === 'waiting') return appStrings.sidebar.emptyWaiting;
+  if (filter === 'failed') return appStrings.sidebar.emptyFailed;
+  return appStrings.sidebar.emptyAll;
 }

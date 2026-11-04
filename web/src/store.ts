@@ -11,6 +11,7 @@ import type {
 } from '../../shared/types.js';
 import { api, type DiffResult, type MergeResult } from './api.js';
 import type { IconName } from './components/Icon.js';
+import { appStrings } from './strings.js';
 import { connectBus } from './ws.js';
 
 // ── state ───────────────────────────────────────────────────────────────────
@@ -378,12 +379,11 @@ export function loadError(cause: unknown): LoadState {
 }
 
 /**
- * "Diff (n)" only once the patch was read. While the read is in flight the tab
- * must not claim `Diff (0)`, which reads as "no changes". The Vietnamese label
- * for this tab belongs to the shared glossary pass, so keep "Diff" here.
+ * "Thay đổi (n)" only once the patch was read. While the read is in flight the
+ * tab must not claim "Thay đổi (0)", which reads as "no changes".
  */
 export function diffBadgeLabel(loaded: boolean, fileCount: number): string {
-  return loaded ? `Diff (${fileCount})` : 'Diff';
+  return appStrings.diffBadge(loaded, fileCount);
 }
 
 /** Keep per-run load bookkeeping bounded like the event buffers themselves. */

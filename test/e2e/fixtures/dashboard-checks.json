@@ -237,7 +237,7 @@
           "keys": []
         }
       ],
-      "highlights": ["Pool routeway đang tắt nên remainingPct là null, không phải 0%."],
+      "highlights": ["Pool routeway đang tắt nên chưa có số liệu, không phải 0%."],
       "probes": [
         {
           "command": "opencode --version",

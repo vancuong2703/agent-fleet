@@ -127,6 +127,8 @@ test('a task terminal hides instead of closing, and the font size is remembered'
   const panel = await openTaskTerminal();
   await expect(panel.getByRole('button', { name: 'Ẩn', exact: true })).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Đóng', exact: true })).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'Sao chép', exact: true })).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Dán', exact: true })).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Copy', exact: true })).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Paste', exact: true })).toHaveCount(0);
   await panel.getByRole('button', { name: 'Tăng cỡ chữ terminal' }).click();
@@ -151,7 +153,7 @@ test('composer and terminal screenshots are readable in both themes', async ({ p
   for (const theme of ['light', 'dark'] as const) {
     await page.getByRole('button', { name: theme === 'light' ? 'Giao diện sáng' : 'Giao diện tối' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-    await page.getByRole('button', { name: /Task mới/ }).click();
+    await page.getByRole('button', { name: /Công việc mới/ }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await page.screenshot({ path: `${shots}/composer-step-1-${theme}.png`, fullPage: true });

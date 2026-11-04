@@ -21,6 +21,7 @@ import { inspectorDefaultOpen, useWorkspaceLayout } from './layout.js';
 import { useObservability } from './observability.js';
 import type { PaletteAction } from './palette.js';
 import { diffBadgeLabel, taskCounts, useFleet, useTaskDiff, type StatusFilter } from './store.js';
+import { appStrings } from './strings.js';
 import { useTheme, type ThemePreference } from './theme.js';
 
 const EMPTY_RUNS: Run[] = [];
@@ -51,13 +52,13 @@ const NAV: Array<{ id: View; label: string; icon: 'dashboard' | 'terminal' | 'ta
   { id: 'terminal', label: 'Terminal', icon: 'terminal' },
   { id: 'tasks', label: 'Công việc', icon: 'tasks' },
   { id: 'compare', label: 'So sánh agent', icon: 'compare' },
-  { id: 'usage', label: 'Tài nguyên & sử dụng', icon: 'activity' },
+  { id: 'usage', label: appStrings.usageTitle, icon: 'activity' },
 ];
 
 const TABS: Array<{ id: Tab; label: string }> = [
-  { id: 'log', label: 'Log' },
-  { id: 'diff', label: 'Diff' },
-  { id: 'brief', label: 'Brief' },
+  { id: 'log', label: appStrings.tabs.log },
+  { id: 'diff', label: appStrings.tabs.diff },
+  { id: 'brief', label: appStrings.tabs.brief },
 ];
 
 /** Below this width the sidebar is an overlay, so the drawer toggle is shown. */
@@ -143,12 +144,12 @@ export function App() {
 
   const toggleFilter = (id: Exclude<StatusFilter, 'all'>) => setFilter((current) => (current === id ? 'all' : id));
 
-  const viewLabel = view === 'dashboard' ? 'Bảng điều khiển' : view === 'terminal' ? 'Terminal' : view === 'tasks' ? plan?.name ?? 'Không gian làm việc' : view === 'compare' ? 'So sánh agent' : 'Tài nguyên & mức sử dụng';
+  const viewLabel = view === 'dashboard' ? 'Bảng điều khiển' : view === 'terminal' ? 'Terminal' : view === 'tasks' ? plan?.name ?? appStrings.workspaceFallback : view === 'compare' ? 'So sánh agent' : appStrings.usageTitle;
 
   return <div className={`app${drawerShown ? ' sidebar-open' : ''}`} style={{ ['--sidebar-user-width' as string]: `${layout.sidebarWidth}px`, ['--inspector-width' as string]: `${layout.inspectorWidth}px` }}>
     <aside id="workspace-sidebar" className="workspace-sidebar" aria-label="Thanh bên">
-      <div className="sidebar-brand"><div><strong>Agent Fleet</strong><span>Không gian làm việc AI</span></div><span className="version-tag">2.2.0</span></div>
-      <button className="new-task-button" onClick={() => setComposer(true)}><Icon name="plus" size={18} /><span className="nav-label">Task mới</span></button>
+      <div className="sidebar-brand"><div><strong>Agent Fleet</strong><span>Không gian làm việc AI</span></div><span className="version-tag">{__APP_VERSION__}</span></div>
+      <button className="new-task-button" onClick={() => setComposer(true)}><Icon name="plus" size={18} /><span className="nav-label">{appStrings.newTask}</span></button>
       <nav className="workspace-nav" aria-label="Điều hướng chính">
         {NAV.map((item) => <button key={item.id} type="button" aria-label={item.label} title={item.label} aria-current={view === item.id ? 'page' : undefined} className={view === item.id ? 'active' : ''} onClick={() => setView(item.id)}>
           <Icon name={item.icon} /><span className="nav-label">{item.label}</span>
@@ -157,10 +158,10 @@ export function App() {
         </button>)}
         {counts.waiting > 0 && <span className="nav-waiting" aria-label={`${counts.waiting} công việc chờ duyệt`}><span className="nav-waiting-dot" aria-hidden="true" />{counts.waiting} chờ duyệt</span>}
       </nav>
-      <div className="sidebar-divider" /><label className="sidebar-search"><Icon name="search" size={16} /><input ref={searchRef} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm task, dự án..." aria-label="Tìm task hoặc dự án" /><kbd>Ctrl K</kbd></label>
+      <div className="sidebar-divider" /><label className="sidebar-search"><Icon name="search" size={16} /><input ref={searchRef} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={appStrings.searchPlaceholder} aria-label={appStrings.searchLabel} /><kbd>Ctrl K</kbd></label>
       <div className="sidebar-label">DỰ ÁN<span>{plans.length}</span></div>
       <Sidebar plans={plans} tasks={tasks} filter={filter} query={search} selectedTaskId={selectedTask?.id ?? null} onSelect={(id) => { setSelectedTaskId(id); setView('tasks'); setTab('log'); }} />
-      <div className="sidebar-bottom"><span className="local-badge"><span />Local workspace</span><div className="theme-switch" role="group" aria-label="Giao diện">{themeOptions.map((option) => <button key={option.value} type="button" className="theme-btn" aria-label={option.label} title={option.label} aria-pressed={theme === option.value} onClick={() => setTheme(option.value)}><Icon name={option.icon} size={16} /></button>)}</div></div>
+      <div className="sidebar-bottom"><span className="local-badge"><span />{appStrings.localWorkspace}</span><div className="theme-switch" role="group" aria-label="Giao diện">{themeOptions.map((option) => <button key={option.value} type="button" className="theme-btn" aria-label={option.label} title={option.label} aria-pressed={theme === option.value} onClick={() => setTheme(option.value)}><Icon name={option.icon} size={16} /></button>)}</div></div>
     </aside>
     {drawerShown && <div className="sidebar-scrim" role="presentation" onClick={closeDrawer} />}
     <ResizeHandle orientation="vertical" label="Điều chỉnh độ rộng thanh bên" value={layout.sidebarWidth} min={190} max={420} onChange={(sidebarWidth) => updateLayout({ sidebarWidth })} />
@@ -184,7 +185,7 @@ export function App() {
           {!selectedTask ? (
             !tasksLoaded && error !== null ? <div className="welcome welcome-error"><h1>Chưa tải được danh sách công việc.</h1><p>{error}</p><button className="action-btn action-primary" onClick={reload}><Icon name="refresh" size={17} />Thử lại</button></div>
             : !tasksLoaded ? <div className="welcome welcome-pending"><Skeleton className="welcome-skeleton" label="Đang tải công việc..." lines={5} /></div>
-            : <div className="welcome"><FleetMark size={58} /><span className="eyebrow">MỘT KHÔNG GIAN CHO CÁC AGENT</span><h1>Bắt đầu một công việc mới.</h1><p>Giao việc, theo dõi tiến độ và xem thay đổi.<br />Mọi dự án nằm trong cùng một cửa sổ.</p><ol className="welcome-steps" aria-label="Ba bước bắt đầu">{WELCOME_STEPS.map((step, index) => <li key={step}><span className="step-index" aria-hidden="true">{index + 1}</span>{step}</li>)}</ol><button className="action-btn action-primary" onClick={() => setComposer(true)}><Icon name="plus" size={17} />Tạo task đầu tiên</button><div className="welcome-agents"><span>Codex</span><span>Qoder</span><span>Antigravity</span><span>OpenCode</span></div></div>
+            : <div className="welcome"><FleetMark size={58} /><span className="eyebrow">MỘT KHÔNG GIAN CHO CÁC AGENT</span><h1>Bắt đầu một công việc mới.</h1><p>Giao việc, theo dõi tiến độ và xem thay đổi.<br />Mọi dự án nằm trong cùng một cửa sổ.</p><ol className="welcome-steps" aria-label="Ba bước bắt đầu">{WELCOME_STEPS.map((step, index) => <li key={step}><span className="step-index" aria-hidden="true">{index + 1}</span>{step}</li>)}</ol><button className="action-btn action-primary" onClick={() => setComposer(true)}><Icon name="plus" size={17} />{appStrings.createFirstTask}</button><div className="welcome-agents"><span>Codex</span><span>Qoder</span><span>Antigravity</span><span>OpenCode</span></div></div>
           ) : <>
             <TaskHeader task={selectedTask} run={latestRun} />
             <TaskActions task={selectedTask} run={latestRun} baseBranch={plan?.baseBranch ?? ''} terminalHeight={layout.terminalHeight} onTerminalHeight={(terminalHeight) => updateLayout({ terminalHeight })} />
@@ -192,7 +193,7 @@ export function App() {
               {TABS.map((item, index) => <button key={item.id} type="button" role="tab" id={`task-tab-${item.id}`} aria-selected={tab === item.id} aria-controls="task-tab-panel" tabIndex={tab === item.id ? 0 : -1} className={`tab${tab === item.id ? ' active' : ''}`} onClick={() => setTab(item.id)} onKeyDown={(event) => {
                 if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); setTab(TABS[(index + (event.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length]!.id); }
               }}>{item.id === 'diff' ? diffBadgeLabel(taskDiff.loaded, taskDiff.diff?.files.length ?? 0) : item.label}</button>)}
-              <span className="task-tabs-note">{tab === 'log' ? 'Hoạt động trực tiếp' : tab === 'diff' ? 'Thay đổi trong worktree' : 'Nội dung giao việc'}</span>
+              <span className="task-tabs-note">{tab === 'log' ? appStrings.tabNotes.log : tab === 'diff' ? appStrings.tabNotes.diff : appStrings.tabNotes.brief}</span>
             </div>
             <div id="task-tab-panel" role="tabpanel" aria-labelledby={`task-tab-${tab}`}>
               {tab === 'log' ? <LogView runs={runs} events={events} runId={selectedRunId} loading={!log.loaded} error={log.error} onRetry={() => { if (selectedRunId) loadEvents(selectedRunId, true); }} onSelectRun={(id) => setSelectedRuns((current) => ({ ...current, [selectedTask.id]: id }))} /> : tab === 'diff' ? <DiffView files={taskDiff.diff?.files ?? []} patch={taskDiff.diff?.patch ?? ''} loading={!taskDiff.loaded} error={taskDiff.error} onRetry={taskDiff.reload} taskId={selectedTask.id} /> : <BriefView runs={runs} />}
@@ -200,7 +201,7 @@ export function App() {
           </>}
         </main>{showInspector && <><ResizeHandle orientation="vertical" reverse label="Điều chỉnh độ rộng bảng thông tin" value={layout.inspectorWidth} min={260} max={520} onChange={(inspectorWidth) => updateLayout({ inspectorWidth })} /><Inspector snapshot={observability.snapshot} error={observability.error} task={selectedTask} run={latestRun} plan={plan} onClose={() => setInspectorChoice(false)} /></>}</> : null}
       </div>
-      <footer className="statusbar"><span><span className={`status-led ${connected ? 'on' : ''}`} />{connected ? 'Đã đồng bộ' : 'Đang chờ kết nối'}</span><span>{isDesktop() ? 'Windows Desktop' : 'Web workspace'}<span className="statusbar-sep">·</span>{counts.done} task hoàn tất<span className="statusbar-sep">·</span>Dữ liệu lưu trên máy</span></footer>
+      <footer className="statusbar"><span><span className={`status-led ${connected ? 'on' : ''}`} />{connected ? 'Đã đồng bộ' : 'Đang chờ kết nối'}</span><span>{isDesktop() ? 'Windows Desktop' : 'Web workspace'}<span className="statusbar-sep">·</span>{appStrings.tasksDone(counts.done)}<span className="statusbar-sep">·</span>Dữ liệu lưu trên máy</span></footer>
     </div>
     {composer && <TaskComposer plans={plans} initialPlanId={plan?.id} onClose={() => setComposer(false)} onCreated={(task) => { setSelectedTaskId(task.id); setView('tasks'); setTab('log'); setComposer(false); }} />}
     <CommandPalette open={paletteOpen} tasks={tasks} onClose={() => setPaletteOpen(false)} onAction={runPaletteAction} />

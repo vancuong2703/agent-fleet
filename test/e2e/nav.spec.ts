@@ -136,9 +136,9 @@ test('task detail tabs are real tabs driven by the 1/2/3 keys', async ({ page })
 
   const tablist = page.getByRole('tablist', { name: 'Chi tiết công việc' });
   await expect(tablist).toBeVisible();
-  const log = page.getByRole('tab', { name: 'Log' });
-  const diff = page.getByRole('tab', { name: /^Diff/ });
-  const brief = page.getByRole('tab', { name: 'Brief' });
+  const log = page.getByRole('tab', { name: 'Nhật ký' });
+  const diff = page.getByRole('tab', { name: /^Thay đổi/ });
+  const brief = page.getByRole('tab', { name: 'Yêu cầu' });
   await expect(log).toHaveAttribute('aria-selected', 'true');
 
   await page.keyboard.press('2');
