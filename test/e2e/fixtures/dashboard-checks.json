@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "checks": {
+    "codex": {
+      "checkedAt": 1793706012000,
+      "status": "ready",
+      "version": "0.166.0",
+      "account": {
+        "state": "authenticated",
+        "label": "***@example.com",
+        "source": "codex login status",
+        "reason": null
+      },
+      "quota": {
+        "remaining": null,
+        "unit": null,
+        "resetAt": null,
+        "source": "codex login status",
+        "reason": "Gói ChatGPT báo hạn mức theo cửa sổ thời gian, không có số dư credit."
+      },
+      "credits": {
+        "remaining": null,
+        "unit": null,
+        "resetAt": null,
+        "source": "codex login status",
+        "reason": "Gói ChatGPT không dùng credit."
+      },
+      "plan": { "name": "ChatGPT Plus", "tier": "plus", "renewsAt": "2026-12-01T00:00:00Z", "source": "auth.json" },
+      "currentModel": { "id": "gpt-5.1-codex", "label": "GPT-5.1 Codex", "effort": "high" },
+      "quotaWindows": [
+        { "group": "Codex", "window": "5h", "remainingPct": 22, "unit": "percent", "resetAt": "20:30 hôm nay" },
+        { "group": "Codex", "window": "week", "remainingPct": 34, "unit": "percent", "resetAt": "15:17, 04/11" }
+      ],
+      "models": [
+        { "id": "gpt-5.1-codex", "label": "GPT-5.1 Codex", "provider": "openai", "multiplier": 1, "source": "catalog" },
+        { "id": "gpt-5.1-mini", "label": "GPT-5.1 Mini", "provider": "openai", "multiplier": 0.2, "source": "catalog" }
+      ],
+      "highlights": ["Toàn bộ số liệu trong fixture này là tổng hợp, không lấy từ tài khoản thật."],
+      "probes": [
+        {
+          "command": "codex --version",
+          "ok": true,
+          "exitCode": 0,
+          "summary": "codex-cli 0.166.0",
+          "output": "codex-cli 0.166.0"
+        },
+        {
+          "command": "codex login status",
+          "ok": true,
+          "exitCode": 0,
+          "summary": "Logged in as ***@example.com",
+          "output": "Logged in as ***@example.com"
+        }
+      ]
+    },
+    "qodercli": {
+      "checkedAt": 1793706012000,
+      "status": "ready",
+      "version": "1.1.81",
+      "account": {
+        "state": "authenticated",
+        "label": "***@example.com",
+        "source": "qodercli status -o json",
+        "reason": null
+      },
+      "quota": {
+        "remaining": 62,
+        "unit": "percent",
+        "resetAt": "2026-11-28T12:00:00Z",
+        "source": "/usage",
+        "reason": null
+      },
+      "credits": {
+        "remaining": 1240,
+        "unit": "credits",
+        "resetAt": null,
+        "source": "/usage",
+        "reason": null
+      },
+      "plan": { "name": "Pro Trial", "tier": "trial", "renewsAt": "2026-11-28T12:00:00Z", "source": "status -o json" },
+      "currentModel": { "id": "Auto", "label": "Auto", "effort": "medium" },
+      "quotaWindows": [
+        { "group": "Credit gói", "window": "plan", "remainingPct": 62, "used": 760, "limit": 2000, "unit": "credits", "resetAt": "28/11" },
+        { "group": "Credit bổ sung", "window": "plan", "remainingPct": 69.4, "used": 245, "limit": 800, "unit": "credits", "resetAt": null }
+      ],
+      "models": [
+        { "id": "qwen-flash", "label": "Qwen3.8-Flash", "multiplier": 0, "originalMultiplier": 0.1, "promo": "Đang giảm", "contextTokens": 1000000, "source": "pty" },
+        { "id": "ds-flash", "label": "DeepSeek-Flash", "multiplier": 0.1, "contextTokens": 200000, "source": "pty" },
+        { "id": "glm-flash", "label": "GLM-5.3-Flash", "multiplier": 0.2, "contextTokens": 200000, "source": "pty" },
+        { "id": "efficient", "label": "Efficient", "multiplier": 0.5, "source": "pty" },
+        { "id": "kimi", "label": "Kimi-K3.1-Pro", "multiplier": 0.6, "contextTokens": 256000, "source": "pty" },
+        { "id": "ultimate", "label": "Ultimate", "multiplier": 3, "source": "pty" },
+        { "id": "auto", "label": "Auto", "multiplier": null, "source": "cli" },
+        { "id": "qwen-max", "label": "Qwen3.8-Max", "multiplier": null, "source": "cli" }
+      ],
+      "highlights": [
+        "Màn /model công bố 15 model nhưng chỉ đọc được 14 dòng giá; các dòng còn lại để multiplier null."
+      ],
+      "probes": [
+        {
+          "command": "qodercli --version",
+          "ok": true,
+          "exitCode": 0,
+          "summary": "1.1.81",
+          "output": "1.1.81"
+        },
+        {
+          "command": "qodercli status -o json",
+          "ok": true,
+          "exitCode": 0,
+          "summary": "user_type=personal_professional_trial",
+          "output": "{\"user_type\":\"personal_professional_trial\",\"email\":\"***@example.com\"}"
+        }
+      ]
+    },
+    "agy": {
+      "checkedAt": 1793706012000,
+      "status": "ready",
+      "version": "1.4.12",
+      "account": {
+        "state": "authenticated",
+        "label": "***@example.com",
+        "source": "/usage",
+        "reason": null
+      },
+      "quota": {
+        "remaining": 78,
+        "unit": "percent",
+        "resetAt": "sau 4 ngày",
+        "source": "/usage",
+        "reason": null
+      },
+      "credits": {
+        "remaining": 850,
+        "unit": "credits",
+        "resetAt": null,
+        "source": "/credits",
+        "reason": null
+      },
+      "plan": { "name": "Antigravity Pro", "tier": "pro", "renewsAt": null, "source": "/usage" },
+      "quotaWindows": [
+        { "group": "GEMINI 4 ARGON", "window": "week", "remainingPct": 78, "unit": "percent", "resetAt": "sau 4 ngày" },
+        { "group": "GEMINI 4 ARGON", "window": "5h", "remainingPct": 91, "unit": "percent", "resetAt": "sau 2 giờ" },
+        { "group": "GEMINI MODELS", "window": "week", "remainingPct": 95, "unit": "percent", "resetAt": null },
+        { "group": "GEMINI MODELS", "window": "5h", "remainingPct": 100, "unit": "percent", "resetAt": null },
+        { "group": "CLAUDE AND GPT MODELS", "window": "5h", "remainingPct": 12, "unit": "percent", "resetAt": "sau 3 giờ 10 phút" },
+        { "group": "CLAUDE AND GPT MODELS", "window": "week", "remainingPct": 40, "unit": "percent", "resetAt": null }
+      ],
+      "models": [
+        { "id": "gemini-4-argon-medium", "label": "Gemini 4 Argon (Medium)", "multiplier": null, "source": "cli" }
+      ],
+      "probes": [
+        {
+          "command": "agy --version",
+          "ok": true,
+          "exitCode": 0,
+          "summary": "1.4.12",
+          "output": "1.4.12"
+        },
+        {
+          "command": "agy /usage",
+          "ok": true,
+          "exitCode": 0,
+          "summary": "Đọc 5 nhóm hạn mức",
+          "output": "GEMINI 4 ARGON · GEMINI MODELS · CLAUDE AND GPT MODELS"
+        }
+      ]
+    },
+    "opencode": {
+      "checkedAt": 1793706012000,
+      "status": "ready",
+      "version": "2.2.5",
+      "account": {
+        "state": "authenticated",
+        "label": "BYOK · 4 provider",
+        "source": "auth list",
+        "reason": null
+      },
+      "quota": {
+        "remaining": null,
+        "unit": null,
+        "resetAt": null,
+        "source": "opencode stats",
+        "reason": "OpenCode không công bố hạn mức tổng; xem key pool bên dưới."
+      },
+      "credits": {
+        "remaining": null,
+        "unit": null,
+        "resetAt": null,
+        "source": "opencode stats",
+        "reason": "Số dư do từng provider báo, không tổng hợp được."
+      },
+      "plan": { "name": "BYOK", "tier": "byok", "renewsAt": null, "source": "opencode.json" },
+      "currentModel": { "id": "tokenharbor/deepseek-v4.1-flash-1017", "label": "DeepSeek V4.1 Flash 1017" },
+      "models": [
+        {
+          "id": "tokenharbor/deepseek-v4.1-flash-1017",
+          "label": "DeepSeek V4.1 Flash 1017",
+          "provider": "tokenharbor",
+          "multiplier": null,
+          "contextTokens": 1000000,
+          "source": "config"
+        }
+      ],
+      "keyPools": [
+        {
+          "name": "harbor",
+          "total": 13,
+          "ok": 11,
+          "exhausted": 1,
+          "remainingPct": 74.3,
+          "limitLabel": "Hạn 385K output / key / 7 ngày",
+          "resetAt": "2026-11-06T00:00:00.000Z",
+          "keys": [
+            { "label": "...ALPHA", "status": "ok", "pct": 88.1 },
+            { "label": "...BRAVO", "status": "ok", "pct": 92 },
+            { "label": "...CHARLIE", "status": "low", "pct": 33 },
+            { "label": "...DELTA", "status": "ok", "pct": 81 },
+            { "label": "...ECHO", "status": "ok", "pct": 77 },
+            { "label": "...FOXTROT", "status": "ok", "pct": 69 },
+            { "label": "...GOLF", "status": "ok", "pct": 74 },
+            { "label": "...HOTEL", "status": "ok", "pct": 70 },
+            { "label": "...INDIA", "status": "ok", "pct": 66 },
+            { "label": "...JULIET", "status": "ok", "pct": 79 },
+            { "label": "...KILO", "status": "ok", "pct": 73 },
+            { "label": "...LIMA", "status": "low", "pct": 41 },
+            { "label": "...MIKE", "status": "out", "pct": 0 }
+          ]
+        },
+        {
+          "name": "routeway",
+          "total": 0,
+          "ok": 0,
+          "exhausted": 0,
+          "remainingPct": null,
+          "limitLabel": "200 request / ngày / key · pool không chạy",
+          "keys": []
+        }
+      ],
+      "highlights": ["Pool routeway đang tắt nên remainingPct là null, không phải 0%."],
+      "probes": [
+        {
+          "command": "opencode --version",
+          "ok": true,
+          "exitCode": 0,
+          "summary": "2.2.5",
+          "output": "2.2.5"
+        },
+        {
+          "command": "opencode auth list",
+          "ok": true,
+          "exitCode": 0,
+          "summary": "4 provider đã đăng nhập",
+          "output": "tokenharbor · harbor-pool · routeway · opencode"
+        }
+      ]
+    }
+  }
+}

@@ -18,16 +18,28 @@ và `runtime/` cạnh EXE. Bản portable mặc định đã kèm Node và .NET;
 CMD hoặc trình duyệt riêng. Máy cần Windows 11 x64, WebView2, Git và agent CLI
 đã cài/đăng nhập để giao việc cho agent thật.
 
-**Bảng điều khiển** mở CLI tại workspace đã chọn và chuyển sang mục **Terminal**.
+**Bảng điều khiển** hiện mỗi CLI một thẻ: gói và tier, thanh hạn mức theo **cửa sổ
+thấp hơn**, credit, key pool của OpenCode và danh sách model kèm hệ số. Dải
+**Nên dùng ngay** gợi ý tối đa 3 lựa chọn rẻ/miễn phí kèm 1 cảnh báo: bấm gợi ý
+model để sao chép lệnh `--model`, bấm gợi ý tool để mở CLI. Dashboard **không tự
+chạy lệnh nào** khi mở màn hình; chỉ **Kiểm tra** hoặc **Kiểm tra tất cả** (chạy
+tuần tự, có tiến độ) mới đọc trạng thái, và kết quả được lưu lại cho lần mở sau.
+Dữ liệu thiếu luôn hiện "Chưa có dữ liệu", không bị đổi thành 0.
+
+**Mở CLI** trên thẻ chuyển sang mục **Terminal**.
 Mỗi CLI có tab riêng; chuyển tab hoặc màn hình giữ nguyên tiến trình và lịch sử.
 Chuột trong vùng terminal cuộn history/pager CLI; chuột bên ngoài cuộn giao diện.
 Nhấn **Kiểm tra** để đọc trạng thái; AGY đọc `/usage` để hiện quota từng nhóm model;
 quota/credit còn lại hiện chưa có dữ liệu nếu CLI không cung cấp. Không tự kiểm tra tài khoản khi mở màn hình.
 Chọn **Task mới** để tạo plan từ một Git repository và giao việc; chọn task ở
 sidebar để xem log, diff, brief và terminal. Chọn **Giao diện** ở góc dưới trái
-để dùng sáng/tối/theo hệ thống. Kéo đường phân cách để chỉnh cột và chiều cao terminal.
-**Tài nguyên & sử dụng** tổng hợp số liệu theo công cụ/model và xuất JSON. Số liệu token/credit
-được lấy từ lần chạy task có dữ liệu CLI, không ước tính từ nội dung terminal tương tác.
+để dùng sáng/tối/theo hệ thống, hoặc **Ô lệnh nhanh** (Ctrl K) ở mọi độ rộng màn hình.
+Kéo đường phân cách để chỉnh cột và chiều cao terminal.
+**Tài nguyên & sử dụng** tổng hợp số liệu theo công cụ/model và xuất JSON, kèm badge
+tier và credit của từng công cụ; khi chưa có lần chạy, biểu đồ hiện hướng dẫn thay
+vì đường phẳng. Số liệu token/credit được lấy từ lần chạy task có dữ liệu CLI,
+không ước tính từ nội dung terminal tương tác.
+Ảnh và mô tả chi tiết ở [ghi chú 2.3.0](docs/releases/2.3.0.md).
 
 Dữ liệu desktop nằm ở `%LOCALAPPDATA%\AgentFleetDesktop\`, độc lập với dữ liệu
 CLI cũ. Không sao chép database/worktree đang chạy từ bản cũ sang khi server
