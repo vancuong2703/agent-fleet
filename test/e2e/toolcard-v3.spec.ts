@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import { setTheme } from './nav-helpers.js';
 
 /**
  * T5 — ToolCard v3. Toàn bộ dữ liệu là tổng hợp (không có tài khoản thật),
@@ -338,8 +339,9 @@ for (const theme of ['light', 'dark'] as const) {
       await stubDashboard(page);
       await page.setViewportSize({ width, height: 1000 });
       await login(page);
-      await page.getByRole('button', { name: theme === 'light' ? 'Giao diện sáng' : 'Giao diện tối', exact: true }).click();
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      // ≤900px the sidebar is a rail / closed drawer, so the palette is the
+      // width-independent way to switch theme (see nav-helpers.ts).
+      await setTheme(page, theme);
 
       const metrics = await page.evaluate(() => {
         const host = document.querySelector('.dashboard-host')!;
