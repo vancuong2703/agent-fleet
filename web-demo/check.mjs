@@ -13,6 +13,11 @@ for (const f of targets) {
   const p = join(here, f);
   if (!existsSync(p)) { console.error('MISSING ' + f); bad++; continue; }
   const html = readFileSync(p, 'utf8');
+  if (f.endsWith('.md')) {
+    if (html.length < 200) { console.error('TINY ' + f); bad++; continue; }
+    console.log('OK ' + f + ' (' + html.length + ' bytes)');
+    continue;
+  }
   const need = ['assets/app.css', 'assets/app.js', 'class="app"'];
   const miss = need.filter((s) => !html.includes(s));
   if (miss.length) { console.error('INVALID ' + f + ' -> thiếu: ' + miss.join(', ')); bad++; continue; }
