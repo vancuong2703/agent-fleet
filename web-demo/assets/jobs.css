@@ -1,0 +1,50 @@
+/* =========================================================================
+   Jobs page — page-scoped styles on top of app.css.
+   ========================================================================= */
+
+.wrap{min-width:0}
+.grid2>*{min-width:0}
+
+.btn.sm{height:28px;padding:0 10px;font-size:11px}
+
+/* ---- status filter chips ---- */
+.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+button.chip{background:transparent;cursor:pointer}
+button.chip:hover{border-color:var(--ink);color:var(--ink)}
+.chip.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* ---- jobs table (scrolls inside its own frame) ---- */
+.tablewrap{width:100%;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.jobs{min-width:940px}
+table.jobs th.num,table.jobs td.num{text-align:right}
+.rows tr{cursor:pointer}
+.rows tr.sel td{background:var(--accent-soft)}
+.agentchip{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font:600 11.5px var(--sans)}
+.logo.xs{width:22px;height:22px;border-radius:6px;font-size:9px}
+.cellmain{font:700 12.5px var(--sans)}
+.cellsub{display:block;font:500 10.5px var(--mono);color:var(--muted);margin-top:2px}
+.acts{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+
+/* ---- detail tabs ---- */
+.jtabs{display:flex;align-items:center;gap:4px;min-width:0;
+  border-bottom:1px solid var(--border);margin-bottom:14px;overflow-x:auto}
+.stab{display:inline-flex;align-items:center;gap:8px;flex:none;white-space:nowrap;
+  background:transparent;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;
+  padding:9px 10px;cursor:pointer;color:var(--muted);font:600 12px var(--sans)}
+.stab:hover{color:var(--ink)}
+.stab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+.logbox{margin:0;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;font:400 11.5px/1.65 var(--mono);color:var(--ink);
+  white-space:pre-wrap;overflow-wrap:anywhere}
+.logbox .dim{color:var(--faint)}
+.req{margin:0;padding:12px 14px;border-left:3px solid var(--accent);background:var(--surface-2);
+  border-radius:0 10px 10px 0;font:500 12.5px/1.6 var(--sans);color:var(--ink)}
+
+/* ---- empty state ---- */
+.empty .steps{margin:14px 0;font:600 11.5px var(--mono);color:var(--muted)}
+.empty .btn{margin-top:6px}
+
+/* ---- narrow screens ---- */
+@media(max-width:640px){.topbar .tbtn span{display:none}}
+@media(max-width:520px){.topbar{padding:13px 14px;gap:8px}.wrap{padding:20px 14px}}
