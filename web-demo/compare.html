@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compare · Agent Fleet web demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/compare.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="mk">AF</span><span><b>Agent Fleet</b><small>AI WORKSPACE</small></span></div>
+    <nav class="nav">
+      <a href="dashboard.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.5'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='14' width='7' height='7' rx='1.5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Dashboard" data-vi="Bảng điều khiển">Dashboard</span></a>
+      <a href="terminal.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='m4 17 6-6-6-6'/%3E%3Cpath d='M12 19h8'/%3E%3C/svg%3E&quot;)"></i><span data-en="Terminal" data-vi="Terminal">Terminal</span></a>
+      <a href="jobs.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'/%3E%3C/svg%3E&quot;)"></i><span data-en="Jobs" data-vi="Công việc">Jobs</span></a>
+      <a href="compare.html" aria-current="page"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5'/%3E%3C/svg%3E&quot;)"></i><span data-en="Compare" data-vi="So sánh agent">Compare</span></a>
+      <a href="resources.html"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M3 3v18h18M7 15l4-5 3 3 5-7'/%3E%3C/svg%3E&quot;)"></i><span data-en="Resources &amp; usage" data-vi="Tài nguyên &amp; sử dụng">Resources &amp; usage</span></a>
+    </nav>
+    <div class="foot">WEB DEMO · v5</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <span class="crumb" data-en="Compare" data-vi="So sánh agent">Compare</span>
+      <span class="spacer"></span>
+      <div class="toggle" role="group" aria-label="Language">
+        <button id="lang-en" aria-pressed="true" onclick="AF.setLang('en')">EN</button>
+        <button id="lang-vi" aria-pressed="false" onclick="AF.setLang('vi')">VI</button>
+      </div>
+      <button class="tbtn" id="resToggle" aria-pressed="true" onclick="AF.toggleRes()"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4'/%3E%3C/svg%3E&quot;)"></i><span data-en="System" data-vi="Tài nguyên">System</span></button>
+      <button class="tbtn" onclick="AF.theme()" aria-label="Theme"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3v18'/%3E%3C/svg%3E&quot;)"></i><span id="themeLabel" data-en="System" data-vi="Theo hệ thống">System</span></button>
+    </div>
+
+    <div class="wrap">
+      <div class="head">
+        <div>
+          <p class="eyebrow" data-en="Side by side" data-vi="Đặt cạnh nhau">Side by side</p>
+          <h1 class="title">COM<em>PARE</em></h1>
+        </div>
+        <div class="actions">
+          <div class="filters" role="group" aria-label="Time window">
+            <button class="chip" id="c7" aria-pressed="true" onclick="cmpWin('7')" data-en="7 days" data-vi="7 ngày">7 days</button>
+            <button class="chip" id="c30" aria-pressed="false" onclick="cmpWin('30')" data-en="30 days" data-vi="30 ngày">30 days</button>
+          </div>
+          <button class="btn" onclick="AF.toast('CSV exported (demo)')"><i class="ic" style="--u:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 3v12M7 10l5 5 5-5M5 21h14'/%3E%3C/svg%3E&quot;)"></i><span data-en="Export" data-vi="Xuất">Export</span></button>
+        </div>
+      </div>
+
+      <!-- Resources: real values, not % -->
+      <div class="res" id="resStrip">
+        <span class="rlabel" data-en="System" data-vi="Tài nguyên">System</span>
+        <div class="r"><span class="rname">CPU</span><b>3.8</b><span class="unit">/ 5.2 GHz</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">8/24</span></div>
+        <div class="r"><span class="rname">RAM</span><b>19.8</b><span class="unit">/ 32 GB</span><div class="bar warn"><span style="width:62%"></span></div></div>
+        <div class="r"><span class="rname">GPU</span><b>4.6</b><span class="unit">/ 12 GB</span><div class="bar ok"><span style="width:38%"></span></div><span class="unit">52°C</span></div>
+      </div>
+
+      <div class="cmp">
+        <!-- CODEX -->
+        <article class="card">
+          <div class="card-top">
+            <span class="logo" style="background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>
+            <div class="card-title"><h3>Codex <span class="tier plus">PLUS</span></h3><span class="ver">codex-cli 0.166.0</span></div>
+            <span class="dot"></span>
+          </div>
+          <div class="statusline">gpt-6.1-sol · effort high</div>
+          <div class="gauges">
+            <div class="gauge">
+              <div class="donut sm" style="--pct:22;--col:var(--bad)">
+                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="20"/><circle class="trk" cx="22" cy="22" r="16"/><circle class="val" cx="22" cy="22" r="16" pathLength="100"/></svg>
+                <span class="pct">22%</span>
+              </div>
+              <span class="g-cap" data-en="5 hours" data-vi="5 giờ">5 hours</span>
+              <span class="g-reset">↻ 1h49p</span>
+            </div>
+            <div class="gauge">
+              <div class="donut sm" style="--pct:34;--col:var(--warn)">
+                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="20"/><circle class="trk" cx="22" cy="22" r="16"/><circle class="val" cx="22" cy="22" r="16" pathLength="100"/></svg>
+                <span class="pct">34%</span>
+              </div>
+              <span class="g-cap" data-en="Week" data-vi="Tuần">Week</span>
+              <span class="g-reset">↻ 6d</span>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">39.8 s</span></div>
+            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v">96.4%</span></div>
+            <div class="stat"><span class="k" data-en="Tasks run" data-vi="Số task đã chạy">Tasks run</span><span class="v" data-7="128" data-30="541">128</span></div>
+          </div>
+          <div class="foot"><span class="when" data-en="check 18:41:50" data-vi="kiểm tra 18:41:50">check 18:41:50</span>
+            <a class="btn ghost" href="tool.html?t=codex"><span data-en="Details" data-vi="Chi tiết">Details</span> →</a>
+          </div>
+        </article>
+
+        <!-- QODER -->
+        <article class="card">
+          <div class="card-top">
+            <span class="logo" style="background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>
+            <div class="card-title"><h3>Qoder <span class="tier trial">PRO TRIAL</span></h3><span class="ver">qodercli 1.1.81</span></div>
+            <span class="dot warn"></span>
+          </div>
+          <div class="statusline">Qwen3.8-Flash · x0.1</div>
+          <div class="gauges">
+            <div class="gauge">
+              <div class="donut sm" style="--pct:62;--col:var(--ok)">
+                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="20"/><circle class="trk" cx="22" cy="22" r="16"/><circle class="val" cx="22" cy="22" r="16" pathLength="100"/></svg>
+                <span class="pct">62%</span>
+              </div>
+              <span class="g-cap" data-en="Credits left" data-vi="Credit còn lại">Credits left</span>
+              <span class="g-reset">1,240 / 2,000</span>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">46.5 s</span></div>
+            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v">91.8%</span></div>
+            <div class="stat"><span class="k" data-en="Tasks run" data-vi="Số task đã chạy">Tasks run</span><span class="v" data-7="74" data-30="318">74</span></div>
+          </div>
+          <div class="foot"><span class="when" data-en="check 18:40:12" data-vi="kiểm tra 18:40:12">check 18:40:12</span>
+            <a class="btn ghost" href="tool.html?t=qoder"><span data-en="Details" data-vi="Chi tiết">Details</span> →</a>
+          </div>
+        </article>
+
+        <!-- ANTIGRAVITY CLI -->
+        <article class="card">
+          <div class="card-top">
+            <span class="logo" style="background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>
+            <div class="card-title"><h3>Antigravity CLI <span class="tier pro">PRO</span></h3><span class="ver">agy 1.4.12</span></div>
+            <span class="dot"></span>
+          </div>
+          <div class="statusline">Gemini 4 Argon · x1.0</div>
+          <div class="gauges">
+            <div class="gauge">
+              <div class="donut sm" style="--pct:91;--col:var(--ok)">
+                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="20"/><circle class="trk" cx="22" cy="22" r="16"/><circle class="val" cx="22" cy="22" r="16" pathLength="100"/></svg>
+                <span class="pct">91%</span>
+              </div>
+              <span class="g-cap" data-en="5 hours" data-vi="5 giờ">5 hours</span>
+              <span class="g-reset">↻ 2h</span>
+            </div>
+            <div class="gauge">
+              <div class="donut sm" style="--pct:78;--col:var(--ok)">
+                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="20"/><circle class="trk" cx="22" cy="22" r="16"/><circle class="val" cx="22" cy="22" r="16" pathLength="100"/></svg>
+                <span class="pct">78%</span>
+              </div>
+              <span class="g-cap" data-en="Week" data-vi="Tuần">Week</span>
+              <span class="g-reset">↻ 4d</span>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">36.2 s</span></div>
+            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v">94.2%</span></div>
+            <div class="stat"><span class="k" data-en="Tasks run" data-vi="Số task đã chạy">Tasks run</span><span class="v" data-7="96" data-30="402">96</span></div>
+          </div>
+          <div class="foot"><span class="when" data-en="check 18:39:03" data-vi="kiểm tra 18:39:03">check 18:39:03</span>
+            <a class="btn ghost" href="tool.html?t=agy"><span data-en="Details" data-vi="Chi tiết">Details</span> →</a>
+          </div>
+        </article>
+
+        <!-- OPENCODE -->
+        <article class="card">
+          <div class="card-top">
+            <span class="logo" style="background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>
+            <div class="card-title"><h3>OpenCode <span class="tier byok">BYOK</span></h3><span class="ver">opencode 2.2.5</span></div>
+            <span class="dot"></span>
+          </div>
+          <div class="statusline">harbor-pool/…flash:free · x0</div>
+          <div class="gauges">
+            <div class="gauge">
+              <div class="donut sm" style="--pct:46;--col:var(--ok)">
+                <svg viewBox="0 0 44 44"><circle class="edge" cx="22" cy="22" r="20"/><circle class="trk" cx="22" cy="22" r="16"/><circle class="val" cx="22" cy="22" r="16" pathLength="100"/></svg>
+                <span class="pct">46%</span>
+              </div>
+              <span class="g-cap" data-en="Tokens used" data-vi="Token đã dùng">Tokens used</span>
+              <span class="g-reset">1.56M / 3.4M</span>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat"><span class="k" data-en="Avg time" data-vi="Thời gian TB">Avg time</span><span class="v">54.3 s</span></div>
+            <div class="stat"><span class="k" data-en="Success rate" data-vi="Tỉ lệ thành công">Success rate</span><span class="v">88.5%</span></div>
+            <div class="stat"><span class="k" data-en="Tasks run" data-vi="Số task đã chạy">Tasks run</span><span class="v" data-7="203" data-30="861">203</span></div>
+          </div>
+          <div class="foot"><span class="when" data-en="check 18:41:20" data-vi="kiểm tra 18:41:20">check 18:41:20</span>
+            <a class="btn ghost" href="tool.html?t=opencode"><span data-en="Details" data-vi="Chi tiết">Details</span> →</a>
+          </div>
+        </article>
+      </div>
+
+      <div class="panel" style="margin-top:24px">
+        <h4>
+          <span data-en="Side-by-side summary" data-vi="Bảng tổng hợp">Side-by-side summary</span>
+          <span class="spacer" id="winNote" data-en="Last 7 days" data-vi="7 ngày gần nhất">Last 7 days</span>
+        </h4>
+        <div class="tscroll">
+          <table class="table">
+            <thead><tr>
+              <th data-en="Agent" data-vi="Agent">Agent</th>
+              <th data-en="Plan" data-vi="Gói">Plan</th>
+              <th data-en="Model" data-vi="Model">Model</th>
+              <th data-en="Lowest quota" data-vi="Hạn mức thấp nhất">Lowest quota</th>
+              <th data-en="Credit / token" data-vi="Credit / token">Credit / token</th>
+              <th class="num" data-en="Avg time" data-vi="Thời gian TB">Avg time</th>
+              <th class="num" data-en="Success" data-vi="Thành công">Success</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#6d5df6,#3b2fc9)">Cx</span>Codex</span></td>
+                <td><span class="tier plus">PLUS</span></td>
+                <td class="model mono">gpt-6.1-sol</td>
+                <td><span class="badge bad" data-en="22% · 5h" data-vi="22% · 5 giờ">22% · 5h</span></td>
+                <td><div class="mono small">3.1M tokens</div><div class="bar" style="margin-top:6px;max-width:120px"><span style="width:7%"></span></div></td>
+                <td class="num">39.8 s</td>
+                <td class="num"><span class="badge ok">96.4%</span></td>
+              </tr>
+              <tr>
+                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#2ad18f,#0f9f6e)">Q</span>Qoder</span></td>
+                <td><span class="tier trial">PRO TRIAL</span></td>
+                <td class="model mono">Qwen3.8-Flash</td>
+                <td><span class="badge ok" data-en="62% · credit" data-vi="62% · credit">62% · credit</span></td>
+                <td><div class="mono small">760 / 2,000 credits</div><div class="bar ok" style="margin-top:6px;max-width:120px"><span style="width:38%"></span></div></td>
+                <td class="num">46.5 s</td>
+                <td class="num"><span class="badge warn">91.8%</span></td>
+              </tr>
+              <tr>
+                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#4f8cff,#1d4ed8)">Ag</span>Antigravity CLI</span></td>
+                <td><span class="tier pro">PRO</span></td>
+                <td class="model mono">Gemini 4 Argon</td>
+                <td><span class="badge ok" data-en="78% · week" data-vi="78% · tuần">78% · week</span></td>
+                <td><div class="mono small">1,120 / 2,000 credits</div><div class="bar warn" style="margin-top:6px;max-width:120px"><span style="width:56%"></span></div></td>
+                <td class="num">36.2 s</td>
+                <td class="num"><span class="badge ok">94.2%</span></td>
+              </tr>
+              <tr>
+                <td><span class="row" style="gap:8px"><span class="logo" style="width:24px;height:24px;border-radius:6px;font-size:10px;background:linear-gradient(135deg,#3f3f46,#111827)">oc</span>OpenCode</span></td>
+                <td><span class="tier byok">BYOK</span></td>
+                <td class="model mono">harbor-pool/…flash:free</td>
+                <td><span class="badge warn" data-en="54% · token" data-vi="54% · token">54% · token</span></td>
+                <td><div class="mono small">1.56M / 3.4M tokens</div><div class="bar ok" style="margin-top:6px;max-width:120px"><span style="width:46%"></span></div></td>
+                <td class="num">54.3 s</td>
+                <td class="num"><span class="badge warn">88.5%</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="assets/app.js"></script>
+<script>
+  (function () {
+    window.cmpWin = function (v) {
+      var seven = v === '7';
+      document.getElementById('c7').setAttribute('aria-pressed', String(seven));
+      document.getElementById('c30').setAttribute('aria-pressed', String(!seven));
+      document.querySelectorAll('[data-7]').forEach(function (n) {
+        n.textContent = n.getAttribute('data-' + v);
+      });
+      var note = document.getElementById('winNote');
+      var en = seven ? 'Last 7 days' : 'Last 30 days';
+      var vi = seven ? '7 ngày gần nhất' : '30 ngày gần nhất';
+      note.setAttribute('data-en', en);
+      note.setAttribute('data-vi', vi);
+      note.textContent = AF.lang === 'vi' ? vi : en;
+      AF.toast(seven ? 'Window: 7 days' : 'Window: 30 days');
+    };
+  })();
+</script>
+</body>
+</html>
