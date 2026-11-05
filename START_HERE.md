@@ -2,8 +2,8 @@
 
 Thư mục dự án: `C:\Qoder\agent-fleet-upgrade`.
 
-**Bản làm việc hiện tại: Agent Fleet Desktop 2.6.0.** Mở
-`dist/AgentFleet-2.6.0/AgentFleet.exe`; xem [ghi chú 2.6.0](docs/releases/2.6.0.md) và
+**Bản làm việc hiện tại: Agent Fleet Desktop 2.6.1.** Mở
+`dist/AgentFleet-2.6.1/AgentFleet.exe`; xem [ghi chú 2.6.1](docs/releases/2.6.1.md) và
 [hướng dẫn desktop](desktop/README.md). UI đã xây lại theo toàn bộ bố cục OpenCode;
 mục **Hướng dẫn leader** sao chép kết nối hiện tại và quy trình vào hội thoại.
 Mục tiêu tổng gói <115 MB vẫn **chưa đạt** vì Node và .NET portable.

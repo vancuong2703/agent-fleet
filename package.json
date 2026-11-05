@@ -1,6 +1,6 @@
 {
   "name": "agent-fleet",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "description": "Lightweight Windows workspace for local coding agents",
   "scripts": {
     "test": "vitest run",
