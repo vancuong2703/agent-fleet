@@ -66,8 +66,8 @@ export function ModelRows({ tool, limit = 2 }: { tool: DashboardTool; limit?: nu
   return offers.length ? <div className="models">{offers.map(offer => <div className="m" key={offer.id}><span className="mn" title={offer.id}>{offer.label}</span>{limit > 3 && <span className="tk model-meta">{formatContext(offer.contextTokens)}{offer.source === 'catalog' && <small>{t('Catalog price', 'Giá catalog')}</small>}{offer.promo && <small>{offer.promo}</small>}{known(offer.originalMultiplier) && offer.originalMultiplier !== offer.multiplier && <small><s>x{offer.originalMultiplier}</s></small>}</span>}<span className={`mult${offer.multiplier === 0 ? ' free' : ''}`}>{!known(offer.multiplier) ? '—' : offer.multiplier === 0 ? t('FREE', 'MIỄN PHÍ') : `x${offer.multiplier}`}</span></div>)}</div> : null;
 }
 
-export function Dashboard({ cli, tasks, plans, runsByTask, onDetails, onTask }: { cli: CliWorkspace; tasks: Task[]; plans: Plan[]; runsByTask: Record<string, Run[]>; onDetails: (agent: DashboardAgent) => void; onTask: (id: string) => void }) {
-  const { t } = useLanguage(); const stats = useStats(7); const tools = cli.snapshot?.tools ?? [];
+export function Dashboard({ visible = true, cli, tasks, plans, runsByTask, onDetails, onTask }: { /** False while another view is on screen: the page stays mounted but stops polling. */ visible?: boolean; cli: CliWorkspace; tasks: Task[]; plans: Plan[]; runsByTask: Record<string, Run[]>; onDetails: (agent: DashboardAgent) => void; onTask: (id: string) => void }) {
+  const { t } = useLanguage(); const stats = useStats(7, '', visible); const tools = cli.snapshot?.tools ?? [];
   const checks = tools.map(tool => tool.lastCheck?.checkedAt).filter(known); const today = new Date().setHours(0, 0, 0, 0);
   const todayTasks = tasks.filter(task => task.createdAt >= today);
   const allRuns = Object.values(runsByTask).flat(); const tokenRuns = allRuns.filter(run => known(run.inputTokens) || known(run.outputTokens));

@@ -19,9 +19,26 @@ export interface RunOutcome {
   checkPassed: boolean | null;
 }
 
+/** Commands that block on the network; a started one that never reports back is treated as hung. */
+const NETWORK_COMMAND = /(?:^|[^\w.-])(?:curl|wget|invoke-webrequest|iwr|invoke-restmethod|irm|start-bitstransfer|aria2c)(?:\.exe)?(?![\w-])/i;
+const COMMAND_PREVIEW = 120;
+const PROGRESS_KINDS: ReadonlySet<FleetEvent['kind']> = new Set(['message', 'command', 'file_edit', 'tool', 'check', 'status']);
+const SHELL_TOOLS = /^(?:bash|shell|powershell|pwsh|run_?command|execute_?command)$/i;
+
+/**
+ * The command text of an event that announces a network command before it finishes: a `command`
+ * without an exit code (codex, fake) or a shell `tool` event (qodercli emits its Bash tool_use
+ * before the tool runs). Null for everything else.
+ */
+function startedNetworkStep(event: FleetEvent): string | null {
+  if (event.kind === 'command' && event.exitCode === undefined && NETWORK_COMMAND.test(event.cmd)) return event.cmd;
+  if (event.kind === 'tool' && event.detail !== undefined && SHELL_TOOLS.test(event.name) && NETWORK_COMMAND.test(event.detail)) return event.detail;
+  return null;
+}
+
 export async function runAttempt(o: {
   adapter: AgentAdapter; bin: string; extraArgs: string[]; brief: string; briefFile: string; cwd: string;
-  timeouts: { totalMs: number; idleMs: number }; checkCmd: string | null;
+  timeouts: { totalMs: number; idleMs: number; networkMs?: number }; checkCmd: string | null;
   onEvent: (e: FleetEvent) => void; onSpawn: (pid: number) => void; signal: AbortSignal;
 }): Promise<RunOutcome> {
   const outcome: RunOutcome = {
@@ -37,10 +54,12 @@ export async function runAttempt(o: {
   let systemError: Error | null = null;
   let totalTimer: ReturnType<typeof setTimeout> | undefined;
   let idleTimer: ReturnType<typeof setTimeout> | undefined;
+  let networkTimer: ReturnType<typeof setTimeout> | undefined;
 
   function clearTimers(): void {
     clearTimeout(totalTimer);
     clearTimeout(idleTimer);
+    clearTimeout(networkTimer);
   }
 
   function terminate(): void {
@@ -69,8 +88,28 @@ export async function runAttempt(o: {
     if (!stopped && !systemError && active?.exitCode === null && active.signalCode === null) idleTimer = setTimeout(() => stop('timeout'), o.timeouts.idleMs);
   }
 
+  /**
+   * Armed by a started network step. Only structured progress (message, command, file_edit, tool,
+   * check, status) cancels it: heartbeats (raw), usage, session, model and error events do not.
+   */
+  function watchNetwork(event: FleetEvent): void {
+    if (!PROGRESS_KINDS.has(event.kind)) return;
+    clearTimeout(networkTimer);
+    const networkMs = o.timeouts.networkMs;
+    if (!networkMs || networkMs <= 0 || stopped || systemError) return;
+    const started = startedNetworkStep(event);
+    if (started === null) return;
+    const cmd = started.length > COMMAND_PREVIEW ? `${started.slice(0, COMMAND_PREVIEW)}…` : started;
+    networkTimer = setTimeout(() => {
+      if (stopped) return;
+      emit({ kind: 'error', category: 'system', text: `Lệnh mạng không phản hồi sau ${+(networkMs / 60_000).toFixed(2)} phút: ${cmd}` });
+      stop('timeout');
+    }, networkMs);
+  }
+
   function emit(event: FleetEvent): void {
     events.push(event);
+    watchNetwork(event);
     switch (event.kind) {
       case 'error': lastErrorCategory = event.category ?? 'agent'; break;
       case 'session': outcome.sessionId = event.id; break;
@@ -179,6 +218,7 @@ export async function runAttempt(o: {
 
     const code = await completion;
     clearTimeout(idleTimer);
+    clearTimeout(networkTimer);
     active = null;
     let drainTimer: ReturnType<typeof setTimeout> | undefined;
     try {

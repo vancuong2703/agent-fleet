@@ -132,6 +132,7 @@ Ví dụ `fleet.config.json` (điền đường dẫn executable thực tế cho
 | `maxParallelTotal` | Tổng số task chạy đồng thời, mặc định `4`. |
 | `timeouts.totalMin` | Giới hạn thời gian một lần chạy, mặc định `30` phút. |
 | `timeouts.idleMin` | Giới hạn thời gian không có output, mặc định `10` phút. |
+| `timeouts.networkMin` | Giới hạn thời gian một lệnh mạng (như `curl`) im lặng, mặc định `5` phút, `0` để tắt. Áp dụng cho Codex và Qoder. |
 
 Thiếu trường thì dùng mặc định; `bin` bị thiếu được dò trong PATH và các vị trí
 cài đặt đã biết. Sau khi đổi cấu hình, khởi động lại server để áp dụng đầy đủ.

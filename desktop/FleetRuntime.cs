@@ -21,7 +21,53 @@ internal sealed class FleetRuntime(string dataDir) : IAsyncDisposable
     internal bool IsAlive => serverStarted && server is { HasExited: false };
     internal IReadOnlySet<int> OwnedProcessIds() => job?.ProcessIds() ?? new HashSet<int>();
 
+    internal string LogPath => StartupDiagnostics.LogFile(dataDir);
+
+    /// <summary>Starts the server; safe to call again after a failure (for example after a database repair).</summary>
     internal async Task StartAsync()
+    {
+        await StopOwnedServerAsync();
+        StartupDiagnostics.DeleteStartupError(dataDir);
+        try { await StartCoreAsync(); }
+        catch { await StopOwnedServerAsync(); throw; }
+    }
+
+    private async Task StopOwnedServerAsync()
+    {
+        var previous = server;
+        if (previous is { HasExited: false }) { try { previous.Kill(entireProcessTree: true); await previous.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)); } catch { } }
+        job?.Dispose(); job = null;
+        previous?.Dispose(); server = null;
+        log?.Dispose(); log = null;
+        serverStarted = false;
+        Client.DefaultRequestHeaders.Remove("x-fleet-token");
+    }
+
+    /// <summary>Runs `main.js --repair-db` offline with the same environment; the caller must have confirmed with the user.</summary>
+    internal async Task<(int ExitCode, string Output)> RepairDatabaseAsync()
+    {
+        var root = AppContext.BaseDirectory;
+        var runtime = Path.Combine(root, "runtime", "node.exe");
+        var application = Path.Combine(root, "app");
+        var start = new ProcessStartInfo(runtime) { WorkingDirectory = application, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        start.ArgumentList.Add(Path.Combine(application, "server", "main.js"));
+        start.ArgumentList.Add("--repair-db");
+        start.Environment["FLEET_DATA_DIR"] = dataDir;
+        start.Environment["FLEET_DESKTOP"] = "1";
+        start.Environment["NODE_ENV"] = "production";
+        start.Environment["PATH"] = Path.GetDirectoryName(runtime) + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH");
+        using var process = Process.Start(start) ?? throw new InvalidOperationException("Không chạy được tiến trình sửa database.");
+        var output = process.StandardOutput.ReadToEndAsync();
+        var errors = process.StandardError.ReadToEndAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        try { await process.WaitForExitAsync(timeout.Token); }
+        catch (OperationCanceledException) { try { process.Kill(entireProcessTree: true); } catch { } throw new TimeoutException("Sửa database quá 5 phút nên đã dừng."); }
+        var text = (await output).Trim();
+        if (text.Length == 0) text = (await errors).Trim();
+        return (process.ExitCode, StartupDiagnostics.Redact(text));
+    }
+
+    private async Task StartCoreAsync()
     {
         var root = AppContext.BaseDirectory;
         var runtime = Path.Combine(root, "runtime", "node.exe");
@@ -39,6 +85,7 @@ internal sealed class FleetRuntime(string dataDir) : IAsyncDisposable
         Token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
         await File.WriteAllTextAsync(tokenPath, Token);
         BaseUrl = $"http://127.0.0.1:{port}";
+        Client.DefaultRequestHeaders.Remove("x-fleet-token");
         Client.DefaultRequestHeaders.Add("x-fleet-token", Token);
         var start = new ProcessStartInfo(runtime) { WorkingDirectory = application, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, WindowStyle = ProcessWindowStyle.Hidden };
         start.ArgumentList.Add(Path.Combine(application, "server", "main.js"));
@@ -46,12 +93,14 @@ internal sealed class FleetRuntime(string dataDir) : IAsyncDisposable
         start.Environment["FLEET_DESKTOP"] = "1";
         start.Environment["NODE_ENV"] = "production";
         start.Environment["PATH"] = Path.GetDirectoryName(runtime) + Path.PathSeparator + Environment.GetEnvironmentVariable("PATH");
-        log = new StreamWriter(Path.Combine(dataDir, "server.log"), append: true) { AutoFlush = true };
+        StartupDiagnostics.TrimLog(LogPath);
+        log = new StreamWriter(new FileStream(LogPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete)) { AutoFlush = true };
         var writeLock = new object();
         server = new Process { StartInfo = start };
         job = new OwnedProcessJob();
-        server.OutputDataReceived += (_, e) => { if (e.Data != null) lock (writeLock) log.WriteLine(e.Data); };
-        server.ErrorDataReceived += (_, e) => { if (e.Data != null) lock (writeLock) log.WriteLine(e.Data); };
+        var writer = log;
+        server.OutputDataReceived += (_, e) => { if (e.Data != null) try { lock (writeLock) writer.WriteLine(e.Data); } catch (ObjectDisposedException) { } };
+        server.ErrorDataReceived += (_, e) => { if (e.Data != null) try { lock (writeLock) writer.WriteLine(e.Data); } catch (ObjectDisposedException) { } };
         portProbe.Stop();
         if (!server.Start()) throw new InvalidOperationException("Không khởi động được server.");
         serverStarted = true;
@@ -60,7 +109,7 @@ internal sealed class FleetRuntime(string dataDir) : IAsyncDisposable
         var readiness = Stopwatch.StartNew();
         while (readiness.Elapsed < TimeSpan.FromSeconds(30))
         {
-            if (server.HasExited) throw new InvalidOperationException($"Server dừng với mã {server.ExitCode}. Xem {Path.Combine(dataDir, "server.log")}");
+            if (server.HasExited) { server.WaitForExit(2000); throw new InvalidOperationException($"Server dừng với mã {server.ExitCode}."); }
             // Never send a bearer token to a different process racing for the port.
             if (!NativeMethods.ListenerOwnedBy(port, server.Id)) { await Task.Delay(100); continue; }
             using var attemptTimeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(Math.Min(500, Math.Max(1, 30_000 - readiness.ElapsedMilliseconds))));
@@ -76,7 +125,7 @@ internal sealed class FleetRuntime(string dataDir) : IAsyncDisposable
             catch (HttpRequestException) { } catch (TaskCanceledException) { } catch (JsonException) { }
             await Task.Delay(250);
         }
-        throw new TimeoutException("Server chưa sẵn sàng sau 30 giây. Kiểm tra server.log.");
+        throw new TimeoutException("Server chưa sẵn sàng sau 30 giây.");
     }
 
     internal async Task<int> ActiveTaskCountAsync()

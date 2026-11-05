@@ -9,7 +9,7 @@ import type {
   Task,
   TaskStatus,
 } from '../../shared/types.js';
-import { api, type DiffResult, type MergeResult } from './api.js';
+import { api, ApiError, type DiffResult, type MergeResult } from './api.js';
 import type { IconName } from './components/Icon.js';
 import { appStrings } from './strings.js';
 import { connectBus } from './ws.js';
@@ -251,6 +251,32 @@ export function buildLogRows(events: StoredEvent[]): LogRow[] {
   return rows;
 }
 
+/**
+ * `buildLogRows` for an events array that only grew at the end. Rows that did
+ * not change keep their identity so memoized row components skip rendering; only
+ * the open raw group (if any) and the new tail are rebuilt. Anything else (a
+ * trimmed head, a replaced log) falls back to a full rebuild.
+ */
+export function extendLogRows(
+  previous: { events: StoredEvent[]; rows: LogRow[] } | null,
+  events: StoredEvent[],
+): LogRow[] {
+  const before = previous?.events;
+  const grew = previous !== null && before !== undefined && before.length > 0 && events.length >= before.length
+    && events[0] === before[0] && events[before.length - 1] === before[before.length - 1];
+  if (!grew || previous === null) return buildLogRows(events);
+  if (events.length === before!.length) return previous.rows;
+  const rows = previous.rows.slice();
+  let restart = before!.length;
+  const last = rows[rows.length - 1];
+  // A trailing raw group may continue into the new events, so it is rebuilt.
+  if (last?.raw) {
+    rows.pop();
+    restart -= last.events.length;
+  }
+  return [...rows, ...buildLogRows(events.slice(restart))];
+}
+
 /** One-line summary of an event for the log's text column. */
 export function eventText(event: FleetEvent): string {
   switch (event.kind) {
@@ -402,14 +428,72 @@ export function withLoadState(
   return merged;
 }
 
+/** Why a read failed: the readable message and, for known server faults, a code. */
+export interface LoadFailure {
+  message: string;
+  code: string | null;
+}
+
+/**
+ * Message for a failed read. A `db_corrupt` 503 carries its own readable
+ * `message`; that is shown instead of the raw status line. Anything else keeps
+ * `Error.message` (never `String(cause)`, which renders as "Error: …").
+ */
+export function describeFailure(cause: unknown): LoadFailure {
+  if (cause instanceof ApiError && cause.code === 'db_corrupt') {
+    return { message: cause.detail ?? cause.message, code: 'db_corrupt' };
+  }
+  return { message: cause instanceof Error ? cause.message : String(cause), code: null };
+}
+
+export interface RunsLoad {
+  runs: Run[];
+  /** Per-task failures; a task listed here must show a warning and a retry. */
+  errors: Record<string, string>;
+  /** A fault shared by every task (database corruption); per-task retries cannot help. */
+  fatal: LoadFailure | null;
+}
+
+/**
+ * Load run history for a task list. One `GET /api/runs` covers everything; when
+ * it is missing or fails, fall back to one request per task and record each
+ * failure under its task so one bad task cannot blank the whole list.
+ */
+export async function loadRuns(
+  tasks: readonly Pick<Task, 'id'>[],
+  source: { allRuns: () => Promise<Run[]>; runs: (taskId: string) => Promise<Run[]> },
+): Promise<RunsLoad> {
+  if (tasks.length === 0) return { runs: [], errors: {}, fatal: null };
+  try {
+    return { runs: await source.allRuns(), errors: {}, fatal: null };
+  } catch (cause) {
+    const failure = describeFailure(cause);
+    if (failure.code === 'db_corrupt') return { runs: [], errors: {}, fatal: failure };
+  }
+  const settled = await Promise.allSettled(tasks.map((task) => source.runs(task.id)));
+  const runs: Run[] = [];
+  const errors: Record<string, string> = {};
+  settled.forEach((result, index) => {
+    if (result.status === 'fulfilled') runs.push(...result.value);
+    else errors[tasks[index]!.id] = describeFailure(result.reason).message;
+  });
+  return { runs, errors, fatal: null };
+}
+
 // ── hook ────────────────────────────────────────────────────────────────────
 
 export interface FleetStore {
   state: FleetState;
   connected: boolean;
   error: string | null;
-  /** True once the initial plans/tasks sweep succeeded. */
+  /** Server fault code behind `error` (for example `db_corrupt`), when it has one. */
+  errorCode: string | null;
+  /** True once the task list was read; run history may still be loading or failed. */
   tasksLoaded: boolean;
+  /** Tasks whose run history could not be read, with the reason. */
+  runErrors: Record<string, string>;
+  /** Re-read the run history of one task only. */
+  retryRuns: (taskId: string) => void;
   /** Load state of one run's log; a task without runs is "nothing to load". */
   logState: (runId: string | null) => LoadState;
   /** Re-run the initial GET sweep (plans, tasks, runs). */
@@ -428,7 +512,9 @@ export function useFleet(): FleetStore {
   const [state, setState] = useState<FleetState>(initialFleetState);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [tasksLoaded, setTasksLoaded] = useState(false);
+  const [runErrors, setRunErrors] = useState<Record<string, string>>({});
   const [logStates, setLogStates] = useState<Record<string, LoadState>>({});
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -467,31 +553,41 @@ export function useFleet(): FleetStore {
     buffered.current = [];
     void (async () => {
       try {
-        const plans = await api.plans();
-        const tasks = await api.tasks();
-        const runLists = await Promise.all(
-          tasks.map((task) => api.runs(task.id)),
-        );
+        const [plans, tasks] = await Promise.all([api.plans(), api.tasks()]);
+        if (!mounted.current) return;
+        // The task list is enough to show Jobs: apply it now and let the run
+        // history arrive (or fail) on its own. A push that landed while the
+        // GET was in flight is replayed after the snapshot so it is kept; the
+        // buffer stays open until the history snapshot is applied as well.
+        setState((current) => {
+          let next = current;
+          for (const plan of plans) next = reduceFleet(next, { type: 'plan', plan });
+          for (const task of tasks) next = reduceFleet(next, { type: 'task', task });
+          for (const message of buffered.current ?? []) next = reduceFleet(next, message);
+          return next;
+        });
+        setError(null);
+        setErrorCode(null);
+        setTasksLoaded(true);
+        const history = await loadRuns(tasks, api);
         if (!mounted.current) return;
         const pending = buffered.current?.slice() ?? [];
         buffered.current = null;
         setState((current) => {
           let next = current;
-          for (const plan of plans) next = reduceFleet(next, { type: 'plan', plan });
-          for (const task of tasks) next = reduceFleet(next, { type: 'task', task });
-          for (const runs of runLists) {
-            for (const run of runs) next = reduceFleet(next, { type: 'run', run });
-          }
-          // A GET may return a snapshot older than a push that arrived while it
-          // was in flight. Replay that push after the snapshot to preserve it.
+          for (const run of history.runs) next = reduceFleet(next, { type: 'run', run });
           for (const message of pending) next = reduceFleet(next, message);
           return next;
         });
-        setError(null);
-        setTasksLoaded(true);
+        setRunErrors(history.errors);
+        if (history.fatal) { setError(history.fatal.message); setErrorCode(history.fatal.code); }
         await Promise.all([...loadedRuns.current].map((runId) => fetchEvents(runId, true)));
       } catch (cause) {
-        if (mounted.current) setError(cause instanceof Error ? cause.message : String(cause));
+        if (mounted.current) {
+          const failure = describeFailure(cause);
+          setError(failure.message);
+          setErrorCode(failure.code);
+        }
       } finally {
         buffered.current = null;
         hydrating.current = false;
@@ -533,12 +629,26 @@ export function useFleet(): FleetStore {
     void fetchEvents(runId, false, retry);
   }, [fetchEvents]);
 
+  const retryRuns = useCallback((taskId: string) => {
+    void api.runs(taskId).then(
+      (runs) => {
+        if (!mounted.current) return;
+        setState((current) => runs.reduce((next, run) => reduceFleet(next, { type: 'run', run }), current));
+        setRunErrors((current) => {
+          const { [taskId]: _removed, ...rest } = current;
+          return rest;
+        });
+      },
+      (cause) => { if (mounted.current) setRunErrors((current) => ({ ...current, [taskId]: describeFailure(cause).message })); },
+    );
+  }, []);
+
   const logState = useCallback(
     (runId: string | null): LoadState => (runId === null ? LOADED : logStates[runId] ?? NOT_LOADED),
     [logStates],
   );
 
-  return { state, connected, error, tasksLoaded, logState, reload: hydrate, loadEvents };
+  return { state, connected, error, errorCode, tasksLoaded, runErrors, retryRuns, logState, reload: hydrate, loadEvents };
 }
 
 /**
@@ -562,36 +672,51 @@ interface DiffEntry {
 const EMPTY_DIFF: Omit<DiffEntry, 'taskId'> = { diff: null, loaded: false, error: null };
 
 /**
- * Read `/api/tasks/:id/diff` for the selected task, refreshing every few
- * seconds while the task runs and the Diff tab is open. `reload` retries a
- * failed read immediately instead of waiting for the next poll.
+ * Read `/api/tasks/:id/diff` for the selected task. Every read runs git on the
+ * server, so the patch is fetched once when a task is selected (the tab count
+ * needs it) and re-fetched when its status changes. It only keeps polling
+ * every few seconds while the task is live AND the Changes tab is open
+ * (`active`). `reload` retries a failed read immediately.
  */
 export function useTaskDiff(taskId: string | null, status: TaskStatus | null, active: boolean): TaskDiff {
   const [entry, setEntry] = useState<DiffEntry>({ taskId: null, ...EMPTY_DIFF });
   const [attempt, setAttempt] = useState(0);
   // The render of a newly selected task must not expose the previous patch.
   const current: DiffEntry = entry.taskId === taskId ? entry : { taskId, ...EMPTY_DIFF };
+  const live = status === 'running' || status === 'taken_over';
+  const polling = active && live;
 
+  const read = useCallback(async (id: string, cancelled: () => boolean): Promise<void> => {
+    try {
+      const result = await api.diff(id);
+      if (!cancelled()) setEntry({ taskId: id, diff: result, loaded: true, error: null });
+    } catch (cause) {
+      if (!cancelled()) setEntry({ taskId: id, diff: null, ...loadError(cause) });
+    }
+  }, []);
+
+  // One read per selection / status change / retry, whichever tab is open.
   useEffect(() => {
     if (!taskId) return;
     let cancelled = false;
+    void read(taskId, () => cancelled);
+    return () => { cancelled = true; };
+  }, [taskId, status, attempt, read]);
+
+  // The poll runs only for a live task on the Changes tab; it starts after one interval.
+  useEffect(() => {
+    if (!taskId || !polling) return;
+    let cancelled = false;
     let timer: number | undefined;
-    const refresh = async (): Promise<void> => {
-      try {
-        const result = await api.diff(taskId);
-        if (cancelled) return;
-        setEntry({ taskId, diff: result, loaded: true, error: null });
-      } catch (cause) {
-        if (cancelled) return;
-        setEntry({ taskId, diff: null, ...loadError(cause) });
-      } finally {
-        const polling = active && (status === 'running' || status === 'taken_over');
-        if (!cancelled && polling) timer = window.setTimeout(refresh, document.hidden ? 10_000 : 3_000);
-      }
+    const tick = (): void => {
+      timer = window.setTimeout(async () => {
+        await read(taskId, () => cancelled);
+        if (!cancelled) tick();
+      }, document.hidden ? 10_000 : 3_000);
     };
-    void refresh();
+    tick();
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [taskId, status, active, attempt]);
+  }, [taskId, polling, attempt, read]);
 
   const reload = useCallback(() => {
     setEntry({ taskId, ...EMPTY_DIFF });

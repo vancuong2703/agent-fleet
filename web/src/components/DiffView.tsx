@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import type { DiffFile } from '../../../shared/types.js';
-import { splitPatch, type DiffSection } from '../diff.js';
-import { isDesktop, openLocation } from '../desktop.js';
+import { splitPatch, type DiffLine } from '../diff.js';
+import { copyText, errorMessage, isDesktop, joinWorktreePath, openLocation } from '../desktop.js';
+import { useLanguage } from '../ui/language.js';
 import { Icon } from './Icon.js';
 import { Skeleton } from './Skeleton.js';
 
@@ -11,12 +12,17 @@ export interface DiffViewProps {
   patch: string;
   error?: string | null;
   taskId?: string;
+  /** Worktree folder of the task; worktree + relative path is the value "copy path" puts on the clipboard. */
+  worktreePath?: string;
   /** True while the patch is being read; the empty copy must wait for it. */
   loading?: boolean;
   onRetry?: () => void;
 }
 
-function lineMarker(kind: DiffSection['lines'][number]['kind']): string {
+/** Up to this many files every section starts open; above it only the first does. */
+export const DIFF_OPEN_ALL_LIMIT = 3;
+
+function lineMarker(kind: DiffLine['kind']): string {
   switch (kind) {
     case 'add':
       return '+';
@@ -29,79 +35,168 @@ function lineMarker(kind: DiffSection['lines'][number]['kind']): string {
   }
 }
 
+/** Lines of one open file. Closed files never render this, which keeps big patches cheap. */
+function DiffLines({ lines }: { lines: DiffLine[] }) {
+  return (
+    <>
+      {lines.map((line, index) => (
+        <div key={index} className={`diff-line diff-${line.kind}`}>
+          <span className="diff-gutter">{line.oldLine ?? ''}</span>
+          <span className="diff-gutter">{line.newLine ?? ''}</span>
+          <span className="diff-marker">{lineMarker(line.kind)}</span>
+          <span className="diff-text">{line.text}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 /**
- * File list plus the unified diff of the selected file. The patch arrives as
- * one string and is split per file by `splitPatch`; each line is colored by
- * its kind (add/del/ctx/hunk).
+ * Per-file collapsible diff. The patch arrives as one string and is split per
+ * file by `splitPatch`. Each file is a section with a sticky header (path, +/-,
+ * reveal button); only open sections render their lines. Open/closed state is
+ * keyed by path, so the 3 s polling refresh keeps what the user opened.
  */
-export function DiffView({ files, patch, error, taskId, loading = false, onRetry }: DiffViewProps) {
-  const sections = useMemo(() => splitPatch(patch), [patch]);
-  const [chosenPath, setSelectedPath] = useState<string | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  // Derived, not synced in an effect: the first file is shown until the user picks another.
-  const selectedPath =
-    chosenPath !== null && files.some((file) => file.path === chosenPath)
-      ? chosenPath
-      : files[0]?.path ?? null;
+export function DiffView({ files, patch, error, taskId, worktreePath, loading = false, onRetry }: DiffViewProps) {
+  const { t } = useLanguage();
+  const sections = useMemo(() => new Map(splitPatch(patch).map((section) => [section.path, section])), [patch]);
+  // Default is decided once, from the first non-empty file list: all open for a
+  // small change, otherwise only the first file. A later poll never flips it.
+  const defaults = useRef<{ all: boolean; first: string } | null>(null);
+  if (defaults.current === null && files.length > 0) defaults.current = { all: files.length <= DIFF_OPEN_ALL_LIMIT, first: files[0]!.path };
+  const [choices, setChoices] = useState<Record<string, boolean>>({});
+  const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const isOpen = (path: string): boolean => choices[path] ?? (defaults.current?.all === true || defaults.current?.first === path);
 
   // A failed read must offer a way out instead of an empty panel.
   if (error !== undefined && error !== null) {
     return (
       <div className="banner banner-error" role="alert">
-        Không tải được thay đổi: {error}
-        {onRetry && <button type="button" className="banner-retry" onClick={onRetry}>Thử lại</button>}
+        {t('Could not load the changes: ', 'Không tải được thay đổi: ')}{error}
+        {onRetry && <button type="button" className="banner-retry" onClick={onRetry}>{t('Retry', 'Thử lại')}</button>}
       </div>
     );
   }
 
   if (loading && files.length === 0) {
-    return <Skeleton className="diff-skeleton" label="Đang tải thay đổi…" lines={6} />;
+    return <Skeleton className="diff-skeleton" label={t('Loading changes…', 'Đang tải thay đổi…')} lines={6} />;
   }
 
   if (files.length === 0) {
-    return <div className="placeholder">Chưa có thay đổi.</div>;
+    return <div className="placeholder">{t('No changes yet.', 'Chưa có thay đổi.')}</div>;
   }
 
-  const section = sections.find((entry) => entry.path === selectedPath) ?? null;
+  const allOpen = files.every((file) => isOpen(file.path));
+  const setAll = (open: boolean): void => setChoices(Object.fromEntries(files.map((file) => [file.path, open])));
+
+  const clearError = (path: string): void => setFileErrors((current) => {
+    if (!(path in current)) return current;
+    const { [path]: _gone, ...rest } = current;
+    return rest;
+  });
+
+  const copyPath = async (path: string): Promise<void> => {
+    const value = worktreePath ? joinWorktreePath(worktreePath, path) : path;
+    try {
+      await copyText(value);
+      setCopied(path);
+      clearError(path);
+      window.setTimeout(() => setCopied((current) => (current === path ? null : current)), 2_500);
+    } catch (cause) {
+      setFileErrors((current) => ({ ...current, [path]: t(`Could not copy the path: ${errorMessage(cause)}`, `Không sao chép được đường dẫn: ${errorMessage(cause)}`) }));
+    }
+  };
+
+  const reveal = async (path: string): Promise<void> => {
+    if (!taskId) return;
+    clearError(path);
+    try {
+      await openLocation({ taskId, relativePath: path, action: 'reveal' });
+    } catch (cause) {
+      setFileErrors((current) => ({ ...current, [path]: errorMessage(cause) }));
+    }
+  };
+
+  const desktop = isDesktop();
+  const totalAdded = files.reduce((sum, file) => sum + file.added, 0);
+  const totalRemoved = files.reduce((sum, file) => sum + file.removed, 0);
 
   return (
     <div className="diff-view">
-      <ul className="diff-files">
-        {files.map((file) => (
-          <li key={file.path}>
-            <button
-              type="button"
-              className={`diff-file${file.path === selectedPath ? ' selected' : ''}`}
-              onClick={() => setSelectedPath(file.path)}
-              title={file.path}
-            >
-              <span className="diff-file-path">{file.path}</span>
-              <span className="diff-stat">
-                <span className="diff-added">+{file.added}</span>
-                <span className="diff-removed">-{file.removed}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="diff-detail"><div className="diff-toolbar"><span>{selectedPath}</span><button className="text-button" disabled={!isDesktop() || !taskId || !selectedPath} title={isDesktop() ? 'Hiện tệp trong Explorer' : 'Có trong ứng dụng Desktop'} onClick={() => { if (taskId && selectedPath) void openLocation({ taskId, relativePath: selectedPath, action: 'reveal' }).catch((cause) => setLocationError(String(cause))); }}><Icon name="folder" size={14} />Mở vị trí tệp</button></div>{locationError && <p className="banner banner-error">{locationError}</p>}<div className="diff-pane">
-        {section === null ? (
-          <div className="placeholder">Không có thay đổi cho tệp này.</div>
-        ) : (
-          section.lines.map((line, index) => (
-            <div key={index} className={`diff-line diff-${line.kind}`}>
-              <span className="diff-gutter">
-                {line.oldLine ?? ''}
-              </span>
-              <span className="diff-gutter">
-                {line.newLine ?? ''}
-              </span>
-              <span className="diff-marker">{lineMarker(line.kind)}</span>
-              <span className="diff-text">{line.text}</span>
-            </div>
-          ))
+      <div className="diff-toolbar">
+        <span className="diff-summary">
+          {files.length} {t(files.length === 1 ? 'file' : 'files', 'tệp')}
+          <span className="diff-stat"><span className="diff-added">+{totalAdded}</span><span className="diff-removed">-{totalRemoved}</span></span>
+        </span>
+        {files.length > 1 && (
+          <button type="button" className="text-button" onClick={() => setAll(!allOpen)}>
+            {allOpen ? t('Collapse all', 'Thu gọn tất cả') : t('Expand all', 'Mở rộng tất cả')}
+          </button>
         )}
       </div>
+      <div className="diff-pane">
+        {files.map((file) => {
+          const open = isOpen(file.path);
+          const section = sections.get(file.path) ?? null;
+          const bodyId = `diff-body-${files.indexOf(file)}`;
+          const failure = fileErrors[file.path];
+          return (
+            <section key={file.path} className={`diff-section${open ? ' open' : ''}`}>
+              <div className="diff-section-head">
+                <button
+                  type="button"
+                  className="diff-toggle"
+                  aria-expanded={open}
+                  aria-controls={open ? bodyId : undefined}
+                  onClick={() => setChoices((current) => ({ ...current, [file.path]: !open }))}
+                  title={file.path}
+                >
+                  <Icon name={open ? 'chevron-down' : 'chevron-right'} size={14} />
+                  <span className="diff-file-path">{file.path}</span>
+                  <span className="diff-stat">
+                    <span className="diff-added">+{file.added}</span>
+                    <span className="diff-removed">-{file.removed}</span>
+                  </span>
+                </button>
+                {desktop ? (
+                  <button
+                    type="button"
+                    className="text-button diff-reveal"
+                    aria-label={t('Reveal file in Explorer', 'Mở vị trí tệp')}
+                    disabled={!taskId}
+                    title={t('Reveal file in Explorer', 'Hiện tệp trong Explorer')}
+                    onClick={() => void reveal(file.path)}
+                  >
+                    <Icon name="folder" size={14} /><span className="diff-reveal-label">{t('Reveal', 'Mở vị trí tệp')}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-button diff-reveal"
+                    aria-label={t("Copy file path", "Sao chép đường dẫn")}
+                    title={t("Opening a location needs the Desktop app. Copy the path instead.", "Mở vị trí chỉ có trong ứng dụng Desktop. Hãy sao chép đường dẫn.")}
+                    onClick={() => void copyPath(file.path)}
+                  >
+                    <Icon name="copy" size={14} /><span className="diff-reveal-label">{copied === file.path ? t('Copied', 'Đã sao chép') : t("Copy path", "Sao chép đường dẫn")}</span>
+                  </button>
+                )}
+              </div>
+              {failure !== undefined && (
+                <div className="banner banner-error diff-file-error" role="alert">
+                  <span>{failure}</span>
+                  <button type="button" className="banner-retry" onClick={() => void copyPath(file.path)}>{t("Copy path", "Sao chép đường dẫn")}</button>
+                </div>
+              )}
+              {open && (
+                <div className="diff-body" id={bodyId}>
+                  {section === null ? <div className="placeholder">{t('No changes for this file.', 'Không có thay đổi cho tệp này.')}</div> : <DiffLines lines={section.lines} />}
+                </div>
+              )}
+            </section>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Run, StoredEvent } from '../../../shared/types.js';
-import { buildLogRows, eventText, formatClock } from '../store.js';
+import { eventText, extendLogRows, formatClock, type LogRow } from '../store.js';
 import { appStrings, eventKindLabel } from '../strings.js';
 import { Skeleton } from './Skeleton.js';
 
@@ -19,13 +19,63 @@ export interface LogViewProps {
 
 const BOTTOM_THRESHOLD = 24;
 
+interface LogRowProps {
+  row: LogRow;
+  open: boolean;
+  onToggle: (id: string, open: boolean) => void;
+}
+
+/** One log row. Memoized: with an incremental row list only new rows render. */
+const LogRowView = memo(function LogRowView({ row, open, onToggle }: LogRowProps) {
+  if (row.raw && !open) {
+    return (
+      <button type="button" className="log-line raw-toggle" onClick={() => onToggle(row.id, true)}>
+        <span className="log-ts" />
+        <span className="log-kind kind-raw">{appStrings.log.rawKind}</span>
+        <span className="log-text">{appStrings.log.rawToggle(row.events.length)}</span>
+      </button>
+    );
+  }
+  return (
+    <>
+      {row.events.map((stored) => {
+        const kind = stored.event.kind;
+        const content = (
+          <>
+            <span className="log-ts">{formatClock(stored.ts)}</span>
+            <span className={`log-kind kind-${kind}`}>{eventKindLabel(kind)}</span>
+            <span className="log-text">{eventText(stored.event)}</span>
+          </>
+        );
+        // A grouped raw line is clickable, so it must be a real button:
+        // the previous `div role="button"` could not be reached by keyboard.
+        if (row.raw) {
+          return (
+            <button key={`${row.id}-${stored.seq}`} type="button" className={`log-line kind-line-${kind}`} onClick={() => onToggle(row.id, false)}>
+              {content}
+            </button>
+          );
+        }
+        return (
+          <div key={`${row.id}-${stored.seq}`} className={`log-line kind-line-${kind}`}>
+            {content}
+          </div>
+        );
+      })}
+    </>
+  );
+});
+
 /**
  * Live event log: monospace, colored by kind, `raw` runs collapsed behind a
  * toggle. Autoscroll follows the tail until the user scrolls up, then pauses.
  * Raw rows are real `<button>`s so they can be toggled from the keyboard.
  */
 export function LogView({ runs, events, runId, onSelectRun, loading = false, error = null, onRetry }: LogViewProps) {
-  const rows = useMemo(() => buildLogRows(events), [events]);
+  // Incremental: a streamed event extends the previous rows instead of rebuilding all of them.
+  const built = useRef<{ events: StoredEvent[]; rows: LogRow[] } | null>(null);
+  if (built.current?.events !== events) built.current = { events, rows: extendLogRows(built.current, events) };
+  const rows = built.current.rows;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [pinned, setPinned] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -44,9 +94,9 @@ export function LogView({ runs, events, runId, onSelectRun, loading = false, err
     setPinned(atBottom);
   };
 
-  const toggle = (id: string, open: boolean): void => {
+  const toggle = useCallback((id: string, open: boolean): void => {
     setExpanded((current) => ({ ...current, [id]: open }));
-  };
+  }, []);
 
   return (
     <div className="log-view">
@@ -73,51 +123,7 @@ export function LogView({ runs, events, runId, onSelectRun, loading = false, err
         )}
         {rows.length === 0 && loading && error === null && <Skeleton className="log-skeleton" label={appStrings.log.loading} lines={5} />}
         {rows.length === 0 && !loading && error === null && <div className="log-empty">{appStrings.log.empty}</div>}
-        {rows.map((row) => {
-          if (row.raw && !expanded[row.id]) {
-            return (
-              <button
-                key={row.id}
-                type="button"
-                className="log-line raw-toggle"
-                onClick={() => toggle(row.id, true)}
-              >
-                <span className="log-ts" />
-                <span className="log-kind kind-raw">{appStrings.log.rawKind}</span>
-                <span className="log-text">{appStrings.log.rawToggle(row.events.length)}</span>
-              </button>
-            );
-          }
-          return row.events.map((stored) => {
-            const kind = stored.event.kind;
-            const content = (
-              <>
-                <span className="log-ts">{formatClock(stored.ts)}</span>
-                <span className={`log-kind kind-${kind}`}>{eventKindLabel(kind)}</span>
-                <span className="log-text">{eventText(stored.event)}</span>
-              </>
-            );
-            // A grouped raw line is clickable, so it must be a real button:
-            // the previous `div role="button"` could not be reached by keyboard.
-            if (row.raw) {
-              return (
-                <button
-                  key={`${row.id}-${stored.seq}`}
-                  type="button"
-                  className={`log-line kind-line-${kind}`}
-                  onClick={() => toggle(row.id, false)}
-                >
-                  {content}
-                </button>
-              );
-            }
-            return (
-              <div key={`${row.id}-${stored.seq}`} className={`log-line kind-line-${kind}`}>
-                {content}
-              </div>
-            );
-          });
-        })}
+        {rows.map((row) => <LogRowView key={row.id} row={row} open={expanded[row.id] === true} onToggle={toggle} />)}
       </div>
     </div>
   );

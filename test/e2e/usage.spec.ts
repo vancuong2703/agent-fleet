@@ -11,6 +11,7 @@ async function openUsage(page: Page, options: UsageOptions = {}) {
   const fixture = usageRuns();
   await page.route('**/api/plans', route => route.fulfill({ json: [USAGE_PLAN] }));
   await page.route(/\/api\/tasks(?:\?.*)?$/, route => route.fulfill({ json: populated ? fixture.tasks : [] }));
+  await page.route(/\/api\/runs(?:\?.*)?$/, route => route.fulfill({ json: Object.values(fixture.runs).flat() }));
   await page.route(/\/api\/tasks\/[^/]+\/runs$/, route => { const id = new URL(route.request().url()).pathname.split('/')[3]; return route.fulfill({ json: fixture.runs[id] ?? [] }); });
   await page.route(/\/api\/observability(?:\?.*)?$/, async route => {
     if (options.gate) await options.gate;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DashboardCheck, DashboardTool, ModelOffer, QuotaWindow } from '../../../shared/dashboard.js';
 import type { AgentId } from '../../../shared/types.js';
 import { api, type AgentStats } from '../api.js';
@@ -48,21 +48,25 @@ export function buildTokenBins(runs: readonly { startedAt: number | null; inputT
     return { start, end, value: rows.reduce((sum, run) => sum + (run.inputTokens ?? 0) + (run.outputTokens ?? 0), 0) };
   });
 }
-export function useStats(days = 7, repo = '') {
+/** `enabled=false` pauses polling (a mounted-but-hidden page); it refreshes at once when enabled again. */
+export function useStats(days = 7, repo = '', enabled = true) {
   const [rows, setRows] = useState<AgentStats[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const loadedKey = useRef('');
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false; let timer: number | undefined;
-    setLoaded(false);
+    // Coming back to a hidden page keeps its numbers; only a new window or repo is a fresh load.
+    if (loadedKey.current !== `${days}|${repo}|${attempt}`) { loadedKey.current = `${days}|${repo}|${attempt}`; setLoaded(false); }
     const refresh = async () => {
       try { const result = await api.stats({ sinceDays: days || undefined, repo: repo || undefined }); if (!cancelled) { setRows(result); setError(null); setLoaded(true); } }
       catch (cause) { if (!cancelled) { setError(String(cause)); setLoaded(true); } }
       finally { if (!cancelled) timer = window.setTimeout(refresh, document.hidden ? 15000 : 5000); }
     };
     void refresh(); return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [days, repo, attempt]);
+  }, [days, repo, attempt, enabled]);
   return { rows, loaded, error, retry: () => setAttempt(value => value + 1) };
 }
 export function download(name: string, content: string, type: string) { const url = URL.createObjectURL(new Blob([content], { type })); const link = document.createElement('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); }

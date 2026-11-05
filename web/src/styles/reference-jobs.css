@@ -18,8 +18,7 @@
 table.jobs{min-width:460px}
 table.jobs th.num,table.jobs td.num{text-align:right}
 table.jobs td{padding:10px 6px;vertical-align:middle}
-/* the list panel absorbs the leftover window height, so the rows share it */
-@media(min-width:1101px){table.jobs{height:100%}}
+/* rows keep their content height; the list panel scrolls (see workflow.css, Jobs layout) */
 .rows tr{cursor:pointer}
 .rows tr.sel td{background:var(--accent-soft)}
 /* row picker = a real button, so a job can be selected with the keyboard */
@@ -63,7 +62,7 @@ table.jobs td{padding:10px 6px;vertical-align:middle}
 
 .logbox{margin:0;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
   padding:12px 14px;font:400 12px/1.7 var(--mono);color:var(--ink);flex:1;
-  white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto}
+  white-space:pre-wrap;overflow-wrap:anywhere;overflow:hidden}
 .logbox .dim{color:var(--faint)}
 .req{margin:0;padding:12px 14px;border-left:3px solid var(--accent);background:var(--surface-2);
   border-radius:0 10px 10px 0;font:500 13px/1.6 var(--sans);color:var(--ink)}

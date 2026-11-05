@@ -105,17 +105,17 @@ describe('loadConfig', () => {
 
     expect(cfg.port).toBe(4500);
     expect(cfg.maxParallelTotal).toBe(4);
-    expect(cfg.timeouts).toEqual({ totalMin: 30, idleMin: 10 });
+    expect(cfg.timeouts).toEqual({ totalMin: 30, idleMin: 10, networkMin: 5 });
 
     const raw = JSON.parse(readFileSync(files.config(), 'utf8')) as {
       port: number;
       maxParallelTotal: number;
-      timeouts: { totalMin: number; idleMin: number };
+      timeouts: { totalMin: number; idleMin: number; networkMin: number };
       agents: Record<string, { bin: string | null; maxParallel: number; extraArgs: string[] }>;
     };
     expect(raw.port).toBe(4500);
     expect(raw.maxParallelTotal).toBe(4);
-    expect(raw.timeouts).toEqual({ totalMin: 30, idleMin: 10 });
+    expect(raw.timeouts).toEqual({ totalMin: 30, idleMin: 10, networkMin: 5 });
     expect(Object.keys(raw.agents).sort()).toEqual(['agy', 'codex', 'opencode', 'qodercli']);
     for (const id of Object.keys(raw.agents)) {
       const agent = raw.agents[id]!;
@@ -134,10 +134,18 @@ describe('loadConfig', () => {
 
     expect(cfg.port).toBe(4600);
     expect(cfg.maxParallelTotal).toBe(4);
-    expect(cfg.timeouts).toEqual({ totalMin: 30, idleMin: 10 });
+    expect(cfg.timeouts).toEqual({ totalMin: 30, idleMin: 10, networkMin: 5 });
     expect(cfg.agents.codex.maxParallel).toBe(2);
     expect(cfg.agents.codex.extraArgs).toEqual([]);
     expect(cfg.agents.opencode.maxParallel).toBe(2);
+  });
+
+  test('networkMin: 0 disables the watchdog, valid values are kept, junk falls back to 5', () => {
+    process.env.FLEET_DATA_DIR = tempDir();
+    for (const [value, expected] of [[0, 0], [2.5, 2.5], [-1, 5], ['3', 5], [null, 5]] as const) {
+      writeFileSync(files.config(), JSON.stringify({ timeouts: { networkMin: value } }), 'utf8');
+      expect(loadConfig().timeouts.networkMin).toBe(expected);
+    }
   });
 
   test('keeps provided agent fields and explicit null bins', () => {
@@ -157,7 +165,7 @@ describe('loadConfig', () => {
 
     expect(cfg.port).toBe(4700);
     expect(cfg.agents.codex).toEqual({ bin: null, maxParallel: 5, extraArgs: ['--fast'] });
-    expect(cfg.timeouts).toEqual({ totalMin: 30, idleMin: 3 });
+    expect(cfg.timeouts).toEqual({ totalMin: 30, idleMin: 3, networkMin: 5 });
     expect(cfg.agents.agy.maxParallel).toBe(2);
   });
 });

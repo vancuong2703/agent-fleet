@@ -385,6 +385,38 @@ describe('TaskService', () => {
     expect((await finished(await run('[[hang]]'))).run!.status).toBe('timeout');
   });
 
+  test('networkMin from config reaches the runner as networkMs', async () => {
+    await service.close();
+    const runner = await import('../../server/runner.js');
+    const spy = vi.spyOn(runner, 'runAttempt');
+    config.timeouts = { totalMin: 0.15, idleMin: 0.1, networkMin: 2 };
+    service = new TaskService({ store, bus, config });
+    await finished(await run());
+    expect(spy.mock.calls[0]![0].timeouts).toEqual({ totalMs: 9_000, idleMs: 6_000, networkMs: 120_000 });
+  });
+
+  test('a store failure while finishing a run is logged, not an unhandled rejection or crash', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => { unhandled.push(reason); };
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const realUpdate = store.updateRun.bind(store);
+      vi.spyOn(store, 'updateRun').mockImplementation((id, patch) => {
+        if (patch.endedAt !== undefined) throw new Error('database disk image is malformed');
+        return realUpdate(id, patch);
+      });
+      await run();
+      await vi.waitFor(() => expect(error).toHaveBeenCalled(), { timeout: 8_000 });
+      await service.close();
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(unhandled).toEqual([]);
+      expect(error.mock.calls.flat().join(' ')).toContain('malformed');
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+  });
+
   test('persists usage, session and failed check as a failed run', async () => {
     await service.close();
     const data = [

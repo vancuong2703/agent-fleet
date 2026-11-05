@@ -2,7 +2,7 @@ type NativeResult = { type: 'fleet:native-result'; requestId: string; ok: boolea
 type NativeBridge = { postMessage: (message: unknown) => void; addEventListener: (type: 'message', callback: (event: MessageEvent<NativeResult>) => void) => void; removeEventListener: (type: 'message', callback: (event: MessageEvent<NativeResult>) => void) => void };
 declare global { interface Window { chrome?: { webview?: NativeBridge }; __FLEET_DESKTOP__?: { version: string; theme?: 'system' | 'light' | 'dark'; layout?: { sidebarWidth: number; inspectorWidth: number; terminalHeight: number } } } }
 
-export function isDesktop(): boolean { return Boolean(window.__FLEET_DESKTOP__ && window.chrome?.webview); }
+export function isDesktop(): boolean { return typeof window !== 'undefined' && Boolean(window.__FLEET_DESKTOP__ && window.chrome?.webview); }
 export async function openLocation(location: { taskId?: string; planId?: string; relativePath?: string; action?: 'open' | 'reveal' }): Promise<void> {
   const bridge = window.chrome?.webview;
   if (!bridge || !isDesktop()) throw new Error('Mở vị trí chỉ có trong Agent Fleet Desktop. Có thể dùng nút sao chép đường dẫn.');
@@ -20,4 +20,19 @@ export async function openLocation(location: { taskId?: string; planId?: string;
 export async function copyText(value: string): Promise<void> {
   if (!navigator.clipboard?.writeText) throw new Error('Clipboard chưa sẵn sàng.');
   await navigator.clipboard.writeText(value);
+}
+
+/** Message of a failure, without the `Error: ` prefix `String(cause)` would add. */
+export function errorMessage(cause: unknown): string {
+  if (cause instanceof Error) return cause.message;
+  if (typeof cause === 'string') return cause;
+  return String(cause);
+}
+
+/** Absolute path of a file in a worktree: the worktree path plus the relative path, using the worktree's own separator. */
+export function joinWorktreePath(worktreePath: string, relativePath: string): string {
+  const separator = worktreePath.includes('\\') && !worktreePath.includes('/') ? '\\' : '/';
+  const base = worktreePath.replace(/[\\/]+$/, '');
+  const relative = relativePath.replace(/^[\\/]+/, '').split(/[\\/]/).join(separator);
+  return `${base}${separator}${relative}`;
 }

@@ -112,15 +112,8 @@ input,textarea,select { color:var(--ink); background:var(--surface); border:1px 
 .brief-view { overflow:auto; min-height:0; }
 .brief-heading { font:700 10px var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:.1em; }
 .brief-text { margin:0; background:var(--surface-2); border-left:3px solid var(--accent); border-radius:0 10px 10px 0; padding:12px 14px; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.7 var(--mono); }
-.diff-view { display:flex; flex-direction:column; min-height:0; gap:10px; flex:1; }
-.diff-files { margin:0; padding:0; list-style:none; max-height:120px; overflow:auto; flex:none; }
-.diff-file { display:flex; gap:10px; justify-content:space-between; width:100%; border:0; background:transparent; padding:6px; font:11px var(--mono); text-align:left; }
-.diff-file.selected { background:var(--accent-soft); }
-.diff-file-path { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.diff-stat { display:flex; gap:6px; white-space:nowrap; }
 .diff-added,.diff-add .diff-text { color:var(--ok); }.diff-removed,.diff-del .diff-text { color:var(--bad); }
-.diff-pane { min-height:0; min-width:0; overflow:auto; flex:1; border:1px solid var(--border); border-radius:8px; font:11px/1.7 var(--mono); background:var(--surface-2); }
-.diff-line { display:flex; white-space:pre; }
+.diff-line { display:flex; white-space:pre; width:max-content; min-width:100%; }
 .diff-gutter { flex:none; width:30px; padding-right:5px; color:var(--muted); text-align:right; user-select:none; }
 .diff-marker { flex:none; width:16px; }
 .diff-text { padding-right:12px; }
@@ -288,3 +281,84 @@ input,textarea,select { color:var(--ink); background:var(--surface); border:1px 
 
 .model-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.model-meta small{font:inherit;color:var(--muted)}
 :root[data-theme="dark"] .logo.lg-qoder{background:linear-gradient(135deg,#149c6b,#087a54)}
+
+/* =========================================================================
+   Jobs layout. Desktop: the page never scrolls. The head, filters and search
+   stay put; the job list and the open tab's pane each own one bounded scroller,
+   so a 100k-line log can no longer stretch the grid row (and every job row).
+   ========================================================================= */
+.jobs-head { align-items:center; justify-content:flex-start; gap:8px 14px; margin-bottom:10px; padding-bottom:10px; }
+.jobs-head h1.title.sm { font-size:28px; line-height:1; flex:none; }
+.jobs-head .jbar { flex:1 1 auto; min-width:0; gap:6px; }
+.jobs-head .jbar .count { margin-left:6px; white-space:nowrap; }
+.jobs-head .job-search { margin-left:auto; flex:none; }
+.jobs-head .btn { flex:none; }
+table.jobs thead th { position:sticky; top:0; z-index:1; background:var(--surface); }
+.status-cell { white-space:nowrap; }
+.row-flag { display:inline-flex; vertical-align:middle; margin-left:5px; }
+.row-flag.warn { color:var(--warn); }
+.row-flag.bad { color:var(--bad); }
+.progress-line { display:flex; align-items:center; gap:6px; min-width:0; margin:0 0 8px; padding:3px 8px; border-radius:7px; font:600 11.5px var(--mono); color:var(--muted); white-space:nowrap; }
+.progress-line svg { flex:none; color:var(--warn); }
+.progress-line.stalled { background:var(--warn-soft); color:var(--ink); }
+.progress-step { min-width:0; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; }
+.progress-when { flex:none; }
+.banner-warn { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 8px; background:var(--warn-soft); color:var(--ink); border-color:var(--warn); }
+.banner-warn svg { color:var(--warn); flex:none; }
+.banner-warn .banner-retry { margin-left:auto; }
+
+/* panes: the tab content owns the only scroller */
+.pane.scroll { overflow:auto; }
+.pane.logbox,.pane.diffbox { overflow:hidden; }
+.pane.diffbox { border:0; }
+.log-view { flex:1; min-height:0; }
+.log-scroll { overscroll-behavior:contain; }
+
+/* diff: one collapsible section per file, sticky file headers */
+.diff-view { display:flex; flex-direction:column; min-height:0; flex:1; gap:6px; }
+.diff-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; flex:none; font:600 11.5px var(--mono); color:var(--muted); }
+.diff-summary { display:inline-flex; align-items:center; gap:10px; }
+.diff-stat { display:inline-flex; gap:6px; white-space:nowrap; flex:none; }
+.diff-pane { flex:1; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; border:1px solid var(--border); border-radius:8px; font:11px/1.7 var(--mono); background:var(--surface-2); overscroll-behavior:contain; }
+.diff-section { border-bottom:1px solid var(--border); }
+.diff-section:last-child { border-bottom:0; }
+.diff-section-head { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:6px; padding-right:6px; background:var(--surface); border-bottom:1px solid var(--border); }
+.diff-section:not(.open) .diff-section-head { border-bottom:0; }
+.diff-toggle { flex:1; min-width:0; display:flex; align-items:center; gap:8px; border:0; background:transparent; padding:6px 8px; font:600 11.5px var(--mono); text-align:left; color:var(--ink); }
+.diff-toggle:hover { background:var(--accent-soft); }
+.diff-toggle svg { flex:none; color:var(--muted); }
+.diff-file-path { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.diff-reveal { flex:none; min-height:24px; padding:2px 8px; }
+.diff-body { overflow-x:auto; }
+.diff-file-error { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:6px; }
+
+@media(min-width:1101px) {
+  .wrap.jobs-page { overflow:hidden; padding-top:14px; padding-bottom:14px; }
+  .jobs-page .jobs-split { flex:1 1 0; min-height:0; grid-template-rows:minmax(0,1fr); gap:14px; }
+  .jobs-page .split .panel { overflow:hidden; padding:12px 14px; }
+  .jobs-page .detail-top { flex:0 1 auto; min-height:0; }
+  /* a tall block (open terminal, retry form) scrolls inside the top area instead of pushing the tabs away */
+  .jobs-page .detail-top:has(.terminal-panel,.retry-form) { overflow:auto; }
+  .jobs-page .task-tabs-row { flex:none; margin-bottom:8px; }
+  .jobs-page .panes { flex:1 0 160px; min-height:160px; }
+  /* expanded: only the job strip and the pane remain; the pane gets the whole height */
+  .jobs-page.is-zoom .jobs-head,.jobs-page.is-zoom .detail-top { display:none; }
+  .jobs-page.is-zoom { padding-top:10px; padding-bottom:10px; }
+}
+/* stacked panels: the page scrolls, so the head (title, filters, search) sticks to the top */
+@media(max-width:1100px) {
+  .wrap.jobs-page { padding-top:0; }
+  .jobs-head { position:sticky; top:0; z-index:6; background:var(--bg); padding-top:14px; }
+  .jobs-page .detail .panes { flex-basis:300px; }
+}
+@media(max-width:560px) {
+  .jobs-head h1.title.sm { font-size:24px; }
+  /* title and New job share a row, chips scroll sideways, search takes its own row */
+  .jobs-head { gap:6px 10px; padding-bottom:8px; margin-bottom:8px; }
+  .jobs-head h1.title.sm { order:1; }
+  .jobs-head .btn { margin-left:auto; order:2; }
+  .jobs-head .jbar { order:3; flex:1 0 100%; flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; }
+  .jobs-head .jbar .chip,.jobs-head .jbar .count { flex:none; }
+  .jobs-head .job-search { flex:1 0 100%; margin-left:0; order:4; padding:2px 6px; }
+  .diff-reveal-label { display:none; }
+}

@@ -14,6 +14,7 @@ async function mockFinishedTask(page: Page, events: Parameters<Page['route']>[1]
   await page.route(url => url.pathname === '/api/plans', route => route.fulfill({ json: [] }));
   await page.route(url => url.pathname === '/api/tasks', route => route.fulfill({ json: [task] }));
   await page.route(url => url.pathname === `/api/tasks/${task.id}/runs`, route => route.fulfill({ json: [run] }));
+  await page.route(url => url.pathname === '/api/runs', route => route.fulfill({ json: [run] }));
   await page.route(url => url.pathname === `/api/tasks/${task.id}/diff`, route => route.fulfill({ json: { files: [], patch: '' } }));
   await page.route(url => url.pathname === `/api/runs/${run.id}/events`, events);
   return task;

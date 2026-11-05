@@ -17,7 +17,8 @@ export interface FleetConfig {
   port: number;
   agents: Record<Exclude<AgentId, 'fake'>, AgentConfig>;
   maxParallelTotal: number;
-  timeouts: { totalMin: number; idleMin: number };
+  /** networkMin: minutes a started network command may stay silent; 0 disables the watchdog. */
+  timeouts: { totalMin: number; idleMin: number; networkMin?: number };
   dashboard?: { opencode: { keyPoolConfig: string } };
 }
 
@@ -30,12 +31,13 @@ const DEFAULT_MAX_PARALLEL = 2;
 const DEFAULT_MAX_PARALLEL_TOTAL = 4;
 const DEFAULT_TOTAL_MIN = 30;
 const DEFAULT_IDLE_MIN = 10;
+export const DEFAULT_NETWORK_MIN = 5;
 
 interface RawConfig {
   port?: unknown;
   agents?: Record<string, { bin?: unknown; maxParallel?: unknown; extraArgs?: unknown } | undefined>;
   maxParallelTotal?: unknown;
-  timeouts?: { totalMin?: unknown; idleMin?: unknown };
+  timeouts?: { totalMin?: unknown; idleMin?: unknown; networkMin?: unknown };
   dashboard?: { opencode?: { keyPoolConfig?: unknown } };
 }
 
@@ -72,6 +74,7 @@ function withDefaults(raw: RawConfig): FleetConfig {
     timeouts: {
       totalMin: asNumber(raw.timeouts?.totalMin, DEFAULT_TOTAL_MIN),
       idleMin: asNumber(raw.timeouts?.idleMin, DEFAULT_IDLE_MIN),
+      networkMin: asNonNegative(raw.timeouts?.networkMin, DEFAULT_NETWORK_MIN),
     },
     dashboard: {
       opencode: {
@@ -84,6 +87,10 @@ function withDefaults(raw: RawConfig): FleetConfig {
 
 function asNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function asNonNegative(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
 }
 
 function asStringOrNull(value: unknown): string | null {

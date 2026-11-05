@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
@@ -338,6 +338,8 @@ export class Store {
   readEvents(runId: string, o?: { afterSeq?: number; tail?: number }): StoredEvent[] {
     const logPath = files.log(runId);
     if (!existsSync(logPath)) return [];
+    // Tail reads (the live UI) only need the end of a possibly large log.
+    if (o?.tail !== undefined) return o.tail <= 0 ? [] : readTailEvents(logPath, o.tail, o.afterSeq);
 
     const events: StoredEvent[] = [];
     for (const line of readFileSync(logPath, 'utf8').split('\n')) {
@@ -367,6 +369,50 @@ export class Store {
     const next = lastSeqInFile(files.log(runId)) + 1;
     this.nextSeqByRun.set(runId, next + 1);
     return next;
+  }
+}
+
+const TAIL_CHUNK = 64 * 1024;
+
+/**
+ * Last `tail` parsable events with seq > afterSeq, reading the file backwards in chunks. Splits on
+ * the 0x0a byte so multibyte text is never cut, and skips unparsable (torn) lines like a full read.
+ */
+function readTailEvents(logPath: string, tail: number, afterSeq: number | undefined): StoredEvent[] {
+  const fd = openSync(logPath, 'r');
+  const found: StoredEvent[] = [];
+  try {
+    let position = fstatSync(fd).size;
+    let carry = Buffer.alloc(0);
+    while (position > 0 && found.length < tail) {
+      const length = Math.min(TAIL_CHUNK, position);
+      position -= length;
+      const chunk = Buffer.alloc(length);
+      readSync(fd, chunk, 0, length, position);
+      const data = Buffer.concat([chunk, carry]);
+      const firstBreak = position === 0 ? -1 : data.indexOf(0x0a);
+      if (position > 0 && firstBreak === -1) { carry = data; continue; }
+      carry = position === 0 ? Buffer.alloc(0) : data.subarray(0, firstBreak);
+      collectTail(data.subarray(firstBreak + 1), tail, afterSeq, found);
+    }
+  } finally {
+    closeSync(fd);
+  }
+  return found.reverse();
+}
+
+/** Appends the complete lines of `block`, last first, until `found` holds `tail` events. */
+function collectTail(block: Buffer, tail: number, afterSeq: number | undefined, found: StoredEvent[]): void {
+  const lines = block.toString('utf8').split('\n');
+  for (let i = lines.length - 1; i >= 0 && found.length < tail; i--) {
+    const line = lines[i]!;
+    if (line.trim().length === 0) continue;
+    try {
+      const event = JSON.parse(line) as StoredEvent;
+      if (afterSeq === undefined || event.seq > afterSeq) found.push(event);
+    } catch {
+      // A torn line is skipped so the rest survives.
+    }
   }
 }
 

@@ -62,6 +62,74 @@ function scriptAdapter(script: string): AgentAdapter {
   };
 }
 
+describe('network-step watchdog', () => {
+  const emitCommand = (cmd: string, exitCode?: number) =>
+    `console.log(JSON.stringify({ type: 'command', cmd: ${JSON.stringify(cmd)}${exitCode === undefined ? '' : `, exitCode: ${exitCode}`} }));`;
+  const hang = 'setInterval(() => {}, 1000);';
+  const watch = (script: string, networkMs = 400, extra: Partial<Parameters<typeof runAttempt>[0]> = {}) =>
+    attempt('', { adapter: scriptAdapter(script), timeouts: { totalMs: 6_000, idleMs: 5_000, networkMs }, ...extra });
+  const watchdogError = () => events.find(event => event.kind === 'error' && event.text.startsWith('Lệnh mạng không phản hồi sau '));
+
+  test.each([
+    'curl -s https://example.invalid/x', 'wget http://example.invalid', 'powershell -c "Invoke-WebRequest http://x"',
+    'iwr http://x', 'Invoke-RestMethod http://x', 'irm http://x', 'Start-BitsTransfer http://x c:\\y', 'aria2c http://x',
+    'C:\\tools\\curl.exe -L http://x',
+  ])('a started %s with no further event stops the run as timeout', async (cmd) => {
+    const outcome = await watch(emitCommand(cmd) + hang);
+    expect(outcome.status).toBe('timeout');
+    expect(watchdogError()).toMatchObject({ kind: 'error', text: expect.stringMatching(/^Lệnh mạng không phản hồi sau [\d.]+ phút: /) });
+  });
+
+  test('long commands are truncated in the message', async () => {
+    await watch(emitCommand('curl ' + 'a'.repeat(500)) + hang);
+    expect((watchdogError() as { text: string }).text.length).toBeLessThan(220);
+  });
+
+  test('a command that finishes in time, or a non-network command, does not trigger it', async () => {
+    const finishes = emitCommand('curl http://x') + `setTimeout(() => { ${emitCommand('curl http://x', 0)} }, 100); setTimeout(() => process.exit(0), 900);`;
+    expect((await watch(finishes)).status).toBe('done');
+    const outcome = await watch(emitCommand('git status') + hang, 400, { timeouts: { totalMs: 1_800, idleMs: 5_000, networkMs: 400 } });
+    expect(outcome.status).toBe('timeout');
+    expect(watchdogError()).toBeUndefined();
+  });
+
+  test('another non-usage event cancels the watch; usage events do not', async () => {
+    const progress = emitCommand('curl http://x') + `setTimeout(() => console.log(JSON.stringify({ type: 'message', text: 'progress' })), 150); setTimeout(() => process.exit(0), 900);`;
+    expect((await watch(progress)).status).toBe('done');
+    events.length = 0;
+    const usage = "setInterval(() => console.log(JSON.stringify({ type: 'usage', inputTokens: 1 })), 100);";
+    expect((await watch(emitCommand('curl http://x') + usage)).status).toBe('timeout');
+    expect(watchdogError()).toBeDefined();
+  });
+
+  test('raw heartbeat lines do not keep a stuck network command alive', async () => {
+    const heartbeat = "setInterval(() => console.log('still alive'), 100);";
+    expect((await watch(emitCommand('curl http://x') + heartbeat)).status).toBe('timeout');
+    expect(watchdogError()).toBeDefined();
+  });
+
+  test('qodercli Bash tool_use with a network command is a started network step', async () => {
+    const toolUse = (name: string, command: string) => `console.log(JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', name: ${JSON.stringify(name)}, input: { command: ${JSON.stringify(command)} } }] } }));`;
+    const qoder = { ...getAdapter('qodercli') };
+    const stuck = await attempt('', { adapter: { ...qoder, headless: () => ({ cmd: process.execPath, args: ['-e', toolUse('Bash', 'curl -s http://x') + hang] }) }, timeouts: { totalMs: 6_000, idleMs: 5_000, networkMs: 400 } });
+    expect(stuck.status).toBe('timeout');
+    expect(watchdogError()).toBeDefined();
+    events.length = 0;
+    const other = await attempt('', { adapter: { ...qoder, headless: () => ({ cmd: process.execPath, args: ['-e', toolUse('Read', 'curl http://x') + hang] }) }, timeouts: { totalMs: 1_500, idleMs: 5_000, networkMs: 400 } });
+    expect(other.status).toBe('timeout');
+    expect(watchdogError()).toBeUndefined();
+  });
+
+  test('networkMs 0 or undefined disables it', async () => {
+    for (const networkMs of [0, undefined]) {
+      events.length = 0;
+      const outcome = await attempt('', { adapter: scriptAdapter(emitCommand('curl http://x') + hang), timeouts: { totalMs: 1_500, idleMs: 5_000, networkMs } });
+      expect(outcome.status).toBe('timeout');
+      expect(watchdogError()).toBeUndefined();
+    }
+  });
+});
+
 describe('runAttempt', () => {
   test('usage attribution, duplicates and cumulative totals never inflate run accounting', async () => {
     const usage: FleetEvent[] = [

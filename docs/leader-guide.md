@@ -13,6 +13,80 @@ Không giao đồng thời các task phụ thuộc vào thay đổi chưa merge 
 Chạy `fleet doctor` để kiểm tra agent đã cài và sẵn sàng; dùng `fleet ui` để
 theo dõi task, log, diff, terminal và so sánh agent.
 
+## Khi không kết nối được
+
+Nếu CLI báo `Fleet server did not become healthy`, kiểm tra theo thứ tự:
+
+1. Giữ app đang mở và sao chép lại phần kết nối hiện tại từ app. Cổng có thể
+   thay đổi sau khi mở lại; chạy lại cả dòng `FLEET_DATA_DIR` và hàm `fleet`
+   trong đúng cửa sổ PowerShell đang dùng.
+2. Kiểm tra HTTP bằng `Invoke-RestMethod http://127.0.0.1:<cổng-trong-app>/api/health`
+   (thay phần `<cổng-trong-app>` bằng cổng vừa sao chép). Kết quả cần có `ok: true`.
+3. Nếu báo lỗi quyền truy cập socket, kiểm tra quyền kết nối loopback của môi
+   trường chạy agent, hoặc thử lệnh trong PowerShell thông thường. Đây chưa phải
+   bằng chứng server bị lỗi. Không tắt bảo vệ hệ thống để thử kết nối.
+4. Chạy lại `fleet plan list --json`, `fleet list --json` rồi `fleet doctor`.
+   Nếu vẫn lỗi, báo lại URL, lệnh và thông báo lỗi; không sao chép token hay nội
+   dung file cấu hình chứa thông tin xác thực.
+
+Đoạn kết nối mới đặt `FLEET_SERVER_URL` để ghim đúng app đang mở. Trong chế độ
+này CLI không tự khởi động server khác khi kết nối thất bại. Không xoá biến này
+để thử né lỗi; sao chép lại kết nối từ đúng app.
+
+Nếu chạy CLI từ ứng dụng Windows có chuyển hướng AppData, cấu hình và token đọc
+được có thể thuộc bản sao khác với app desktop. `FLEET_TOKEN_FILE` cho phép chỉ
+định file token của đúng hồ sơ, chỉ truyền đường dẫn, không truyền giá trị token.
+Ví dụ trên máy có quyền truy cập administrative share cục bộ:
+
+```powershell
+$env:FLEET_TOKEN_FILE = '\\localhost\C$\Users\<user>\AppData\Local\AgentFleetDesktop\token'
+```
+
+Đường dẫn này chỉ dùng đọc xác thực cho CLI; không đặt `FLEET_DATA_DIR` của
+server lên network share. Xác nhận `fleet plan list --json` thành công trên URL
+đã ghim trước khi giao task. Khi đổi sang hồ sơ khác, cập nhật hoặc xoá biến
+`FLEET_TOKEN_FILE` đang có để tránh dùng xác thực của phiên trước.
+
+### Kiểm tra đúng phiên: `fleet connection`
+
+Đoạn kết nối còn đặt `FLEET_SERVER_INSTANCE` (mã phiên của server đang mở). CLI
+chỉ gửi token tới listener trả về `service: agent-fleet` đúng mã phiên đó. Nếu
+thấy `expected instance X, got Y`, bạn đang nói chuyện với phiên Fleet khác:
+sao chép lại khối kết nối từ app, không sửa biến bằng tay.
+
+`fleet connection [--json]` in URL, `instanceId`, có ghim hay không, đường dẫn
+file token (không bao giờ in giá trị token) và gọi thử một API cần xác thực.
+Đây là bước đầu tiên trong khối kết nối, trước `fleet plan list`.
+
+### Lỗi 401: token không khớp (AppData bị chuyển hướng)
+
+Ứng dụng đóng gói (MSIX) có thể ảo hoá `%LOCALAPPDATA%` thành
+`%LOCALAPPDATA%\Packages\<pfn>\LocalCache\Local`, nên CLI đọc nhầm bản sao
+token. Khi gặp 401, CLI liệt kê các bản sao dạng
+`Packages\*\LocalCache\Local\<đường dẫn hồ sơ>\token`, nêu tên file đã tìm thấy
+(chỉ đường dẫn) và in sẵn dòng PowerShell cần chạy, ví dụ:
+
+```powershell
+$env:FLEET_TOKEN_FILE = '\\localhost\C$\Users\<user>\AppData\Local\agent-fleet\token'
+```
+
+### Cơ sở dữ liệu: `fleet db`
+
+Các lệnh làm việc trực tiếp trên `fleet.db` (offline), bản sao lưu nằm trong
+`<thư mục dữ liệu>\backups`:
+
+- `fleet db check` chạy kiểm tra toàn vẹn; thoát mã 1 nếu hỏng.
+- `fleet db backup` sao chép database vào `backups` và in đường dẫn.
+- `fleet db repair --yes` sao lưu trước, thử lần lượt REINDEX, tạo lại chỉ mục, dựng lại từ bảng, kiểm tra lại rồi in số dòng
+  của từng bảng. Thiếu `--yes` thì chỉ in các bước sẽ làm và thoát mã 1. Lệnh
+  từ chối chạy khi có server đang trả lời healthy ở URL đã cấu hình hoặc đã
+  ghim: đóng app (hoặc `fleet server stop`) trước.
+
+Nếu server không khởi động được, `<thư mục dữ liệu>\startup-error.json` ghi
+nguyên nhân và gợi ý (CLI cũng hiển thị khi quá thời gian chờ). Mã `db_corrupt`
+nghĩa là database không qua integrity_check: dùng `fleet db repair --yes`, hoặc
+chọn "Sao lưu rồi sửa database" trong app desktop.
+
 ## Quy trình giao việc (PowerShell)
 
 Tạo plan trên repo cần sửa; `--base` là nhánh nhận thay đổi:
@@ -128,3 +202,13 @@ fleet discard $task.id --json
 Chẩn đoán: `fleet list --plan <plan-id> --json`, `fleet log <task-id> --follow`,
 `fleet stop <task-id>`. Task cần tiếp quản: mở UI, chọn task, bấm **Mở terminal**;
 nếu đang chạy, xác nhận dừng agent trước khi thao tác.
+
+## Sao lưu và chẩn đoán khởi động
+
+- Mỗi lần khởi động, server chạy `PRAGMA integrity_check`; nếu tốt và bản sao lưu mới nhất đã quá 24 giờ thì tạo
+  `backups/fleet-<thời điểm>.db` (giữ 5 bản). Bản sao trước khi sửa nằm ở `backups/repair-<thời điểm>.db`.
+- Khi khởi động thất bại, server ghi `startup-error.json` (nguyên nhân, hướng xử lý, log đã che thông tin nhạy cảm).
+  App Desktop và CLI hiển thị nội dung này; file tự xoá sau lần khởi động thành công.
+- `timeouts.networkMin` (mặc định 5, đặt 0 để tắt) dừng task khi lệnh mạng như `curl` treo. Chỉ có hiệu lực với
+  Codex và Qoder; Antigravity và OpenCode không báo lệnh trước khi chạy xong nên vẫn dựa vào `idleMin`/`totalMin`.
+  Trong brief nên yêu cầu agent đặt timeout cho mọi lệnh tải mạng.

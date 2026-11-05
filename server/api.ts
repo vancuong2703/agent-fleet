@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -9,6 +9,7 @@ import type { AgentId, TaskStatus } from '../shared/types.js';
 import { getAdapter, getAdapterConfig } from './adapters/index.js';
 import type { Bus } from './bus.js';
 import { loadConfig } from './config.js';
+import { isCorruptionError } from './db-maintenance.js';
 import { agyCommandArgs } from './command-permissions.js';
 import { registerDashboardRoutes } from './dashboard.js';
 import { Observability } from './observability.js';
@@ -76,6 +77,8 @@ export function buildServer(o: {
   port?: number; shutdown?: () => Promise<void> | void;
 }): FastifyInstance {
   const { service, store, bus } = o;
+  const instanceId = randomUUID();
+  const diffsInFlight = new Map<string, ReturnType<typeof diffWorktree>>();
   const app = fastify({ ajv: { customOptions: { coerceTypes: true, removeAdditional: false } } });
   const observability = new Observability(store, bus);
   app.addHook('onClose', async () => { observability.close(); });
@@ -123,6 +126,9 @@ export function buildServer(o: {
       return reply.code(400).send({ error: 'bad_request', message: error.message });
     }
     request.log.error(error);
+    if (isCorruptionError(error)) {
+      return reply.code(503).send({ error: 'db_corrupt', message: 'Cơ sở dữ liệu lịch sử bị hỏng. Tắt máy chủ rồi chạy `node server/main.js --repair-db` (tự sao lưu trước khi sửa).' });
+    }
     return reply.code(500).send({ error: 'internal_error', message: 'Internal server error' });
   });
 
@@ -140,10 +146,10 @@ export function buildServer(o: {
     } });
     const removeWorktreeGuard = service.addWorktreeGuard(taskId => dashboardTerminals.closeForTask(taskId));
     routes.addHook('onClose', async () => { removeWorktreeGuard(); });
-    routes.get('/api/health', async () => ({ ok: true }));
+    routes.get('/api/health', async () => ({ ok: true, service: 'agent-fleet', instanceId }));
     routes.get('/api/leader-guide', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
-      return leaderGuide(o.port ?? request.raw.socket.localPort ?? loadConfig().port);
+      return leaderGuide(o.port ?? request.raw.socket.localPort ?? loadConfig().port, instanceId);
     });
     routes.post('/api/shutdown', async (_request, reply) => {
       reply.raw.once('finish', () => { setImmediate(() => { void o.shutdown?.(); }); });
@@ -174,6 +180,9 @@ export function buildServer(o: {
       schema: { querystring: objectSchema({ planId: nonempty, status: { type: 'string', enum: statuses } }) },
     }, async (request) => store.listTasks(request.query));
     routes.get<IdParams>('/api/tasks/:id', async (request) => service.result(request.params.id));
+    // Light read for pollers: no git or worktree access.
+    routes.get<IdParams>('/api/tasks/:id/summary', async (request) => ({ task: task(request.params.id) }));
+    routes.get('/api/runs', async () => store.listRuns());
     routes.get<IdParams>('/api/tasks/:id/runs', async (request) => {
       task(request.params.id);
       return store.listRuns({ taskId: request.params.id });
@@ -189,7 +198,12 @@ export function buildServer(o: {
       if (found.status === 'merged' || found.status === 'discarded') return { files: [], patch: '' };
       const plan = store.getPlan(found.planId);
       if (!plan) throw new FleetError('not_found', `Plan not found: ${found.planId}`);
-      return diffWorktree(found.worktreePath, plan.baseBranch);
+      // Each diff stages the worktree (`git add -A`); concurrent polls share one in-flight result.
+      const running = diffsInFlight.get(found.id);
+      if (running) return running;
+      const started = diffWorktree(found.worktreePath, plan.baseBranch).finally(() => { diffsInFlight.delete(found.id); });
+      diffsInFlight.set(found.id, started);
+      return started;
     });
     routes.post<IdParams & { Body: Parameters<TaskService['retry']>[1] }>('/api/tasks/:id/retry', {
       schema: { body: objectSchema({ agent, note: text, ...commandOptionsSchema }, ['note']) },

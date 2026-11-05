@@ -1,13 +1,14 @@
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { EOL } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { Command, InvalidArgumentError, Option } from 'commander';
 import type { CommandPolicy, DiffFile, Plan, Run, StoredEvent, Task, TaskResult } from '../shared/types.js';
 import { runDiagnostic, successfulResult } from '../shared/run-diagnostics.js';
 import type { MergeResult } from '../server/worktree.js';
-import { files } from '../server/paths.js';
-import { ApiError, apiRequest, ensureServer, stopServer } from './client.js';
+import { dataDir, files } from '../server/paths.js';
+import { ApiError, apiRequest, configuredServerUrl, connectionInfo, ensureServer, probeHealth, stopServer, tokenFilePath } from './client.js';
 
 const program = new Command().name('fleet').description('Dispatch and manage local coding agents')
   .option('--json', 'Print the API JSON');
@@ -189,9 +190,66 @@ program.command('doctor').action(async () => {
   });
 });
 
+program.command('connection').description('Show which Fleet session this CLI is connected to and verify the token').action(async () => {
+  const info = await connectionInfo();
+  // An authenticated call: a 401 throws the token-mismatch error with the exact fix.
+  await apiRequest<Plan[]>(info.url, '/api/plans');
+  const result = { url: info.url, instanceId: info.instanceId, pinned: info.pinned, instancePinned: info.instancePinned, tokenSource: info.tokenSource, authenticated: true };
+  output(result, () => {
+    console.log(`url: ${info.url}`);
+    console.log(`instanceId: ${info.instanceId ?? 'unknown'}${info.instancePinned ? ' (pinned)' : ' (not pinned)'}`);
+    console.log(`server pinned: ${info.pinned ? 'yes' : 'no'}`);
+    console.log(`token file: ${info.tokenSource}`);
+    console.log('authenticated: ok');
+  });
+});
+
+const db = program.command('db').description('Check, back up or repair the local database (offline)');
+const dbPath = () => files.db();
+const backupDir = () => path.win32.join(dataDir(), 'backups');
+db.command('check').description('Run an integrity check on fleet.db').action(async () => {
+  const { checkDatabase } = await import('../server/db-maintenance.js');
+  const result = checkDatabase(dbPath());
+  output(result, () => console.log(result.ok ? 'database ok' : ['database damaged:', ...result.errors].join(EOL)));
+  if (!result.ok) process.exitCode = 1;
+});
+db.command('backup').description('Copy fleet.db into the backups folder').action(async () => {
+  const { backupDatabase } = await import('../server/db-maintenance.js');
+  const backupPath = backupDatabase(dbPath(), backupDir());
+  output({ backupPath }, () => console.log(backupPath));
+});
+db.command('repair').description('Back up, repair (REINDEX, recreate indexes, rebuild) and verify fleet.db (stop the server first)')
+  .option('--yes', 'Confirm the repair')
+  .action(async (opts: { yes?: boolean }) => {
+    if (!opts.yes) {
+      console.error([
+        `This will repair ${dbPath()} offline:`,
+        `  1. back up the database into ${backupDir()}`,
+        '  2. REINDEX; if that fails, recreate the indexes; if that fails, rebuild from table scans',
+        '  3. verify with an integrity check',
+        '  4. report row counts',
+        'Run again with --yes to proceed.',
+      ].join(EOL));
+      process.exitCode = 1;
+      return;
+    }
+    const url = configuredServerUrl();
+    if ((await probeHealth(url, 2_000)).ok) {
+      throw new Error(`A Fleet server is running at ${url}. Close the Agent Fleet app (or run fleet server stop) before repairing the database.`);
+    }
+    const { repairDatabase } = await import('../server/db-maintenance.js');
+    const result = repairDatabase(dbPath(), backupDir());
+    output(result, () => {
+      console.log(`backup: ${result.backupPath}`);
+      console.log(result.ok ? 'repair ok' : ['repair failed:', ...result.errors].join(EOL));
+      for (const [table, count] of Object.entries(result.rowCounts)) console.log(`${table}: ${count}`);
+    });
+    if (!result.ok) process.exitCode = 1;
+  });
+
 program.command('ui').action(async () => {
   const baseUrl = await ensureServer();
-  const token = (await readFile(files.token(), 'utf8')).trim();
+  const token = (await readFile(tokenFilePath(), 'utf8')).trim();
   const url = `${baseUrl}/auth?token=${encodeURIComponent(token)}`;
   await new Promise<void>((resolve, reject) => {
     const child = spawn('cmd.exe', ['/c', 'start', '', url], { shell: false, windowsHide: true, stdio: 'ignore' });

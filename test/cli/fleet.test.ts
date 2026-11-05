@@ -104,7 +104,7 @@ describe('fleet CLI', { timeout: 30_000 }, () => {
   test('initial health probe allows three seconds before starting another server', async () => {
     vi.stubEnv('FLEET_DATA_DIR', dataDir);
     const timeout = vi.spyOn(AbortSignal, 'timeout');
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"ok":true}'));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{"ok":true,"service":"agent-fleet","instanceId":"inst-1"}'));
     try {
       expect(await ensureServer()).toBe(`http://127.0.0.1:${port}`);
       expect(timeout).toHaveBeenCalledExactlyOnceWith(3_000);
@@ -189,7 +189,7 @@ describe('fleet CLI', { timeout: 30_000 }, () => {
     await writeFile(path.join(dataDir, 'token'), 'test-token');
     const server = createHttpServer((request, response) => {
       response.setHeader('content-type', 'application/json');
-      response.end(JSON.stringify(request.url === '/api/health' ? { ok: true } : [result]));
+      response.end(JSON.stringify(request.url === '/api/health' ? { ok: true, service: 'agent-fleet', instanceId: 'inst-1' } : [result]));
     });
     await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
     try {

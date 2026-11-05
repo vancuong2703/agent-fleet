@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 export function psLiteral(value: string): string { return `'${value.replaceAll("'", "''")}'`; }
 
 /** Built from public paths and bundled documentation only. Never reads auth/config contents. */
-export function leaderGuide(port: number) {
+export function leaderGuide(port: number, instanceId?: string) {
   const profile = dataDir();
   const bundledCli = path.join(appRoot, 'cli/fleet.js');
   const cliArgs = existsSync(bundledCli)
@@ -20,7 +20,10 @@ export function leaderGuide(port: number) {
   const connect = [
     `# Kết nối Agent Fleet đang mở · http://127.0.0.1:${port}`,
     `$env:FLEET_DATA_DIR = ${psLiteral(profile)}`,
+    `$env:FLEET_SERVER_URL = ${psLiteral(`http://127.0.0.1:${port}`)}`,
+    ...(instanceId ? [`$env:FLEET_SERVER_INSTANCE = ${psLiteral(instanceId)}`] : []),
     `function fleet { & ${[process.execPath, ...cliArgs].map(psLiteral).join(' ')} @args }`,
+    'fleet connection',
     'fleet plan list --json',
     'fleet list --json',
   ].join('\n');

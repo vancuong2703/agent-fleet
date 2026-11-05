@@ -33,7 +33,7 @@ internal sealed class DesktopWindow : Form
         HandleCreated += (_, _) => ApplyNativeTheme();
         Shown += (_, _) => { startTask = StartAsync(); };
         FormClosing += OnClosingAsync;
-        healthTimer.Tick += (_, _) => { if (ready && !runtime.IsAlive && !closing) { ready = false; status.Text = "Server đã dừng. Đóng và mở lại Agent Fleet.\nChi tiết trong server.log."; view.Visible = false; status.Visible = true; healthTimer.Stop(); } };
+        healthTimer.Tick += (_, _) => { if (ready && !runtime.IsAlive && !closing) { ready = false; ShowFailure(StartupDiagnostics.Describe(dataDir, "Server đã dừng. Đóng và mở lại Agent Fleet.", null)); healthTimer.Stop(); } };
     }
 
     private async Task StartAsync()
@@ -41,7 +41,8 @@ internal sealed class DesktopWindow : Form
         try
         {
             status.Text = "Đang khởi động môi trường làm việc…";
-            await runtime.StartAsync();
+            try { await runtime.StartAsync(); }
+            catch (Exception startError) { await ReportStartFailureAsync(startError); return; }
             sampler.Start();
             status.Text = "Đang mở giao diện…";
             var environment = await CoreWebView2Environment.CreateAsync(null, Path.Combine(dataDir, "WebView2"));
@@ -91,6 +92,38 @@ internal sealed class DesktopWindow : Form
             File.AppendAllText(Path.Combine(dataDir, "desktop.log"), error + "\n");
             if (smokeTest) { Environment.ExitCode = 1; await sampler.DisposeAsync(); await runtime.DisposeAsync(); allowClose = true; Close(); }
         }
+    }
+
+    private void ShowFailure(string text)
+    {
+        status.Font = new Font("Segoe UI", 10);
+        status.Text = text;
+        view.Visible = false; status.Visible = true;
+    }
+
+    /// <summary>Shows the cause (startup-error.json, else the redacted log tail) and offers a repair for a corrupt database.</summary>
+    private async Task ReportStartFailureAsync(Exception error)
+    {
+        try { File.AppendAllText(Path.Combine(dataDir, "desktop.log"), error + "\n"); } catch (IOException) { }
+        var text = StartupDiagnostics.Describe(dataDir, "Không thể khởi động server.", error.Message);
+        ShowFailure(text);
+        if (smokeTest) { Environment.ExitCode = 1; await sampler.DisposeAsync(); await runtime.DisposeAsync(); allowClose = true; Close(); return; }
+        if (StartupDiagnostics.ReadStartupError(dataDir)?.Code != "db_corrupt") return;
+        // Never repair without an explicit yes.
+        var answer = MessageBox.Show(this, text + "\n\nSao lưu rồi sửa database?", "Agent Fleet", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+        if (answer != DialogResult.Yes) return;
+        status.Text = "Đang sao lưu và sửa database…";
+        try
+        {
+            var (exitCode, output) = await runtime.RepairDatabaseAsync();
+            MessageBox.Show(this, (exitCode == 0 ? "Đã sửa database." : $"Sửa database thất bại (mã {exitCode}).") + "\n\n" + output, "Agent Fleet", MessageBoxButtons.OK, exitCode == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+            if (exitCode == 0) { status.Font = new Font("Segoe UI", 14); status.Text = "Đang khởi động lại…"; await StartAsync(); return; }
+        }
+        catch (Exception repairError)
+        {
+            MessageBox.Show(this, $"Không sửa được database: {StartupDiagnostics.Redact(repairError.Message)}", "Agent Fleet", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        ShowFailure(text);
     }
 
     private bool IsTrusted(string source) => Uri.TryCreate(source, UriKind.Absolute, out var uri) && uri.GetLeftPart(UriPartial.Authority) == runtime.BaseUrl;

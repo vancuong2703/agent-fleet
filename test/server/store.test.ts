@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -345,6 +345,22 @@ describe('events', () => {
     expect(store.readEvents(run.id, { afterSeq: 1, tail: 1 }).map((e) => e.seq)).toEqual([3]);
     expect(store.readEvents(run.id, { afterSeq: 99 })).toEqual([]);
     expect(store.readEvents(run.id, { tail: 0 })).toEqual([]);
+  });
+
+  test('readEvents tail over a multi-chunk log with multibyte text and a torn last line equals a full read', () => {
+    const store = makeStore();
+    const task = newTask(store, newPlan(store).id);
+    const run = store.createRun({ taskId: task.id, agent: 'fake', brief: 'b', note: null });
+    for (let i = 0; i < 1500; i++) store.appendEvent(run.id, { kind: 'message', text: `dòng ${i} ✓ ${'é'.repeat(i % 40)}` });
+    appendFileSync(files.log(run.id), '{"runId":"torn","seq":99');
+    const all = store.readEvents(run.id);
+    expect(all).toHaveLength(1500);
+    for (const tail of [1, 2, 50, 700, 1500, 4000]) {
+      expect(store.readEvents(run.id, { tail })).toEqual(all.slice(-tail));
+    }
+    expect(store.readEvents(run.id, { afterSeq: 1490, tail: 3 })).toEqual(all.slice(-3));
+    expect(store.readEvents(run.id, { afterSeq: 1495, tail: 100 }).map(e => e.seq)).toEqual([1496, 1497, 1498, 1499, 1500]);
+    expect(store.readEvents(run.id, { afterSeq: 5, tail: 2 }).map(e => e.seq)).toEqual([1499, 1500]);
   });
 
   test('readEvents returns [] when the run has no log file', () => {

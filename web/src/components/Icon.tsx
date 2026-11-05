@@ -1,6 +1,6 @@
-import { Activity, ArrowRight, Ban, ChartNoAxesColumnIncreasing, CircleCheck, CircleDashed, CirclePause, CircleX, Clock, Code, Copy, Download, File, Folder, GitCompareArrows, GitMerge, Hand, Info, LayoutDashboard, ListChecks, LoaderCircle, Maximize2, Minimize2, Monitor, Moon, PanelRight, Plus, RefreshCw, Search, SquareTerminal, Sun, Timer, User, X, type LucideIcon } from 'lucide-react';
+import { Activity, ArrowRight, Ban, ChartNoAxesColumnIncreasing, CircleCheck, CircleDashed, CirclePause, ChevronDown, ChevronRight, CircleX, Clock, Code, Copy, Download, File, Folder, GitCompareArrows, GitMerge, Hand, Info, LayoutDashboard, ListChecks, LoaderCircle, Maximize2, Minimize2, Monitor, Moon, PanelRight, Plus, RefreshCw, Search, SquareTerminal, Sun, Timer, TriangleAlert, User, X, type LucideIcon } from 'lucide-react';
 import type { AgentId } from '../../../shared/types.js';
-export type IconName = 'plus' | 'search' | 'tasks' | 'chart' | 'folder' | 'copy' | 'sun' | 'moon' | 'system' | 'terminal' | 'arrow' | 'close' | 'download' | 'panel' | 'file' | 'dashboard' | 'user' | 'info' | 'refresh' | 'commands' | 'compare' | 'activity' | 'maximize' | 'minimize'
+export type IconName = 'plus' | 'search' | 'tasks' | 'chart' | 'folder' | 'copy' | 'sun' | 'moon' | 'system' | 'terminal' | 'arrow' | 'close' | 'download' | 'panel' | 'file' | 'dashboard' | 'user' | 'info' | 'refresh' | 'commands' | 'compare' | 'activity' | 'maximize' | 'minimize' | 'chevron-right' | 'chevron-down' | 'warning'
   | 'status-queued' | 'status-running' | 'status-done' | 'status-failed' | 'status-timeout' | 'status-interrupted' | 'status-taken-over' | 'status-merged' | 'status-discarded';
 const icons: Record<IconName, LucideIcon> = {
   plus: Plus, search: Search, tasks: ListChecks, chart: ChartNoAxesColumnIncreasing,
@@ -8,7 +8,7 @@ const icons: Record<IconName, LucideIcon> = {
   terminal: SquareTerminal, arrow: ArrowRight, close: X, download: Download,
   panel: PanelRight, file: File, dashboard: LayoutDashboard, user: User, info: Info,
   refresh: RefreshCw, commands: Code, compare: GitCompareArrows, activity: Activity,
-  maximize: Maximize2, minimize: Minimize2,
+  maximize: Maximize2, minimize: Minimize2, 'chevron-right': ChevronRight, 'chevron-down': ChevronDown, warning: TriangleAlert,
   // Task statuses. Each has a distinct silhouette so colour is never the only signal.
   'status-queued': CircleDashed, 'status-running': LoaderCircle, 'status-done': CircleCheck,
   'status-failed': CircleX, 'status-timeout': Timer, 'status-interrupted': CirclePause,

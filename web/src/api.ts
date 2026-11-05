@@ -52,12 +52,34 @@ function query(params: Record<string, string | number | undefined> | undefined):
   return serialized.length > 0 ? `?${serialized}` : '';
 }
 
+/**
+ * HTTP failure that keeps the status and the server's machine-readable `error`
+ * code. A `db_corrupt` 503 can come from any route and carries a readable
+ * `message`; the screens show it instead of the raw status line.
+ */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly code: string | null, readonly detail: string | null) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+function parseErrorBody(text: string): { code: string | null; message: string | null } {
+  try {
+    const body = JSON.parse(text) as { error?: unknown; message?: unknown };
+    return { code: typeof body.error === 'string' ? body.error : null, message: typeof body.message === 'string' ? body.message : null };
+  } catch {
+    return { code: null, message: null };
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, { credentials: 'same-origin', ...init });
   const text = await response.text();
   if (!response.ok) {
     const detail = text.trim().length > 0 ? `: ${text}` : '';
-    throw new Error(`${response.status} ${response.statusText} ${path}${detail}`);
+    const parsed = response.status === 503 ? parseErrorBody(text) : { code: null, message: null };
+    throw new ApiError(`${response.status} ${response.statusText} ${path}${detail}`, response.status, parsed.code, parsed.message);
   }
   return (text.length > 0 ? JSON.parse(text) : undefined) as T;
 }
@@ -101,6 +123,8 @@ export const api = {
   }): Promise<Task> => request('/api/tasks', jsonInit('POST', body)),
   task: (id: string): Promise<TaskResult> => request(`/api/tasks/${id}`),
   runs: (id: string): Promise<Run[]> => request(`/api/tasks/${id}/runs`),
+  /** Every run of every task in one read; older servers answer 404 and the caller falls back to `runs`. */
+  allRuns: (): Promise<Run[]> => request('/api/runs'),
   events: (
     runId: string,
     options?: { afterSeq?: number; tail?: number },

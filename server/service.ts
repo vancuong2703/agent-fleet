@@ -27,6 +27,8 @@ interface ActiveAttempt {
   done: Promise<void>;
 }
 
+/** Mirrors config.ts DEFAULT_NETWORK_MIN for injected configs that omit networkMin. */
+const DEFAULT_NETWORK_MIN = 5;
 const retryable = new Set(['done', 'failed', 'timeout', 'interrupted']);
 const pending = (task: Task): boolean => task.status === 'queued' || task.status === 'running';
 
@@ -239,7 +241,9 @@ export class TaskService {
       this.active.set(run.id, attempt);
       // Deferring to a microtask ensures the reservation has its completion
       // promise before runner callbacks can emit bus messages.
-      attempt.done = Promise.resolve().then(() => this.execute(run, task, attempt.controller.signal)).finally(() => {
+      attempt.done = Promise.resolve().then(() => this.execute(run, task, attempt.controller.signal)).catch((error: unknown) => {
+        console.error(`Run ${run.id} failed unexpectedly: ${error instanceof Error ? error.message : String(error)}`);
+      }).finally(() => {
         this.active.delete(run.id);
         this.schedule();
       });
@@ -257,7 +261,10 @@ export class TaskService {
       outcome = await runAttempt({
         adapter: this.adapters(run.agent), bin: cfg.bin!, extraArgs: approval.args,
         brief: run.brief, briefFile: files.brief(run.id), cwd: task.worktreePath, checkCmd: task.checkCmd,
-        timeouts: { totalMs: this.config.timeouts.totalMin * 60_000, idleMs: this.config.timeouts.idleMin * 60_000 },
+        timeouts: {
+          totalMs: this.config.timeouts.totalMin * 60_000, idleMs: this.config.timeouts.idleMin * 60_000,
+          networkMs: (this.config.timeouts.networkMin ?? DEFAULT_NETWORK_MIN) * 60_000,
+        },
         signal,
         onEvent: (event) => this.event(run, event),
         onSpawn: (pid) => {
@@ -269,7 +276,9 @@ export class TaskService {
       this.event(run, { kind: 'error', category: 'system', text: String(error) });
       outcome = { status: 'failed', errorCategory: 'system', exitCode: null, finalMessage: null, sessionId: null, inputTokens: null, outputTokens: null, costUsd: null, checkPassed: null };
     }
-    this.finish(this.store.getRun(run.id)!, outcome);
+    // A store failure here (for example a corrupt database) must not become an unhandled rejection.
+    try { this.finish(this.store.getRun(run.id)!, outcome); }
+    catch (error) { console.error(`Could not record the outcome of run ${run.id}: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   private async stopAttempt(task: Task): Promise<void> {

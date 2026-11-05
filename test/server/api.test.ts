@@ -14,7 +14,9 @@ import { files } from '../../server/paths.js';
 import type { PtyManager } from '../../server/pty.js';
 import { FleetError, TaskService } from '../../server/service.js';
 import { Store } from '../../server/store.js';
+import * as worktree from '../../server/worktree.js';
 import { makeTempRepo } from '../helpers/repo.js';
+import { corruptRunsIndex, seedDatabase } from './db-corruption-helper.js';
 
 const token = '0123456789abcdef0123456789abcdef';
 const headers = { 'x-fleet-token': token };
@@ -270,7 +272,9 @@ describe('HTTP and WebSocket API', () => {
     await vi.waitFor(() => expect(shutdown).toHaveBeenCalledOnce());
   });
   test('health is public; API requires a matching header or cookie, including unknown API paths', async () => {
-    expect((await app.inject('/api/health')).json()).toEqual({ ok: true });
+    const health = (await app.inject('/api/health')).json();
+    expect(health).toEqual({ ok: true, service: 'agent-fleet', instanceId: expect.stringMatching(/^[0-9a-f-]{36}$/) });
+    expect((await app.inject('/api/health')).json().instanceId).toBe(health.instanceId);
     for (const url of ['/api/plans', '/api/tasks', '/api/stats', '/api/missing', '/ws', '/ws/pty']) {
       expect((await app.inject(url)).statusCode).toBe(401);
     }
@@ -282,6 +286,53 @@ describe('HTTP and WebSocket API', () => {
     expect((await app.inject(`/api/plans?token=${token}`)).statusCode).toBe(401);
     expect((await app.inject({ method: 'POST', url: '/api/plans', headers: { 'content-type': 'application/json' }, payload: '{invalid' })).statusCode).toBe(401);
     expect((await app.inject({ url: '/api/plans', headers: { cookie: 'fleet_token=%broken' } })).statusCode).toBe(401);
+  });
+
+
+  test('/api/runs returns every run in one authenticated call; /summary returns only the task', async () => {
+    const task = await createTask();
+    await wait(task);
+    expect((await app.inject('/api/runs')).statusCode).toBe(401);
+    const runs = (await app.inject({ url: '/api/runs', headers })).json<Array<{ id: string; taskId: string }>>();
+    expect(runs.map(run => run.id)).toEqual(store.listRuns().map(run => run.id));
+    expect(runs.every(run => run.taskId === task.id)).toBe(true);
+    const summary = await app.inject({ url: `/api/tasks/${task.id}/summary`, headers });
+    expect(summary.statusCode).toBe(200);
+    expect(Object.keys(summary.json())).toEqual(['task']);
+    expect(summary.json().task.id).toBe(task.id);
+    expect((await app.inject({ url: '/api/tasks/missing/summary', headers })).statusCode).toBe(404);
+  });
+
+  test('concurrent diff polls for one task share a single worktree diff', async () => {
+    const task = await createTask();
+    await wait(task);
+    const diff = vi.spyOn(worktree, 'diffWorktree').mockImplementation(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return { files: [], patch: 'shared' };
+    });
+    const responses = await Promise.all([1, 2, 3].map(() => app.inject({ url: `/api/tasks/${task.id}/diff`, headers })));
+    expect(responses.map(response => response.json().patch)).toEqual(['shared', 'shared', 'shared']);
+    expect(diff).toHaveBeenCalledTimes(1);
+    await app.inject({ url: `/api/tasks/${task.id}/diff`, headers });
+    expect(diff).toHaveBeenCalledTimes(2);
+  });
+
+  test('a corrupted history index answers 503 db_corrupt instead of a generic 500', async () => {
+    const dbPath = path.join(root, 'corrupt', 'fleet.db');
+    const { taskId } = seedDatabase(dbPath);
+    corruptRunsIndex(dbPath, 'garbage');
+    const broken = new Store(dbPath);
+    const brokenApp = buildServer({ service: new TaskService({ store: broken, bus: new Bus(), config: service['config'] }), store: broken, bus: new Bus(), token });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const response = await brokenApp.inject({ url: `/api/tasks/${taskId}/runs`, headers });
+      expect(response.statusCode).toBe(503);
+      expect(response.json()).toMatchObject({ error: 'db_corrupt', message: expect.stringContaining('--repair-db') });
+      expect(response.body).not.toContain(token);
+    } finally {
+      await brokenApp.close();
+      broken.close();
+    }
   });
 
   test('/auth validates the query token and issues an HttpOnly cookie usable by the client', async () => {
