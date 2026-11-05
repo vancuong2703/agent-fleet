@@ -1,5 +1,5 @@
 import { JobCheck } from './JobCheck.js';
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { Run, Task, TaskStatus } from '../../../shared/types.js';
 import type { ObservabilitySnapshot, RunObservation } from '../../../shared/observability.js';
 import { BriefView } from '../components/BriefView.js';
@@ -7,6 +7,8 @@ import { DiffView } from '../components/DiffView.js';
 import { LogView } from '../components/LogView.js';
 import { TaskActions } from '../components/TaskActions.js';
 import { Icon } from '../components/Icon.js';
+import { ResizeHandle } from '../components/ResizeHandle.js';
+import { usePaneSize } from '../components/usePaneSize.js';
 import { copyText, errorMessage, openLocation, isDesktop } from '../desktop.js';
 import { progressOf, progressText } from '../stuck.js';
 import { useTaskDiff, type FleetState } from '../store.js';
@@ -92,6 +94,10 @@ export interface JobsProps {
 }
 const NO_ERRORS: Record<string, string> = {};
 
+const JOBS_LIST_MIN = 280;
+const JOBS_DETAIL_MIN = 360;
+const JOBS_DIVIDER = 14;
+
 export function Jobs({ state, selectedId, onSelect, onCreate, loaded, error, reload, loadEvents, logState, snapshot, errorCode = null, runErrors = NO_ERRORS, retryRuns }: JobsProps) {
   const { t } = useLanguage(); const [filter, setFilter] = useState('all'); const [query, setQuery] = useState('');
   const [tab, setTab] = useState<'log' | 'diff' | 'brief'>('log'); const [selectedRuns, setSelectedRuns] = useState<Record<string, string>>({});
@@ -100,6 +106,8 @@ export function Jobs({ state, selectedId, onSelect, onCreate, loaded, error, rel
   const [zoom, setZoom] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // Draggable list | detail divider; the default stays the stylesheet's 1.18fr / 1fr until the user drags.
+  const listPane = usePaneSize({ storageKey: 'fleet.jobs.listWidth', min: JOBS_LIST_MIN, max: total => total - JOBS_DIVIDER - JOBS_DETAIL_MIN, fallback: total => Math.round((total - JOBS_DIVIDER) * 1.18 / 2.18) });
   const panesRef = useRef<HTMLDivElement>(null);
   const savedScroll = useRef<{ list: number; pane: number; tab: string } | null>(null);
 
@@ -172,9 +180,10 @@ export function Jobs({ state, selectedId, onSelect, onCreate, loaded, error, rel
       <button className="btn primary" onClick={onCreate}><Icon name="plus" size={14} />{t('New job', 'Công việc mới')}</button>
     </header>
     {pageError && <Notice message={pageError} error onRetry={reload} />}
-    <div className={`split jobs-split${zoom ? ' zoom' : ''}`}><section className="panel list" aria-label={t('Job list', 'Danh sách công việc')}><div className="tablewrap" ref={listRef}><table className="table jobs"><thead><tr><th>{t('Title', 'Tiêu đề')}</th><th>Agent</th><th>{t('Status', 'Trạng thái')}</th><th className="num">{t('Files', 'Tệp')}</th></tr></thead><tbody className="rows">
+    <div className={`split jobs-split${zoom ? ' zoom' : ''}`} ref={listPane.containerRef} style={listPane.custom !== null ? { '--jobs-list-width': `${listPane.custom}px` } as CSSProperties : undefined}><section className="panel list" aria-label={t('Job list', 'Danh sách công việc')}><div className="tablewrap" ref={listRef}><table className="table jobs"><thead><tr><th>{t('Title', 'Tiêu đề')}</th><th>Agent</th><th>{t('Status', 'Trạng thái')}</th><th className="num">{t('Files', 'Tệp')}</th></tr></thead><tbody className="rows">
       {visible.map(entry => { const entryLatest = state.runsByTask[entry.id]?.at(-1); const stalled = entry.status === 'running' && entryLatest !== undefined && progressOf(observationByRun.get(entryLatest.id)?.silentForMs).kind === 'stalled'; return <JobRow key={entry.id} entry={entry} planName={planById.get(entry.planId)?.name} latest={entryLatest} selected={entry.id === task?.id} files={entry.id === selectedTaskId ? diffFileCount : null} stalled={stalled} runError={runErrors[entry.id]} onSelect={select} />; })}
     </tbody></table>{!loaded && !error && <p className="empty" role="status">{t('Loading jobs…', 'Đang tải công việc…')}</p>}{loaded && !visible.length && <div className="empty"><h3>{tasks.length ? t('No matching jobs', 'Không có công việc phù hợp') : t('Start a new job', 'Bắt đầu công việc mới')}</h3><p>{t('Choose a repo → Write a request → Review the changes', 'Chọn repo → Viết yêu cầu → Duyệt thay đổi')}</p><button className="btn" onClick={tasks.length ? () => { setFilter('all'); setQuery(''); } : onCreate}>{tasks.length ? t('Clear filters', 'Xoá bộ lọc') : t('Create first job', 'Tạo công việc đầu tiên')}</button></div>}</div></section>
+    {!zoom && <ResizeHandle className="jobs-divider" orientation="vertical" label={t('Resize the job list', 'Điều chỉnh độ rộng danh sách công việc')} value={listPane.size} min={listPane.min} max={listPane.max} onChange={listPane.setSize} onReset={listPane.reset} />}
     <section className="panel detail" aria-label={t('Selected job', 'Công việc đã chọn')}>{task ? <>
       <div className="detail-top">
         <h4>{t('Selected job', 'Công việc đã chọn')}<span className="spacer">{task.title}</span></h4>

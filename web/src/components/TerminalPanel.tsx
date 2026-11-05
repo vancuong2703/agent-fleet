@@ -48,8 +48,25 @@ export interface TerminalPanelProps {
   onHeightChange?: (height: number) => void;
   onInputReady?: (write: ((text: string) => void) | null) => void;
   onClose: () => void;
+  /** Tooltip for the close button; Terminal explains that it ends the process, Jobs that it only hides. */
+  closeTitle?: string;
   hideable?: boolean;
+  /** Live socket state, so the page can show the same status as the toolbar. */
+  onConnectionChange?: (status: TerminalConnectionStatus) => void;
 }
+
+export type TerminalConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'ended';
+
+/** The toolbar keeps its state as display text; map it back to a stable status. */
+export function connectionStatus(connection: string): TerminalConnectionStatus {
+  if (connection === 'Đã kết nối') return 'connected';
+  if (connection.startsWith('Đã kết thúc')) return 'ended';
+  if (connection === 'Đang kết nối' || connection === 'Connecting') return 'connecting';
+  return 'disconnected';
+}
+
+/** ConPTY redraws the whole TUI per resize, so the socket only hears about the settled size. */
+export const TERMINAL_RESIZE_DEBOUNCE_MS = 120;
 
 type ServerMessage = { t: 'out'; d: string } | { t: 'exit'; code: number };
 
@@ -60,7 +77,7 @@ const cmdTheme: ITheme = {
   brightBlack: '#767676', brightRed: '#e74856', brightGreen: '#16c60c', brightYellow: '#f9f1a5', brightBlue: '#3b78ff', brightMagenta: '#b4009e', brightCyan: '#61d6d6', brightWhite: '#f2f2f2',
 };
 
-export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = false, closeLabel = 'Ẩn', height, onHeightChange, onInputReady, onClose, hideable = false }: TerminalPanelProps) {
+export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = false, closeLabel = 'Ẩn', height, onHeightChange, onInputReady, onClose, closeTitle, hideable = false, onConnectionChange }: TerminalPanelProps) {
   const { t } = useLanguage();
   const [bodyHidden, setBodyHidden] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -69,6 +86,8 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
   const resizeRef = useRef<(() => void) | null>(null);
   const inputReadyRef = useRef(onInputReady);
   inputReadyRef.current = onInputReady;
+  const connectionChangeRef = useRef(onConnectionChange);
+  connectionChangeRef.current = onConnectionChange;
   const [connection, setConnection] = useState(t("Connecting", "Đang kết nối"));
   const [fontSize, setFontSize] = useState(readTerminalFontSize);
   const [socketError, setSocketError] = useState<string | null>(null);
@@ -94,19 +113,27 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
     const fit = new FitAddon(); term.loadAddon(fit); term.open(container); fit.fit(); terminalRef.current = term; fitRef.current = fit;
     const socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}${path}${path.includes('?') ? '&' : '?'}cols=${term.cols}&rows=${term.rows}`);
     let resizeFrame = 0;
+    let sendTimer = 0;
     let lastSize = '';
+    // Fit follows every frame of a drag; only the settled size reaches the PTY.
+    const sendSize = () => {
+      sendTimer = 0;
+      if (disposed || !container.isConnected || container.clientWidth < 40 || container.clientHeight < 40) return;
+      const size = `${term.cols}:${term.rows}`;
+      // ConPTY redraws the entire TUI on resize, even for identical dimensions.
+      // A ResizeObserver/fit feedback loop must not continuously resize it.
+      if (socket.readyState === WebSocket.OPEN && size !== lastSize) {
+        lastSize = size;
+        socket.send(JSON.stringify({ t: 'resize', cols: term.cols, rows: term.rows }));
+      }
+    };
     const resize = () => {
       cancelAnimationFrame(resizeFrame);
       resizeFrame = requestAnimationFrame(() => {
         if (!container.isConnected || container.clientWidth < 40 || container.clientHeight < 40) return;
         fit.fit();
-        const size = `${term.cols}:${term.rows}`;
-        // ConPTY redraws the entire TUI on resize, even for identical dimensions.
-        // A ResizeObserver/fit feedback loop must not continuously resize it.
-        if (socket.readyState === WebSocket.OPEN && size !== lastSize) {
-          lastSize = size;
-          socket.send(JSON.stringify({ t: 'resize', cols: term.cols, rows: term.rows }));
-        }
+        window.clearTimeout(sendTimer);
+        sendTimer = window.setTimeout(sendSize, TERMINAL_RESIZE_DEBOUNCE_MS);
       });
     };
     resizeRef.current = resize;
@@ -137,8 +164,9 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
     const input = term.onData(write);
     term.attachCustomKeyEventHandler((event) => { if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyC') { const text = term.getSelection(); if (text) void navigator.clipboard.writeText(text).catch(() => {}); return false; } if (event.type === 'keydown' && event.ctrlKey && event.shiftKey && event.code === 'KeyV') { void navigator.clipboard.readText().then((text) => term.paste(text)).catch(() => setNotice(t("Clipboard is unavailable.", "Clipboard không khả dụng."))); return false; } return true; });
     const observer = new ResizeObserver(resize); observer.observe(container);
-    return () => { disposed = true; cancelAnimationFrame(resizeFrame); observer.disconnect(); input.dispose(); inputReadyRef.current?.(null); socket.onclose = null; socket.close(); term.dispose(); terminalRef.current = null; fitRef.current = null; resizeRef.current = null; };
+    return () => { disposed = true; cancelAnimationFrame(resizeFrame); window.clearTimeout(sendTimer); observer.disconnect(); input.dispose(); inputReadyRef.current?.(null); socket.onclose = null; socket.close(); term.dispose(); terminalRef.current = null; fitRef.current = null; resizeRef.current = null; };
   }, [taskId, socketPath, reconnectKey]);
+  useEffect(() => { connectionChangeRef.current?.(connectionStatus(connection)); }, [connection]);
   useEffect(() => { if (terminalRef.current) { terminalRef.current.options.fontSize = fontSize; resizeRef.current?.(); } }, [fontSize]);
   useEffect(() => { resizeRef.current?.(); }, [height]);
   const maxHeight = Math.max(350, window.innerHeight - 250);
@@ -147,12 +175,18 @@ export function TerminalPanel({ taskId, socketPath, title, subtitle, fill = fals
     if (current) { if (heightBeforeMax.current != null) onHeightChange?.(heightBeforeMax.current); heightBeforeMax.current = null; return false; }
     heightBeforeMax.current = currentHeight; onHeightChange?.(maxHeight); return true;
   });
-  return <div className={`terminal-panel${fill?' terminal-fill':''}${bodyHidden ? ' is-hidden' : ''}`} style={fill ? {height:'100%'} : height != null ? { height } : undefined}>
+  return <div className={`terminal-panel${fill?' terminal-fill':''}${bodyHidden ? ' is-hidden' : ''}`} style={fill ? undefined : height != null ? { height } : undefined}>
     {onHeightChange && <ResizeHandle orientation="horizontal" reverse label="Điều chỉnh chiều cao terminal" value={currentHeight} min={240} max={maxHeight} onChange={onHeightChange} />}
-    <div className="terminal-head"><span className="terminal-title"><Icon name="terminal" size={15} /><span className="terminal-caption" title={subtitle}>{title ?? 'Terminal'}{subtitle && <small>{subtitle}</small>}</span><span className={`terminal-connection ${connection === 'Đã kết nối' ? 'on' : ''}`}>{connection === 'Đã kết nối' ? t("Connected", "Đã kết nối") : connection.startsWith('Đã kết thúc') ? t(connection.replace('Đã kết thúc', 'Exited'), connection) : connection === 'Thiếu phiên terminal' ? t("No terminal session", "Thiếu phiên terminal") : connection}</span></span><div className="terminal-tools"><button className="icon-button" title={t("Smaller font", "Giảm cỡ chữ")} aria-label={t("Decrease terminal font size", "Giảm cỡ chữ terminal")} onClick={() => applyFontSize(fontSize - 1)}>−</button><span>{fontSize}</span><button className="icon-button" title={t("Larger font", "Tăng cỡ chữ")} aria-label={t("Increase terminal font size", "Tăng cỡ chữ terminal")} onClick={() => applyFontSize(fontSize + 1)}>+</button>{onHeightChange && <button className="text-button" aria-label={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} title={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} onClick={toggleMaximize}>{maximized ? 'Khôi phục' : 'Phóng to'}</button>}<button className="text-button" onClick={() => void copy()} title="Ctrl+Shift+C">{t("Copy", "Sao chép")}</button><button className="text-button" onClick={() => void paste()} title="Ctrl+Shift+V">{t("Paste", "Dán")}</button><button className="action-btn" onClick={onClose}>{closeLabel === 'Ẩn' ? t("Hide", "Ẩn") : closeLabel}</button></div></div>
-    <div className="terminal-search"><Icon name="search" size={14} /><input aria-label={t("Search terminal", "Tìm trong terminal")} value={query} onChange={(event) => { setQuery(event.target.value); searchFrom.current = 0; }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); find(); } }} placeholder={t("Search terminal…", "Tìm trong terminal…")} /><button className="text-button" onClick={find} disabled={!query}>{t("Find next", "Tìm tiếp")}</button>{notice && <span role="status">{notice}</span>}</div>
+    <div className="terminal-head">
+      <span className="terminal-title"><Icon name="terminal" size={14} /><span className="terminal-caption" title={subtitle}>{title ?? 'Terminal'}{subtitle && <small>{subtitle}</small>}</span><span className={`terminal-connection ${connection === 'Đã kết nối' ? 'on' : ''}`}>{connection === 'Đã kết nối' ? t("Connected", "Đã kết nối") : connection.startsWith('Đã kết thúc') ? t(connection.replace('Đã kết thúc', 'Exited'), connection) : connection === 'Thiếu phiên terminal' ? t("No terminal session", "Thiếu phiên terminal") : connection}</span></span>
+      <div className="terminal-tools"><button className="icon-button" title={t("Smaller font", "Giảm cỡ chữ")} aria-label={t("Decrease terminal font size", "Giảm cỡ chữ terminal")} onClick={() => applyFontSize(fontSize - 1)}>−</button><span>{fontSize}</span><button className="icon-button" title={t("Larger font", "Tăng cỡ chữ")} aria-label={t("Increase terminal font size", "Tăng cỡ chữ terminal")} onClick={() => applyFontSize(fontSize + 1)}>+</button></div>
+      <div className="terminal-search"><Icon name="search" size={13} /><input aria-label={t("Search terminal", "Tìm trong terminal")} value={query} onChange={(event) => { setQuery(event.target.value); searchFrom.current = 0; }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); find(); } }} placeholder={t("Search terminal…", "Tìm trong terminal…")} /><button className="text-button" onClick={find} disabled={!query}>{t("Find next", "Tìm tiếp")}</button></div>
+      <div className="terminal-actions">{onHeightChange && <button className="text-button" aria-label={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} title={maximized ? 'Khôi phục cỡ terminal' : 'Phóng to terminal'} onClick={toggleMaximize}>{maximized ? 'Khôi phục' : 'Phóng to'}</button>}<button className="text-button" onClick={() => void copy()} title="Ctrl+Shift+C">{t("Copy", "Sao chép")}</button><button className="text-button" onClick={() => void paste()} title="Ctrl+Shift+V">{t("Paste", "Dán")}</button></div>
+      {notice && <span className="terminal-flash" role="status">{notice}</span>}
+      <span className="terminal-spacer" />
+      <div className="terminal-actions">{hideable && <button className="text-button terminal-hide" title={t('Hide keeps the process running in the background.', 'Ẩn giữ tiến trình chạy nền.')} onClick={() => setBodyHidden(value => !value)}>{bodyHidden ? t('Show terminal', 'Hiện terminal') : t('Hide terminal', 'Ẩn terminal')}</button>}<button className={`action-btn${hideable ? ' terminal-end' : ''}`} title={closeTitle ?? (hideable ? undefined : t('Hide keeps the process running in the background.', 'Ẩn giữ tiến trình chạy nền.'))} onClick={onClose}>{closeLabel === 'Ẩn' ? t("Hide", "Ẩn") : closeLabel}</button></div>
+    </div>
     {socketError && <div className="terminal-reconnect banner banner-error" role="alert" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, margin: '0 0 10px' }}><span>{socketError}</span><button className="action-btn" type="button" onClick={() => { setSocketError(null); setConnection(t("Connecting", "Đang kết nối")); setReconnectKey((key) => key + 1); }}>{t("Reconnect", "Kết nối lại")}</button></div>}
-    {hideable && <button className="terminal-hide text-button" onClick={() => setBodyHidden(value => !value)}>{bodyHidden ? t('Show terminal', 'Hiện terminal') : t('Hide terminal', 'Ẩn terminal')}</button>}
     <div className="terminal-host" hidden={bodyHidden} ref={containerRef} />
   </div>;
 }

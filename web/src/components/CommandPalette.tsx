@@ -23,6 +23,8 @@ export function CommandPalette({ open, tasks, onClose, onAction }: CommandPalett
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const listId = useId();
   const items = useMemo(() => filterPalette(buildPaletteItems({ tasks }), query), [tasks, query]);
   // Clamp instead of trusting the stored index: filtering can shrink the list.
@@ -33,10 +35,18 @@ export function CommandPalette({ open, tasks, onClose, onAction }: CommandPalett
     setQuery('');
     setActive(0);
     restoreRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    // Wait for the dialog to exist before moving focus into it.
-    const timer = window.setTimeout(() => inputRef.current?.focus(), 0);
+    // Effects run after commit, so the input already exists.
+    inputRef.current?.focus();
+    // Listen on the document: focus can sit outside the dialog, and Escape must still close it.
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      onCloseRef.current();
+    };
+    document.addEventListener('keydown', closeOnEscape, true);
     return () => {
-      window.clearTimeout(timer);
+      document.removeEventListener('keydown', closeOnEscape, true);
       const restore = restoreRef.current;
       if (restore && restore.isConnected) restore.focus();
     };
@@ -51,7 +61,7 @@ export function CommandPalette({ open, tasks, onClose, onAction }: CommandPalett
   };
 
   return (
-    <div className="palette-backdrop" role="presentation" onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose(); } }}>
+    <div className="palette-backdrop" role="presentation">
       <div className="palette" role="dialog" aria-modal="true" aria-label="Ô lệnh nhanh">
         <div className="palette-input">
           <Icon name="commands" size={16} />
@@ -66,7 +76,6 @@ export function CommandPalette({ open, tasks, onClose, onAction }: CommandPalett
             aria-controls={listId}
             aria-activedescendant={current < 0 ? undefined : `${listId}-${current}`}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') { event.preventDefault(); onClose(); return; }
               if (event.key === 'ArrowDown') { event.preventDefault(); setActive(stepIndex(current, 1, items.length)); return; }
               if (event.key === 'ArrowUp') { event.preventDefault(); setActive(stepIndex(current, -1, items.length)); return; }
               if (event.key === 'Enter') { event.preventDefault(); run(items[current]); }

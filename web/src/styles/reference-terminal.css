@@ -14,7 +14,7 @@
 
 /* ---- session tabs (ARIA tablist lives inside) ---- */
 .sessions{display:flex;align-items:center;gap:8px;min-width:0;
-  border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto}
+  border-bottom:1px solid var(--border);margin-bottom:18px;overflow-x:auto;padding-bottom:1px}
 .stablist{display:inline-flex;align-items:center;gap:4px;min-width:0}
 .sessions .newbtn{margin-left:auto;flex:none}
 

@@ -144,3 +144,13 @@ for (const width of [375, 768]) test(`at ${width}px drawer navigation is reachab
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
 });
+
+test('palette closes on Escape even when focus has left its input', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('Control+k');
+  const palette = page.getByRole('dialog', { name: 'Ô lệnh nhanh' });
+  await expect(palette.getByRole('combobox', { name: 'Tìm lệnh' })).toBeFocused();
+  await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); });
+  await page.keyboard.press('Escape');
+  await expect(palette).toBeHidden();
+});

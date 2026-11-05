@@ -36,7 +36,9 @@ table.jobs td{padding:10px 6px;vertical-align:middle}
 .detail{padding:16px 18px}
 .jobmeta{margin:0 0 12px;letter-spacing:.02em}
 .dacts{margin:0 0 12px}
-.jtabs{display:flex;align-items:center;gap:4px;min-width:0;flex:1;overflow-x:auto}
+.jtabs{display:flex;align-items:center;gap:4px;min-width:0;flex:1;overflow-x:auto;
+  /* the active tab underline sits 1px below the row (margin-bottom:-1px); room for it avoids a stray vertical scrollbar */
+  padding-bottom:1px;margin-bottom:-1px}
 /* tabs and the log-zoom button share one underline row */
 .task-tabs-row{display:flex;align-items:stretch;gap:6px;min-width:0;
   border-bottom:1px solid var(--border);margin-bottom:12px}
