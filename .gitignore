@@ -8,3 +8,5 @@ playwright-report/
 .tmp/
 desktop/**/bin/
 desktop/**/obj/
+
+graphify-out/
