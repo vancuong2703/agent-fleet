@@ -76,6 +76,9 @@ test('unpinned start timeout reports startup-error.json from the data directory'
     expect(error.message).toContain('did not become healthy');
     expect(error.message).toContain('db_corrupt: integrity check failed');
     expect(error.message).toContain('Run fleet db repair');
+    expect(spawn).toHaveBeenCalledWith(process.execPath, expect.any(Array), expect.objectContaining({
+      detached: true, windowsHide: true, stdio: 'ignore',
+    }));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 

@@ -73,13 +73,15 @@ test('hardware toggle changes the actual widget and view style survives reload',
   await expect(page.locator('#resStrip')).toBeHidden();
   await hardware.click();
   await expect(page.locator('#resStrip')).toBeVisible();
-  await page.getByRole('button', { name: 'Sắc độ giao diện', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-style', 'plain');
+  await page.getByRole('button', { name: 'Diện mạo', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Tuỳ chỉnh diện mạo' }).getByRole('button', { name: 'Giấy ấm', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-style', 'warm');
   await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-style', 'plain');
+  await expect(page.locator('html')).toHaveAttribute('data-style', 'warm');
   await setTheme(page, 'dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await expect(page.locator('html')).toHaveAttribute('data-style', 'plain');
+  await expect(page.locator('html')).toHaveAttribute('data-style', 'warm');
 });
 
 test('jobs show real vendor marks and keep title and status in distinct cells', async ({ page }) => {

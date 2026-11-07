@@ -1,4 +1,4 @@
-import { Cpu, Droplet, Contrast, Menu } from 'lucide-react';
+import { Cpu, Contrast, Menu } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { DashboardAgent } from '../../../shared/dashboard.js';
 import { useCliWorkspace } from '../cli-workspace.js';
@@ -8,7 +8,7 @@ import { TaskComposer } from '../components/TaskComposer.js';
 import { useFleet } from '../store.js';
 import { useObservability, formatBytes } from '../observability.js';
 import { useTheme } from '../theme.js';
-import { useViewStyle } from '../view-style.js';
+import { AppearanceMenu } from './AppearanceMenu.js';
 import { type PaletteAction } from '../palette.js';
 import { Compare } from './Compare.js';
 import { Dashboard } from './Dashboard.js';
@@ -32,7 +32,7 @@ const NAV: Array<{ id: Exclude<View, 'tool'>; en: string; vi: string; icon: Icon
 export function Workspace() { return <LanguageProvider><WorkspaceBody /></LanguageProvider>; }
 function WorkspaceBody() {
   const fleet = useFleet(); const { state, connected } = fleet;
-  const { language, setLanguage, t } = useLanguage(); const { theme, setTheme } = useTheme(); const { style, toggleStyle } = useViewStyle();
+  const { language, setLanguage, t } = useLanguage(); const { theme, setTheme } = useTheme();
   const [view, setView] = useState<View>('dashboard'); const [detailAgent, setDetailAgent] = useState<DashboardAgent>('codex'); const [selectedId, setSelectedId] = useState<string | null>(null);
   const [composer, setComposer] = useState(false); const [palette, setPalette] = useState(false); const [drawer, setDrawer] = useState(false); const [hardware, setHardware] = useState(true);
   const navToggle = useRef<HTMLButtonElement>(null);
@@ -65,9 +65,9 @@ function WorkspaceBody() {
       <div className="foot side-foot"><span>DESKTOP · v{__APP_VERSION__}</span><span className={`connection${connected ? ' on' : ''}`} title={connected ? 'Đã kết nối' : 'Mất kết nối'}><i className={`dot${connected ? '' : ' warn'}`} aria-label={connected ? t('Connected', 'Đã kết nối') : t('Reconnecting', 'Đang kết nối lại')} /></span></div>
     </aside>
     {drawer && <button className="drawer-scrim" aria-label={t('Close navigation', 'Đóng điều hướng')} onClick={() => { setDrawer(false); navToggle.current?.focus(); }} />}
-    <main className="main workspace-shell"><header className="topbar"><button ref={navToggle} className="tbtn nav-toggle" aria-label={t('Open navigation', 'Mở điều hướng')} aria-expanded={drawer} aria-controls="workspace-sidebar" onClick={() => setDrawer(value => !value)}><Menu size={16} /></button><span className="crumb">{crumb}</span><span className="spacer" /><div className="toggle" role="group" aria-label={t('Language', 'Ngôn ngữ')}><button aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button><button aria-pressed={language === 'vi'} onClick={() => setLanguage('vi')}>VI</button></div><button className="tbtn" id="resToggle" aria-pressed={hardware} aria-label={t('Hardware', 'Phần cứng')} onClick={() => setHardware(value => !value)}><Cpu size={15} /><span>{t('Hardware', 'Phần cứng')}</span></button><button className="tbtn" onClick={() => setTheme(nextTheme)} aria-label={t('Theme', 'Giao diện')} title={t('Switch light / dark / system', 'Đổi sáng / tối / hệ thống')}><Contrast size={15} /><span>{theme === 'light' ? t('Light', 'Sáng') : theme === 'dark' ? t('Dark', 'Tối') : t('System', 'Hệ thống')}</span></button><button className="tbtn" onClick={toggleStyle} aria-label={t('View style', 'Sắc độ giao diện')}><Droplet size={15} /><span>{style === 'warm' ? t('Warm', 'Ấm') : t('Plain', 'Trắng')}</span></button></header>
+    <main className="main workspace-shell"><header className="topbar"><button ref={navToggle} className="tbtn nav-toggle" aria-label={t('Open navigation', 'Mở điều hướng')} aria-expanded={drawer} aria-controls="workspace-sidebar" onClick={() => setDrawer(value => !value)}><Menu size={16} /></button><span className="crumb">{crumb}</span><span className="spacer" /><div className="toggle" role="group" aria-label={t('Language', 'Ngôn ngữ')}><button aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button><button aria-pressed={language === 'vi'} onClick={() => setLanguage('vi')}>VI</button></div><button className="tbtn" id="resToggle" aria-pressed={hardware} aria-label={t('Hardware', 'Phần cứng')} onClick={() => setHardware(value => !value)}><Cpu size={15} /><span>{t('Hardware', 'Phần cứng')}</span></button><button className="tbtn" onClick={() => setTheme(nextTheme)} aria-label={t('Theme', 'Giao diện')} title={t('Switch light / dark / system', 'Đổi sáng / tối / hệ thống')}><Contrast size={15} /><span>{theme === 'light' ? t('Light', 'Sáng') : theme === 'dark' ? t('Dark', 'Tối') : t('System', 'Hệ thống')}</span></button><AppearanceMenu isDark={theme === 'dark' || (theme === 'system' && typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark')} /></header>
       {!connected && <Notice message={t('Reconnecting to the local server. Your workspace will resync automatically.', 'Đang kết nối lại server cục bộ. Không gian làm việc sẽ tự đồng bộ.')} />}
-      <div className="view-stack"><section className="view-panel dashboard-host" hidden={view !== 'dashboard'}><Dashboard visible={view === 'dashboard'} cli={cli} plans={state.plans} tasks={state.tasks} runsByTask={state.runsByTask} onDetails={details} onTask={selectTask} /></section><section className="view-panel terminal-workspace-host" hidden={view !== 'terminal'}><Terminal cli={cli} plans={state.plans} /></section>
+      <div className="view-stack"><section className="view-panel dashboard-host" hidden={view !== 'dashboard'}><Dashboard visible={view === 'dashboard'} cli={cli} plans={state.plans} tasks={state.tasks} runsByTask={state.runsByTask} runsLoadState={state.runsLoadState} onRetryRuns={() => void fleet.retryRuns()} onDetails={details} onTask={selectTask} /></section><section className="view-panel terminal-workspace-host" hidden={view !== 'terminal'}><Terminal cli={cli} plans={state.plans} /></section>
         {view === 'compare' && <Compare cli={cli} plans={state.plans} onDetails={details} />}
         {view === 'tasks' && <Jobs state={state} selectedId={selectedId} onSelect={setSelectedId} onCreate={() => setComposer(true)} loaded={fleet.tasksLoaded} error={fleet.error} errorCode={fleet.errorCode} runErrors={fleet.runErrors} retryRuns={fleet.retryRuns} reload={fleet.reload} loadEvents={fleet.loadEvents} logState={fleet.logState} snapshot={observations.snapshot} />}
         {view === 'usage' && <Resources cli={cli} state={state} snapshot={observations.snapshot} error={observations.error} onRefresh={observations.reload} />}

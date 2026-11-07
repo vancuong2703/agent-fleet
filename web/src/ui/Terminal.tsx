@@ -43,8 +43,11 @@ export function Terminal({ cli, plans }: { cli: CliWorkspace; plans: Plan[] }) {
   const sideLabel = collapsed ? t('Show info column', 'Hiện cột thông tin') : t('Hide info column', 'Ẩn cột thông tin');
   return <div className="wrap terminal-page" data-page="terminal">
     <header className="head terminal-top">
-      <h1 className="title sm" aria-label="Terminal">TERM<em>INAL</em></h1>
-      <div className="sessions"><div className="stablist terminal-tablist" role="tablist" aria-label={t('CLI sessions', 'Phiên CLI')}>{sessions.map((session, index) => <button className="stab" id={`tab-${session.id}`} key={session.id} role="tab" ref={element => { refs.current[session.id] = element; }} tabIndex={active?.id === session.id ? 0 : -1} aria-selected={active?.id === session.id} aria-controls={`cli-${session.id}`} onClick={() => cli.select(session.id)} onKeyDown={event => move(event, index)}><i className={`dot${status(session) === 'connected' ? '' : ' warn'}`} />{session.title}</button>)}</div></div>
+      <div className="head-title-block">
+        <div className="eyebrow">{t('Interactive shell', 'Phiên dòng lệnh')}</div>
+        <h1 className="title sm">{t('CLI Terminal', 'Terminal CLI')}</h1>
+      </div>
+      <div className="sessions">{!sessions.length && <span className="head-empty-hint">{t('Ready · Pick an agent below to launch', 'Sẵn sàng · Chọn công cụ bên dưới để mở')}</span>}<div className="stablist terminal-tablist" role="tablist" aria-label={t('CLI sessions', 'Phiên CLI')}>{sessions.map((session, index) => <button className="stab" id={`tab-${session.id}`} key={session.id} role="tab" ref={element => { refs.current[session.id] = element; }} tabIndex={active?.id === session.id ? 0 : -1} aria-selected={active?.id === session.id} aria-controls={`cli-${session.id}`} onClick={() => cli.select(session.id)} onKeyDown={event => move(event, index)}><i className={`dot${status(session) === 'connected' ? '' : ' warn'}`} />{session.title}</button>)}</div></div>
       <button className="btn ghost newbtn" onClick={() => setPicker(value => !value)}><Icon name="plus" size={14} />{t('New session', 'Phiên mới')}</button>
       <span className="stamp">{count}</span>
       <button className="btn ghost side-toggle" aria-label={sideLabel} title={sideLabel} aria-pressed={collapsed} onClick={() => setCollapsed(!collapsed)}><Icon name="panel" size={14} /></button>

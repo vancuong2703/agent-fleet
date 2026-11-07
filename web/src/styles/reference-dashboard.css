@@ -5,56 +5,491 @@
 
 /* The tool zones keep their natural height; the info row below is what
    absorbs the leftover window height, so the page still ends flush. */
-.zones{margin-bottom:16px;gap:10px}
-.zones .card{padding:16px;gap:11px}
-.zones .foot{padding-top:10px}
-.zones .stats{padding-top:7px}
-.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.row3 .panel{display:flex;flex-direction:column;min-height:0;padding:16px 18px}
-@media(max-width:1100px){.row3{grid-template-columns:1fr}.zones{margin-bottom:14px}}
+.zones .foot { padding-top: 10px; }
+.zones .stats { padding-top: 7px; }
 
-/* ---- spinner wrapper for the refresh icons (.spin and @keyframes spin
-   already live in reference.css); the span keeps the icon aligned inside
-   the pill buttons ---- */
-.spin{display:inline-flex}
-@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+/* ---- Row 3: Token → Jobs → Attention ---- */
+.row3 {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+.row3 .panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  position: relative;
+}
+@media (max-width: 1200px) {
+  .row3 { grid-template-columns: 1fr 1fr; }
+  .row3 > [data-card-id="tokens"] { grid-column: 1 / -1; }
+}
+@media (max-width: 680px) {
+  .row3 { grid-template-columns: 1fr; }
+}
+
+/* ---- Card Spotlight / Focus Mode ---- */
+.card.is-focused,
+.panel.is-focused {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  transform: none;
+  z-index: 2;
+  transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1), outline-color 150ms ease;
+}
+.card.is-dimmed,
+.panel.is-dimmed {
+  box-shadow: none;
+  background: var(--surface-dim, color-mix(in srgb, var(--surface) 94%, var(--surface-2)));
+  transition: background-color 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.card-head-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 42px;
+}
+.card-head-row .card-top {
+  flex: 1;
+  min-width: 0;
+}
+.card-head-row .card-title .ver {
+  padding-right: 56px;
+}
+.card-head-row > .card-focus-btn {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+.panel-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.panel-head-row h4 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.panel-head-row h4 .spacer {
+  margin-left: auto;
+  margin-right: 8px;
+  float: none;
+}
+.card-focus-btn {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+  white-space: nowrap;
+  line-height: 1.3;
+  flex: none;
+}
+.card-focus-btn:hover {
+  color: var(--ink);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.card-focus-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+/* ---- spinner wrapper for the refresh icons ---- */
+.spin { display: inline-flex; }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
 
 /* ---- jobs today: six-segment status strip ---- */
-.stackbar{display:flex;gap:3px;height:9px;margin-top:12px}
-.stackbar .sg{flex:1;border-radius:2px;background:var(--track)}
-.stackbar .sg.ok{background:var(--ok)} .stackbar .sg.warn{background:var(--warn)}
-.stackbar .sg.bad{background:var(--bad)} .stackbar .sg.plain{background:var(--border-strong)}
-.minilegend{margin:9px 0 0;font:500 10.5px/1.5 var(--mono);color:var(--muted)}
+.stackbar { display: flex; gap: 4px; height: 11px; margin-top: 12px; }
+.stackbar .sg { flex: 1; border-radius: 4px; background: var(--track); box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.1); }
+.stackbar .sg.ok { background: var(--energy-ok); box-shadow: 0 0 8px rgba(16, 185, 129, 0.28); }
+.stackbar .sg.warn { background: var(--energy-warn); box-shadow: 0 0 8px rgba(245, 158, 11, 0.28); }
+.stackbar .sg.bad { background: var(--energy-bad); box-shadow: 0 0 8px rgba(244, 63, 94, 0.32); }
+.stackbar .sg.plain { background: var(--border-strong); }
+.minilegend { margin: 9px 0 0; font: 650 10.5px/1.5 var(--mono); letter-spacing: 0.03em; text-transform: uppercase; color: var(--muted); }
 
-/* ---- tokens today: 7-bar sparkline ---- */
-.spark{width:100%;height:auto;display:block;margin-top:12px}
-.spark .sb{fill:var(--accent)} .spark .sb.last{fill:var(--ink)}
+/* ---- Daily Token Chart ---- */
+.daily-token-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.token-chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.token-chart-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.token-kpi-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.token-kpi-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+.token-kpi-value {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  font-weight: 750;
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.token-kpi-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 0.6875rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.token-today-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.token-today-breakdown {
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.token-view-toggle {
+  font-size: 0.6875rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 2px 8px;
+  height: 26px;
+}
+.token-chart-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.token-chart-visual {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: stretch;
+  min-height: 148px;
+  padding-top: 6px;
+  position: relative;
+}
+.token-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: 4px;
+  padding-bottom: 58px;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 28px;
+}
+.token-y-level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+.token-grid-line {
+  flex: 1;
+  border-bottom: 1px dashed var(--border);
+  opacity: 0.5;
+}
+.token-bars-track,
+.token-axis-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  align-items: start;
+  min-height: 136px;
+}
+.token-bar-col,
+.token-axis-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  position: relative;
+  padding: 4px 2px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.token-bar-col:hover,
+.token-bar-col.is-active {
+  background: var(--surface-2);
+}
+.token-bar-area {
+  width: 100%;
+  height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2px;
+}
+.token-bar-value {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.token-bar-col.is-today .token-bar-value {
+  color: var(--accent);
+  font-weight: 700;
+}
+.token-bar-fill {
+  width: min(28px, 72%);
+  background: color-mix(in srgb, var(--accent) 68%, var(--surface-3));
+  border-radius: 4px 4px 2px 2px;
+  min-height: 4px;
+  transition: height 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease;
+}
+.token-bar-col.is-today .token-bar-fill {
+  background: var(--accent);
+}
+.token-bar-zero-tick {
+  width: min(24px, 65%);
+  height: 2px;
+  background: var(--border-strong);
+  border-radius: 2px;
+}
+.token-bar-null-tick {
+  width: min(24px, 65%);
+  height: 0;
+  border-top: 2px dashed var(--border-strong);
+  opacity: 0.7;
+}
+.token-bar-axis-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+  text-align: center;
+  min-height: 48px;
+}
+.token-bar-axis-label .weekday {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.token-bar-axis-label .monthday {
+  font-size: 0.6875rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.token-bar-axis-label .today-badge {
+  margin-top: 2px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 0 5px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.token-day-detail {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  min-width: 190px;
+  max-width: 250px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+  z-index: 30;
+  font-size: 0.75rem;
+  color: var(--ink);
+  text-align: left;
+  pointer-events: none;
+}
+.token-bars-track > .token-bar-col:first-child .token-day-detail {
+  left: 0;
+  transform: none;
+}
+.token-bars-track > .token-bar-col:last-child .token-day-detail {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.token-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.token-detail-head .today-tag {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.token-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.token-detail-row .k {
+  color: var(--muted);
+}
+.token-detail-row .v {
+  font-weight: 600;
+  color: var(--ink);
+}
+.token-detail-agents {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.token-detail-agents-title {
+  font-size: 0.6875rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.token-detail-agent-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.6875rem;
+}
+.token-chart-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0;
+}
+.token-skeleton-bars {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  height: 88px;
+  align-items: end;
+}
+.token-skeleton-bar {
+  background: var(--surface-2);
+  border-radius: 4px 4px 0 0;
+  height: 60%;
+}
+.token-skeleton-bar:nth-child(2) { height: 80%; }
+.token-skeleton-bar:nth-child(3) { height: 40%; }
+.token-skeleton-bar:nth-child(4) { height: 95%; }
+.token-skeleton-bar:nth-child(5) { height: 50%; }
+.token-skeleton-bar:nth-child(6) { height: 70%; }
+.token-skeleton-bar:nth-child(7) { height: 85%; }
+.token-chart-error {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  align-items: flex-start;
+}
+.token-chart-empty-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.token-table-wrap {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+.token-data-table {
+  width: 100%;
+  font-size: 0.75rem;
+}
+.token-data-table th,
+.token-data-table td {
+  padding: 6px 8px;
+  text-align: left;
+}
+.token-data-table tr.is-today {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.token-chart-footer-note {
+  margin-top: 8px;
+}
 
 /* ---- needs attention ---- */
-.attn{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.attn li{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font:600 12px/1.45 var(--sans)}
-.attn li:last-child{border-bottom:0;padding-bottom:0}
-.attn .at-t{flex:1;min-width:0;color:var(--muted)}
-.attn .at-t b{color:var(--ink)}
+.attn { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.attn li { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 1px solid var(--border); font: 650 11.5px/1.45 var(--sans); letter-spacing: 0.02em; text-transform: uppercase; }
+.attn li:last-child { border-bottom: 0; padding-bottom: 0; }
+.attn .at-t { flex: 1; min-width: 0; color: var(--muted); }
+.attn .at-t b { color: var(--ink); font-weight: 750; }
 /* a text link, not a 32 px pill: keeps four attention rows on one line each */
-.attn-open{border:0;background:transparent;color:var(--accent-strong);font:650 11.5px var(--sans);cursor:pointer;padding:0;white-space:nowrap}
-.attn-open:hover{text-decoration:underline}
+.attn-open { border: 0; background: transparent; color: var(--accent-strong); font: 700 11px var(--sans); letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; padding: 0; white-space: nowrap; }
+.attn-open:hover { text-decoration: underline; }
 
-/* ---- short window (see the note in app.css) ---- */
-@media(max-height:870px),(max-width:1250px){
-  .zones .donut{--donut:64px}
-  .zones .mtx .donut{--donut:44px}
-  .row3 .panel{padding:12px 14px}
+/* ---- short / narrow window adaptations ---- */
+@media (max-height: 870px), (max-width: 1250px) {
+  .row3 .panel { padding: 12px 14px; }
 }
-/* short window: what is missing is vertical space, so drop the two secondary
-   blocks, the sparkline and the long caption */
-@media(max-height:870px){
-  .lastjob,.minilegend,.spark{display:none}
-  .noterow .tablenote{display:none}
-}
-/* narrow window: there is height to spare, so the three info panels spread
-   their content over the leftover space instead of leaving one gap */
-@media(max-width:1250px){
-  .noterow .tablenote{display:none}
-  .row3 .panel{justify-content:space-between}
+@media (max-width: 1250px) {
+  .noterow .tablenote { display: none; }
+  .row3 .panel { justify-content: space-between; }
 }

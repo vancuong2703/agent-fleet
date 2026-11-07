@@ -1,6 +1,24 @@
+import type { AppearancePreferences } from './appearance.js';
+
 type NativeResult = { type: 'fleet:native-result'; requestId: string; ok: boolean; error?: string };
 type NativeBridge = { postMessage: (message: unknown) => void; addEventListener: (type: 'message', callback: (event: MessageEvent<NativeResult>) => void) => void; removeEventListener: (type: 'message', callback: (event: MessageEvent<NativeResult>) => void) => void };
-declare global { interface Window { chrome?: { webview?: NativeBridge }; __FLEET_DESKTOP__?: { version: string; theme?: 'system' | 'light' | 'dark'; layout?: { sidebarWidth: number; inspectorWidth: number; terminalHeight: number } } } }
+declare global {
+  interface Window {
+    chrome?: { webview?: NativeBridge };
+    __FLEET_DESKTOP__?: {
+      version: string;
+      platform?: string;
+      theme?: 'system' | 'light' | 'dark';
+      appearance?: {
+        style: 'plain' | 'warm';
+        font: 'system' | 'inter' | 'bricolage';
+        size: 'standard' | 'large';
+        motion: 'system' | 'reduced' | 'off';
+      };
+      layout?: { sidebarWidth: number; inspectorWidth: number; terminalHeight: number };
+    };
+  }
+}
 
 export function isDesktop(): boolean { return typeof window !== 'undefined' && Boolean(window.__FLEET_DESKTOP__ && window.chrome?.webview); }
 export async function openLocation(location: { taskId?: string; planId?: string; relativePath?: string; action?: 'open' | 'reveal' }): Promise<void> {

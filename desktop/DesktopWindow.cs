@@ -50,7 +50,7 @@ internal sealed class DesktopWindow : Form
             view.CoreWebView2.Settings.AreDevToolsEnabled = false;
             view.CoreWebView2.Settings.IsStatusBarEnabled = false;
             view.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
-            var marker = JsonSerializer.Serialize(new { version = "2.6.1", platform = "win32", theme = preferences.Theme, layout = preferences.Layout }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            var marker = JsonSerializer.Serialize(new { version = "2.7.1", platform = "win32", theme = preferences.Theme, layout = preferences.Layout, appearance = preferences.Appearance }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             await view.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync($"window.__FLEET_DESKTOP__ = Object.freeze({marker}); window.dispatchEvent(new Event('fleet:desktop-ready'));");
             view.CoreWebView2.NavigationStarting += (_, e) =>
             {
@@ -147,6 +147,18 @@ internal sealed class DesktopWindow : Form
                 preferences.SetLayout(request.GetProperty("layout"));
                 return;
             }
+            if (type.GetString() == "fleet:set-appearance")
+            {
+                requestId = request.TryGetProperty("requestId", out var appReqId) ? appReqId.GetString() : null;
+                if (request.TryGetProperty("appearance", out var appearanceElement))
+                {
+                    preferences.SetAppearance(appearanceElement);
+                    ApplyNativeTheme();
+                }
+                if (!string.IsNullOrEmpty(requestId))
+                    view.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "fleet:native-result", requestId, ok = true }));
+                return;
+            }
             if (type.GetString() != "fleet:open-path") return;
             requestId = request.TryGetProperty("requestId", out var requestIdElement) ? requestIdElement.GetString() : null;
             if (requestId is not { Length: > 0 and <= 100 }) throw new InvalidOperationException("Request không hợp lệ.");
@@ -169,7 +181,9 @@ internal sealed class DesktopWindow : Form
     {
         var dark = preferences.IsDark() ? 1 : 0;
         NativeMethods.DwmSetWindowAttribute(Handle, 20, ref dark, 4);
-        view.DefaultBackgroundColor = dark == 1 ? Color.FromArgb(24, 26, 32) : Color.FromArgb(248, 249, 252);
+        view.DefaultBackgroundColor = dark == 1
+            ? Color.FromArgb(16, 22, 32)
+            : (preferences.Appearance.Style == "warm" ? Color.FromArgb(246, 244, 239) : Color.FromArgb(255, 255, 255));
     }
 
     private async void OnClosingAsync(object? sender, FormClosingEventArgs e)

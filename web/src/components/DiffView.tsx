@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import type { DiffFile } from '../../../shared/types.js';
 import { splitPatch, type DiffLine } from '../diff.js';
@@ -21,6 +21,15 @@ export interface DiffViewProps {
 
 /** Up to this many files every section starts open; above it only the first does. */
 export const DIFF_OPEN_ALL_LIMIT = 3;
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+function shouldSkipMotion(): boolean {
+  if (typeof document === 'undefined' || typeof window === 'undefined') return true;
+  const pref = document.documentElement.dataset.motion;
+  if (pref === 'reduced' || pref === 'off') return true;
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 function lineMarker(kind: DiffLine['kind']): string {
   switch (kind) {
@@ -64,11 +73,104 @@ export function DiffView({ files, patch, error, taskId, worktreePath, loading = 
   // small change, otherwise only the first file. A later poll never flips it.
   const defaults = useRef<{ all: boolean; first: string } | null>(null);
   if (defaults.current === null && files.length > 0) defaults.current = { all: files.length <= DIFF_OPEN_ALL_LIMIT, first: files[0]!.path };
-  const [choices, setChoices] = useState<Record<string, boolean>>({});
+
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [closing, setClosing] = useState<Record<string, boolean>>({});
   const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
 
-  const isOpen = (path: string): boolean => choices[path] ?? (defaults.current?.all === true || defaults.current?.first === path);
+  const activeAnims = useRef<Map<string, Animation>>(new Map());
+  const bodyWrapRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const toggleRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
+  const allToggleRef = useRef<HTMLButtonElement | null>(null);
+  const pendingOpenings = useRef<Set<string>>(new Set());
+  const prevTaskIdRef = useRef<string | undefined>(taskId);
+
+  const isCollapsed = (path: string): boolean => {
+    if (path in collapsed) return collapsed[path] === true;
+    if (defaults.current !== null) {
+      return defaults.current.all ? false : defaults.current.first !== path;
+    }
+    return false;
+  };
+
+  const isOpen = (path: string): boolean => !isCollapsed(path);
+
+  useEffect(() => {
+    if (prevTaskIdRef.current !== taskId) {
+      prevTaskIdRef.current = taskId;
+      for (const anim of activeAnims.current.values()) {
+        try { anim.cancel(); } catch { /* ignore */ }
+      }
+      activeAnims.current.clear();
+      pendingOpenings.current.clear();
+      defaults.current = null;
+      setCollapsed({});
+      setClosing({});
+    }
+  }, [taskId]);
+
+  useEffect(() => {
+    return () => {
+      for (const anim of activeAnims.current.values()) {
+        try { anim.cancel(); } catch { /* ignore */ }
+      }
+      activeAnims.current.clear();
+      pendingOpenings.current.clear();
+    };
+  }, []);
+
+  useIsomorphicLayoutEffect(() => {
+    if (pendingOpenings.current.size === 0) return;
+    const paths = Array.from(pendingOpenings.current);
+    pendingOpenings.current.clear();
+
+    if (shouldSkipMotion()) return;
+
+    for (const path of paths) {
+      const wrapEl = bodyWrapRefs.current.get(path);
+      if (!wrapEl || typeof wrapEl.animate !== 'function') continue;
+
+      const running = activeAnims.current.get(path);
+      if (running) {
+        try { running.cancel(); } catch { /* ignore */ }
+        activeAnims.current.delete(path);
+      }
+
+      const targetHeight = wrapEl.scrollHeight || wrapEl.getBoundingClientRect().height;
+      if (targetHeight <= 0) continue;
+
+      try {
+        const anim = wrapEl.animate(
+          [
+            { height: '0px', opacity: 0 },
+            { height: `${targetHeight}px`, opacity: 1 },
+          ],
+          { duration: 220, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+        );
+        activeAnims.current.set(path, anim);
+
+        anim.onfinish = () => {
+          if (activeAnims.current.get(path) === anim) {
+            activeAnims.current.delete(path);
+            wrapEl.style.height = '';
+            wrapEl.style.opacity = '';
+          }
+        };
+
+        anim.oncancel = () => {
+          if (activeAnims.current.get(path) === anim) {
+            activeAnims.current.delete(path);
+            wrapEl.style.height = '';
+            wrapEl.style.opacity = '';
+          }
+        };
+      } catch {
+        wrapEl.style.height = '';
+        wrapEl.style.opacity = '';
+      }
+    }
+  });
 
   // A failed read must offer a way out instead of an empty panel.
   if (error !== undefined && error !== null) {
@@ -89,7 +191,179 @@ export function DiffView({ files, patch, error, taskId, worktreePath, loading = 
   }
 
   const allOpen = files.every((file) => isOpen(file.path));
-  const setAll = (open: boolean): void => setChoices(Object.fromEntries(files.map((file) => [file.path, open])));
+
+  const toggleFile = (path: string): void => {
+    const currentlyOpen = isOpen(path);
+
+    if (currentlyOpen) {
+      const wrapEl = bodyWrapRefs.current.get(path);
+
+      if (typeof document !== 'undefined' && wrapEl && document.activeElement && wrapEl.contains(document.activeElement)) {
+        toggleRefs.current.get(path)?.focus();
+      }
+
+      if (shouldSkipMotion() || !wrapEl || typeof wrapEl.animate !== 'function') {
+        const running = activeAnims.current.get(path);
+        if (running) {
+          try { running.cancel(); } catch { /* ignore */ }
+          activeAnims.current.delete(path);
+        }
+        setCollapsed((current) => ({ ...current, [path]: true }));
+        setClosing((current) => ({ ...current, [path]: false }));
+        if (wrapEl) {
+          wrapEl.style.height = '';
+          wrapEl.style.opacity = '';
+        }
+        return;
+      }
+
+      const running = activeAnims.current.get(path);
+      if (running) {
+        try { running.cancel(); } catch { /* ignore */ }
+        activeAnims.current.delete(path);
+      }
+
+      const startHeight = wrapEl.getBoundingClientRect().height;
+      if (startHeight <= 0) {
+        setCollapsed((current) => ({ ...current, [path]: true }));
+        setClosing((current) => ({ ...current, [path]: false }));
+        return;
+      }
+
+      setCollapsed((current) => ({ ...current, [path]: true }));
+      setClosing((current) => ({ ...current, [path]: true }));
+
+      try {
+        const anim = wrapEl.animate(
+          [
+            { height: `${startHeight}px`, opacity: 1 },
+            { height: '0px', opacity: 0 },
+          ],
+          { duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+        );
+        activeAnims.current.set(path, anim);
+
+        anim.onfinish = () => {
+          if (activeAnims.current.get(path) === anim) {
+            activeAnims.current.delete(path);
+            wrapEl.style.height = '';
+            wrapEl.style.opacity = '';
+            setClosing((current) => ({ ...current, [path]: false }));
+          }
+        };
+
+        anim.oncancel = () => {
+          if (activeAnims.current.get(path) === anim) {
+            activeAnims.current.delete(path);
+            wrapEl.style.height = '';
+            wrapEl.style.opacity = '';
+          }
+        };
+      } catch {
+        setClosing((current) => ({ ...current, [path]: false }));
+      }
+    } else {
+      const running = activeAnims.current.get(path);
+      if (running) {
+        try { running.cancel(); } catch { /* ignore */ }
+        activeAnims.current.delete(path);
+      }
+
+      setClosing((current) => ({ ...current, [path]: false }));
+      setCollapsed((current) => ({ ...current, [path]: false }));
+
+      if (!shouldSkipMotion()) {
+        pendingOpenings.current.add(path);
+      }
+    }
+  };
+
+  const collapseAll = (nextOpen: boolean): void => {
+    for (const anim of activeAnims.current.values()) {
+      try { anim.cancel(); } catch { /* ignore */ }
+    }
+    activeAnims.current.clear();
+    pendingOpenings.current.clear();
+
+    if (!nextOpen && typeof document !== 'undefined' && document.activeElement) {
+      let insideAny = false;
+      for (const wrapEl of bodyWrapRefs.current.values()) {
+        if (wrapEl && wrapEl.contains(document.activeElement)) {
+          insideAny = true;
+          break;
+        }
+      }
+      if (insideAny) {
+        if (allToggleRef.current) {
+          allToggleRef.current.focus();
+        } else if (files[0]) {
+          toggleRefs.current.get(files[0].path)?.focus();
+        }
+      }
+    }
+
+    if (files.length > 4 || shouldSkipMotion()) {
+      setClosing({});
+      setCollapsed(Object.fromEntries(files.map((file) => [file.path, !nextOpen])));
+      return;
+    }
+
+    if (!nextOpen) {
+      const newClosing: Record<string, boolean> = {};
+      const newCollapsed: Record<string, boolean> = {};
+
+      for (const file of files) {
+        newCollapsed[file.path] = true;
+        const currentlyOpen = isOpen(file.path);
+        const wrapEl = bodyWrapRefs.current.get(file.path);
+        if (currentlyOpen && wrapEl && typeof wrapEl.animate === 'function') {
+          const startHeight = wrapEl.getBoundingClientRect().height;
+          if (startHeight > 0) {
+            newClosing[file.path] = true;
+            try {
+              const anim = wrapEl.animate(
+                [
+                  { height: `${startHeight}px`, opacity: 1 },
+                  { height: '0px', opacity: 0 },
+                ],
+                { duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+              );
+              activeAnims.current.set(file.path, anim);
+
+              anim.onfinish = () => {
+                if (activeAnims.current.get(file.path) === anim) {
+                  activeAnims.current.delete(file.path);
+                  wrapEl.style.height = '';
+                  wrapEl.style.opacity = '';
+                  setClosing((cur) => ({ ...cur, [file.path]: false }));
+                }
+              };
+
+              anim.oncancel = () => {
+                if (activeAnims.current.get(file.path) === anim) {
+                  activeAnims.current.delete(file.path);
+                  wrapEl.style.height = '';
+                  wrapEl.style.opacity = '';
+                }
+              };
+            } catch {
+              newClosing[file.path] = false;
+            }
+          }
+        }
+      }
+      setCollapsed(newCollapsed);
+      setClosing(newClosing);
+    } else {
+      setClosing({});
+      setCollapsed(Object.fromEntries(files.map((file) => [file.path, false])));
+      for (const file of files) {
+        if (!isOpen(file.path)) {
+          pendingOpenings.current.add(file.path);
+        }
+      }
+    }
+  };
 
   const clearError = (path: string): void => setFileErrors((current) => {
     if (!(path in current)) return current;
@@ -131,7 +405,7 @@ export function DiffView({ files, patch, error, taskId, worktreePath, loading = 
           <span className="diff-stat"><span className="diff-added">+{totalAdded}</span><span className="diff-removed">-{totalRemoved}</span></span>
         </span>
         {files.length > 1 && (
-          <button type="button" className="text-button" onClick={() => setAll(!allOpen)}>
+          <button ref={allToggleRef} type="button" className="text-button" onClick={() => collapseAll(!allOpen)}>
             {allOpen ? t('Collapse all', 'Thu gọn tất cả') : t('Expand all', 'Mở rộng tất cả')}
           </button>
         )}
@@ -139,21 +413,30 @@ export function DiffView({ files, patch, error, taskId, worktreePath, loading = 
       <div className="diff-pane">
         {files.map((file) => {
           const open = isOpen(file.path);
+          const isClosing = closing[file.path] === true;
+          const showBody = open || isClosing;
           const section = sections.get(file.path) ?? null;
           const bodyId = `diff-body-${files.indexOf(file)}`;
           const failure = fileErrors[file.path];
+
           return (
             <section key={file.path} className={`diff-section${open ? ' open' : ''}`}>
               <div className="diff-section-head">
                 <button
+                  ref={(el) => {
+                    if (el) toggleRefs.current.set(file.path, el);
+                    else toggleRefs.current.delete(file.path);
+                  }}
                   type="button"
                   className="diff-toggle"
                   aria-expanded={open}
                   aria-controls={open ? bodyId : undefined}
-                  onClick={() => setChoices((current) => ({ ...current, [file.path]: !open }))}
+                  onClick={() => toggleFile(file.path)}
                   title={file.path}
                 >
-                  <Icon name={open ? 'chevron-down' : 'chevron-right'} size={14} />
+                  <span className="diff-chevron">
+                    <Icon name="chevron-down" size={14} />
+                  </span>
                   <span className="diff-file-path">{file.path}</span>
                   <span className="diff-stat">
                     <span className="diff-added">+{file.added}</span>
@@ -189,9 +472,17 @@ export function DiffView({ files, patch, error, taskId, worktreePath, loading = 
                   <button type="button" className="banner-retry" onClick={() => void copyPath(file.path)}>{t("Copy path", "Sao chép đường dẫn")}</button>
                 </div>
               )}
-              {open && (
-                <div className="diff-body" id={bodyId}>
-                  {section === null ? <div className="placeholder">{t('No changes for this file.', 'Không có thay đổi cho tệp này.')}</div> : <DiffLines lines={section.lines} />}
+              {showBody && (
+                <div
+                  ref={(el) => {
+                    if (el) bodyWrapRefs.current.set(file.path, el);
+                    else bodyWrapRefs.current.delete(file.path);
+                  }}
+                  className="diff-body-wrap"
+                >
+                  <div className="diff-body" id={bodyId}>
+                    {section === null ? <div className="placeholder">{t('No changes for this file.', 'Không có thay đổi cho tệp này.')}</div> : <DiffLines lines={section.lines} />}
+                  </div>
                 </div>
               )}
             </section>

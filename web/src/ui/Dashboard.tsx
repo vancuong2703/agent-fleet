@@ -1,11 +1,14 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DashboardAgent, DashboardTool, KeyPool } from '../../../shared/dashboard.js';
 import type { Plan, Run, Task } from '../../../shared/types.js';
 import type { CliWorkspace } from '../cli-workspace.js';
+import type { RunsLoadState } from '../store.js';
 import { Icon } from '../components/Icon.js';
-import { formatGroupName, sortOffers, formatContext } from './model.js';
+import { formatGroupName, sortOffers, formatContext, buildDailyTokenSeries } from './model.js';
+import { DailyTokenChart } from './DailyTokenChart.js';
 import { AgentHeader, CheckTime, Gauge, Legend, Meter, Notice, PageHead, Ring, Stats } from './Common.js';
 import { useLanguage } from './language.js';
-import { clock, compact, creditWindow, known, quotaRows, toolHealth, useStats } from './model.js';
+import { agentNames, clock, compact, creditWindow, known, quotaRows, toolHealth, useStats } from './model.js';
 
 export function ToolQuota({ tool, expanded = false }: { tool: DashboardTool; expanded?: boolean }) {
   const { t, language } = useLanguage(); const check = tool.lastCheck; const rows = quotaRows(check);
@@ -66,27 +69,343 @@ export function ModelRows({ tool, limit = 2 }: { tool: DashboardTool; limit?: nu
   return offers.length ? <div className="models">{offers.map(offer => <div className="m" key={offer.id}><span className="mn" title={offer.id}>{offer.label}</span>{limit > 3 && <span className="tk model-meta">{formatContext(offer.contextTokens)}{offer.source === 'catalog' && <small>{t('Catalog price', 'Giá catalog')}</small>}{offer.promo && <small>{offer.promo}</small>}{known(offer.originalMultiplier) && offer.originalMultiplier !== offer.multiplier && <small><s>x{offer.originalMultiplier}</s></small>}</span>}<span className={`mult${offer.multiplier === 0 ? ' free' : ''}`}>{!known(offer.multiplier) ? '—' : offer.multiplier === 0 ? t('FREE', 'MIỄN PHÍ') : `x${offer.multiplier}`}</span></div>)}</div> : null;
 }
 
-export function Dashboard({ visible = true, cli, tasks, plans, runsByTask, onDetails, onTask }: { /** False while another view is on screen: the page stays mounted but stops polling. */ visible?: boolean; cli: CliWorkspace; tasks: Task[]; plans: Plan[]; runsByTask: Record<string, Run[]>; onDetails: (agent: DashboardAgent) => void; onTask: (id: string) => void }) {
+export type DashboardCardId =
+  | 'cli:codex'
+  | 'cli:qodercli'
+  | 'cli:agy'
+  | 'cli:opencode'
+  | 'tokens'
+  | 'jobs'
+  | 'attention';
+
+export interface DashboardProps {
+  visible?: boolean;
+  cli: CliWorkspace;
+  tasks: Task[];
+  plans: Plan[];
+  runsByTask: Record<string, Run[]>;
+  runsLoadState?: RunsLoadState;
+  onRetryRuns?: () => void;
+  onDetails: (agent: DashboardAgent) => void;
+  onTask: (id: string) => void;
+}
+
+export function Dashboard({
+  visible = true,
+  cli,
+  tasks,
+  plans,
+  runsByTask,
+  runsLoadState,
+  onRetryRuns,
+  onDetails,
+  onTask,
+}: DashboardProps) {
   const { t } = useLanguage(); const stats = useStats(7, '', visible); const tools = cli.snapshot?.tools ?? [];
-  const checks = tools.map(tool => tool.lastCheck?.checkedAt).filter(known); const today = new Date().setHours(0, 0, 0, 0);
+  const checks = tools.map((tool) => tool.lastCheck?.checkedAt).filter(known);
+  const today = new Date().setHours(0, 0, 0, 0);
   const todayTasks = tasks.filter(task => task.createdAt >= today);
-  const allRuns = Object.values(runsByTask).flat(); const tokenRuns = allRuns.filter(run => known(run.inputTokens) || known(run.outputTokens));
-  const dailyTokens = Array.from({ length: 7 }, (_, index) => { const day = today - (6 - index) * 86400000; const runs = tokenRuns.filter(run => known(run.startedAt) && run.startedAt >= day && run.startedAt < day + 86400000); return runs.length ? runs.reduce((sum, run) => sum + (run.inputTokens ?? 0) + (run.outputTokens ?? 0), 0) : null; });
+  const allRuns = useMemo(() => Object.values(runsByTask).flat(), [runsByTask]);
+  const dailyBins = useMemo(() => buildDailyTokenSeries(allRuns, 7), [allRuns]);
+
   const warnings = tools.filter(tool => ['warn', 'bad'].includes(toolHealth(tool)));
   const todaySegs = (['running', 'done', 'queued', 'failed', 'merged', 'interrupted'] as const).map(status => ({ status, count: todayTasks.filter(task => task.status === status).length }));
   const todayLegend = [{ status: 'running', label: t('running', 'đang chạy') }, { status: 'done', label: t('review', 'chờ duyệt') }, { status: 'failed', label: t('failed', 'lỗi') }].map(item => ({ count: todaySegs.find(seg => seg.status === item.status)!.count, label: item.label })).filter(item => item.count > 0);
   const todayCaption = !todayTasks.length ? t('No jobs today yet', 'Chưa có việc nào hôm nay') : todayLegend.length ? todayLegend.map(item => `${item.count} ${item.label}`).join(' · ') : `${todayTasks.length} ${t('jobs', 'việc')}`;
-  return <div className="wrap dashboard-page" data-page="dashboard">
-    <PageHead title="DASH" accent="BOARD" large label={t('Dashboard', 'Bảng điều khiển')} eyebrow={t('AI workspace', 'Không gian làm việc AI')} actions={<><span className="stamp">{checks.length ? clock(Math.max(...checks)) : '—'}</span><button className="check-all" disabled={!tools.length || Boolean(cli.checking) || cli.checkingAll.active} onClick={() => void cli.checkAll()}><span className={cli.checkingAll.active ? 'spin' : ''}><Icon name="refresh" size={16} /></span><span>{cli.checkingAll.active ? `${t('Checking', 'Đang kiểm tra')} ${cli.checkingAll.done}/${cli.checkingAll.total}` : t('Check all', 'Kiểm tra tất cả')}</span></button></>} />
+  const [focusedCardId, setFocusedCardId] = useState<DashboardCardId | null>(null);
+  const focusBtnRefs = useRef<Partial<Record<DashboardCardId, HTMLButtonElement | null>>>({});
+  const pointerDownOnFocusBtnRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible) setFocusedCardId(null);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!focusedCardId || !visible) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (document.querySelector('[role="dialog"], .modal, .palette, .drawer-scrim, .token-day-detail')) return;
+      const prevId = focusedCardId;
+      setFocusedCardId(null);
+      focusBtnRefs.current[prevId]?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [focusedCardId, visible]);
+
+  const handleCardClick = (cardId: DashboardCardId, e: React.MouseEvent) => {
+    const target = e.target as HTMLElement | null;
+    const isInteractive = Boolean(
+      target?.closest('button, a, input, select, textarea, summary, [role="button"], [role="tab"], [data-no-card-focus]'),
+    );
+    if (!isInteractive) {
+      setFocusedCardId((curr) => (curr === cardId ? null : cardId));
+    } else if (focusedCardId !== null && focusedCardId !== cardId) {
+      setFocusedCardId(cardId);
+    }
+  };
+
+  const handlePageClick = (e: React.MouseEvent) => {
+    if (focusedCardId === null) return;
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    if (target.closest('[data-card-id]') || target.closest('.head')) return;
+    setFocusedCardId(null);
+  };
+
+  return <div className="wrap dashboard-page" data-page="dashboard" onClick={handlePageClick}>
+    <PageHead title="DASH" accent="BOARD" large label={t('Dashboard', 'Bảng điều khiển')} eyebrow={t('AI workspace', 'Không gian làm việc AI')} actions={<><span className="stamp">{checks.length ? clock(Math.max(...checks)) : '—'}</span><button className={`check-all${cli.checkingAll.active ? ' is-checking' : ''}`} aria-busy={cli.checkingAll.active || undefined} disabled={!tools.length || Boolean(cli.checking) || cli.checkingAll.active} onClick={() => void cli.checkAll()}><span className={cli.checkingAll.active ? 'spin' : ''}><Icon name="refresh" size={16} /></span><span>{cli.checkingAll.active ? `${t('Checking', 'Đang kiểm tra')} ${cli.checkingAll.done}/${cli.checkingAll.total}` : t('Check all', 'Kiểm tra tất cả')}</span></button></>} />
     {cli.message && <Notice message={cli.message} error={cli.messageKind === 'error'} onRetry={cli.messageKind === 'error' ? () => void cli.checkAll() : undefined} />}
     {stats.error && <Notice message={stats.error} error onRetry={stats.retry} />}
     <div className="zones">
-      {tools.map(tool => { const last = [...tasks].reverse().find(task => task.agent === tool.agent); return <article className="card" data-tool={tool.agent} key={tool.agent} aria-busy={cli.checking === tool.agent || undefined}><AgentHeader tool={tool} />{tool.agent === 'codex' && <div className="statusline" title={tool.lastCheck?.currentModel?.id}>{tool.lastCheck?.currentModel?.label ?? t('Model not reported', 'Chưa đọc được model')}{tool.lastCheck?.currentModel?.effort && ` · effort ${tool.lastCheck.currentModel.effort}`}</div>}<ToolQuota tool={tool} />{(tool.agent === 'qodercli' || tool.agent === 'opencode') && <ModelRows tool={tool} />}<Stats stats={stats.loaded && !stats.error ? stats.rows.find(row => row.agent === tool.agent) : undefined} dashboard /><button className="lastjob" disabled={!last} onClick={() => last && onTask(last.id)}><span className="lj-head"><span className="lj-k">{t('Last job', 'Công việc gần nhất')}</span><span className={`lj-s ${last?.status === 'failed' ? 'bad' : 'ok'}`}>{last?.status ?? '—'}</span></span><span className="lj-t" title={last?.title}>{last ? <><b>{last.id}</b> {last.title}</> : t('No jobs yet', 'Chưa có công việc')}</span></button><footer className="foot"><CheckTime tool={tool} /><button className="btn" disabled={Boolean(cli.checking)} onClick={() => void cli.check(tool.agent)} aria-label={`${t('Check', 'Kiểm tra')} ${tool.title}`}><span className={cli.checking === tool.agent ? 'spin' : ''}><Icon name="refresh" size={14} /></span>{cli.checking === tool.agent ? t('Checking…', 'Đang kiểm tra…') : t('Check', 'Kiểm tra')}</button><button className="btn ghost" onClick={() => onDetails(tool.agent)}>{t('Details', 'Chi tiết')} →</button></footer></article>; })}
+      {tools.map((tool) => {
+        const cardId = `cli:${tool.agent}` as DashboardCardId;
+        const cardLabel = tool.title || agentNames[tool.agent] || tool.agent;
+        const isFocused = focusedCardId === cardId;
+        const isDimmed = focusedCardId !== null && !isFocused;
+        const last = [...tasks].reverse().find((task) => task.agent === tool.agent);
+        return (
+          <article
+            className={`card${isFocused ? ' is-focused' : ''}${isDimmed ? ' is-dimmed' : ''}`}
+            data-card-id={cardId}
+            data-tool={tool.agent}
+            key={tool.agent}
+            aria-busy={cli.checking === tool.agent || undefined}
+            onFocusCapture={() => {
+              if (pointerDownOnFocusBtnRef.current) return;
+              if (focusedCardId !== null && focusedCardId !== cardId) setFocusedCardId(cardId);
+            }}
+            onClick={(e) => handleCardClick(cardId, e)}
+          >
+            <div className="card-head-row">
+              <AgentHeader tool={tool} />
+              <button
+                ref={(el) => {
+                  focusBtnRefs.current[cardId] = el;
+                }}
+                type="button"
+                className={`card-focus-btn${isFocused ? ' active' : ''}`}
+                aria-pressed={isFocused}
+                aria-label={isFocused ? `${t('Unfocus', 'Bỏ tập trung')} ${cardLabel}` : `${t('Focus', 'Tập trung')} ${cardLabel}`}
+                onPointerDown={() => {
+                  pointerDownOnFocusBtnRef.current = true;
+                }}
+                onClick={(e) => {
+                  pointerDownOnFocusBtnRef.current = false;
+                  e.stopPropagation();
+                  setFocusedCardId((curr) => (curr === cardId ? null : cardId));
+                }}
+              >
+                {isFocused ? t('Unfocus', 'Bỏ tập trung') : t('Focus', 'Tập trung')}
+              </button>
+            </div>
+            <div className="statusline" title={tool.lastCheck?.currentModel?.id ?? tool.lastCheck?.plan?.name}>
+              {tool.lastCheck?.currentModel?.label
+                ? `${tool.lastCheck.currentModel.label}${tool.lastCheck.currentModel.effort ? ` · effort ${tool.lastCheck.currentModel.effort}` : ''}`
+                : tool.agent === 'qodercli'
+                  ? (tool.lastCheck?.plan?.name ?? t('Credit-based CLI', 'CLI tính theo credit'))
+                  : tool.agent === 'agy'
+                    ? t('Multi-model quota matrix', 'Ma trận hạn mức đa model')
+                    : tool.agent === 'opencode'
+                      ? ((tool.lastCheck?.keyPools?.length ?? 0) > 0
+                          ? `${tool.lastCheck!.keyPools!.length} ${t('key pool configured', 'key pool đã cấu hình')}`
+                          : t('BYOK multi-provider CLI', 'CLI đa nguồn BYOK'))
+                      : t('Model not reported', 'Chưa đọc được model')}
+            </div>
+            <ToolQuota tool={tool} />
+            {(tool.agent === 'qodercli' || tool.agent === 'opencode') && <ModelRows tool={tool} />}
+            <Stats stats={stats.loaded && !stats.error ? stats.rows.find((row) => row.agent === tool.agent) : undefined} dashboard />
+            <button className="lastjob" disabled={!last} onClick={() => last && onTask(last.id)}>
+              <span className="lj-head">
+                <span className="lj-k">{t('Last job', 'Công việc gần nhất')}</span>
+                <span className={`lj-s ${last?.status === 'failed' ? 'bad' : 'ok'}`}>{last?.status ?? '—'}</span>
+              </span>
+              <span className="lj-t" title={last?.title}>
+                {last ? <><b>{last.id}</b> {last.title}</> : t('No jobs yet', 'Chưa có công việc')}
+              </span>
+            </button>
+            <footer className="foot">
+              <CheckTime tool={tool} />
+              <button
+                className={`btn${cli.checking === tool.agent ? ' is-checking' : ''}`}
+                aria-busy={cli.checking === tool.agent || undefined}
+                disabled={Boolean(cli.checking)}
+                onClick={() => void cli.check(tool.agent)}
+                aria-label={`${t('Check', 'Kiểm tra')} ${tool.title}`}
+              >
+                <span className={cli.checking === tool.agent ? 'spin' : ''}>
+                  <Icon name="refresh" size={14} />
+                </span>
+                {cli.checking === tool.agent ? t('Checking…', 'Đang kiểm tra…') : t('Check', 'Kiểm tra')}
+              </button>
+              <button className="btn ghost" onClick={() => onDetails(tool.agent)}>
+                {t('Details', 'Chi tiết')} →
+              </button>
+            </footer>
+          </article>
+        );
+      })}
       {!cli.snapshot && [0, 1, 2, 3].map(index => <article className="card skeleton-card" key={index}><div /><div /><div /></article>)}
     </div>
-    <div className="row3 fill"><section className="panel"><h4>{t('Jobs today', 'Công việc hôm nay')}<span className="spacer">{plans.length} {t('projects', 'dự án')}</span></h4><div className="kpi"><b>{todayTasks.length}</b><small>{t('run today', 'việc hôm nay')}</small></div><div className="stackbar">{todaySegs.map(seg => { const segTone = seg.count > 0 && seg.status === 'failed' ? 'bad' : seg.count > 0 && (seg.status === 'running' || seg.status === 'merged') ? 'ok' : 'plain'; return <span className={`sg ${segTone}`} key={seg.status} style={{ flex: todayTasks.length === 0 ? 1 : Math.max(1, seg.count) }} title={`${seg.count} ${seg.status}`} />; })}</div><p className="minilegend">{todayCaption}</p></section>
-      <section className="panel"><h4>{t('Tokens today', 'Token hôm nay')}<span className="spacer">{t('Last 7 days', '7 ngày gần nhất')}</span></h4><div className="kpi"><b>{compact(dailyTokens.at(-1))}</b><small>{t('today', 'hôm nay')}</small></div>{dailyTokens.some(known) ? <svg className="spark" viewBox="0 0 420 52" role="img" aria-label={t('Tokens over seven days', 'Token trong bảy ngày')}>{dailyTokens.map((value, index) => { const height = known(value) ? Math.max(2, value / Math.max(1, ...dailyTokens.filter(known)) * 45) : 0; return <rect className={`sb${index === 6 ? ' last' : ''}`} key={index} x={index * 60} y={50 - height} width="48" height={height} rx="3" />; })}</svg> : <p className="minilegend">{t('Token data appears after a CLI reports usage.', 'Số liệu xuất hiện khi CLI báo cáo mức dùng token.')}</p>}</section>
-      <section className="panel"><h4>{t('Needs attention', 'Cần chú ý')}<span className="spacer">{warnings.length}</span></h4><ul className="attn">{warnings.map(tool => <li key={tool.agent}><i className={`dot ${toolHealth(tool)}`} /><span className="at-t"><b>{shortNames[tool.agent] ?? tool.title}</b> · {attention(tool, t)}</span><button className="attn-open" onClick={() => onDetails(tool.agent)}>{t('Open', 'Mở')}</button></li>)}</ul>{!warnings.length && <p className="minilegend">{t('No warnings in the latest checks.', 'Chưa có cảnh báo trong lần kiểm tra gần nhất.')}</p>}</section></div>
+    <div className="row3">
+      <section
+        className={`panel${focusedCardId === 'tokens' ? ' is-focused' : ''}${focusedCardId !== null && focusedCardId !== 'tokens' ? ' is-dimmed' : ''}`}
+        data-card-id="tokens"
+        onFocusCapture={() => {
+          if (pointerDownOnFocusBtnRef.current) return;
+          if (focusedCardId !== null && focusedCardId !== 'tokens') setFocusedCardId('tokens');
+        }}
+        onClick={(e) => handleCardClick('tokens', e)}
+      >
+        <div className="panel-head-row">
+          <h4>
+            {t('Tokens per day', 'Token theo ngày')}
+            <span className="spacer">{t('Last 7 days', '7 ngày gần nhất')}</span>
+          </h4>
+          <button
+            ref={(el) => {
+              focusBtnRefs.current['tokens'] = el;
+            }}
+            type="button"
+            className={`card-focus-btn${focusedCardId === 'tokens' ? ' active' : ''}`}
+            aria-pressed={focusedCardId === 'tokens'}
+            aria-label={
+              focusedCardId === 'tokens'
+                ? `${t('Unfocus', 'Bỏ tập trung')} ${t('Tokens per day', 'Token theo ngày')}`
+                : `${t('Focus', 'Tập trung')} ${t('Tokens per day', 'Token theo ngày')}`
+            }
+            onPointerDown={() => {
+              pointerDownOnFocusBtnRef.current = true;
+            }}
+            onClick={(e) => {
+              pointerDownOnFocusBtnRef.current = false;
+              e.stopPropagation();
+              setFocusedCardId((curr) => (curr === 'tokens' ? null : 'tokens'));
+            }}
+          >
+            {focusedCardId === 'tokens' ? t('Unfocus', 'Bỏ tập trung') : t('Focus', 'Tập trung')}
+          </button>
+        </div>
+        <DailyTokenChart bins={dailyBins} runsLoadState={runsLoadState} onRetry={onRetryRuns} />
+      </section>
+      <section
+        className={`panel${focusedCardId === 'jobs' ? ' is-focused' : ''}${focusedCardId !== null && focusedCardId !== 'jobs' ? ' is-dimmed' : ''}`}
+        data-card-id="jobs"
+        onFocusCapture={() => {
+          if (pointerDownOnFocusBtnRef.current) return;
+          if (focusedCardId !== null && focusedCardId !== 'jobs') setFocusedCardId('jobs');
+        }}
+        onClick={(e) => handleCardClick('jobs', e)}
+      >
+        <div className="panel-head-row">
+          <h4>
+            {t('Jobs today', 'Công việc hôm nay')}
+            <span className="spacer">{plans.length} {t('projects', 'dự án')}</span>
+          </h4>
+          <button
+            ref={(el) => {
+              focusBtnRefs.current['jobs'] = el;
+            }}
+            type="button"
+            className={`card-focus-btn${focusedCardId === 'jobs' ? ' active' : ''}`}
+            aria-pressed={focusedCardId === 'jobs'}
+            aria-label={
+              focusedCardId === 'jobs'
+                ? `${t('Unfocus', 'Bỏ tập trung')} ${t('Jobs today', 'Công việc hôm nay')}`
+                : `${t('Focus', 'Tập trung')} ${t('Jobs today', 'Công việc hôm nay')}`
+            }
+            onPointerDown={() => {
+              pointerDownOnFocusBtnRef.current = true;
+            }}
+            onClick={(e) => {
+              pointerDownOnFocusBtnRef.current = false;
+              e.stopPropagation();
+              setFocusedCardId((curr) => (curr === 'jobs' ? null : 'jobs'));
+            }}
+          >
+            {focusedCardId === 'jobs' ? t('Unfocus', 'Bỏ tập trung') : t('Focus', 'Tập trung')}
+          </button>
+        </div>
+        <div className="kpi">
+          <b>{todayTasks.length}</b>
+          <small>{t('run today', 'việc hôm nay')}</small>
+        </div>
+        <div className="stackbar">
+          {todaySegs.map((seg) => {
+            const segTone =
+              seg.count > 0 && seg.status === 'failed'
+                ? 'bad'
+                : seg.count > 0 && (seg.status === 'running' || seg.status === 'merged')
+                ? 'ok'
+                : 'plain';
+            return (
+              <span
+                className={`sg ${segTone}`}
+                key={seg.status}
+                style={{ flex: todayTasks.length === 0 ? 1 : Math.max(1, seg.count) }}
+                title={`${seg.count} ${seg.status}`}
+              />
+            );
+          })}
+        </div>
+        <p className="minilegend">{todayCaption}</p>
+      </section>
+
+      <section
+        className={`panel${focusedCardId === 'attention' ? ' is-focused' : ''}${focusedCardId !== null && focusedCardId !== 'attention' ? ' is-dimmed' : ''}`}
+        data-card-id="attention"
+        onFocusCapture={() => {
+          if (pointerDownOnFocusBtnRef.current) return;
+          if (focusedCardId !== null && focusedCardId !== 'attention') setFocusedCardId('attention');
+        }}
+        onClick={(e) => handleCardClick('attention', e)}
+      >
+        <div className="panel-head-row">
+          <h4>
+            {t('Needs attention', 'Cần chú ý')}
+            <span className="spacer">{warnings.length}</span>
+          </h4>
+          <button
+            ref={(el) => {
+              focusBtnRefs.current['attention'] = el;
+            }}
+            type="button"
+            className={`card-focus-btn${focusedCardId === 'attention' ? ' active' : ''}`}
+            aria-pressed={focusedCardId === 'attention'}
+            aria-label={
+              focusedCardId === 'attention'
+                ? `${t('Unfocus', 'Bỏ tập trung')} ${t('Needs attention', 'Cần chú ý')}`
+                : `${t('Focus', 'Tập trung')} ${t('Needs attention', 'Cần chú ý')}`
+            }
+            onPointerDown={() => {
+              pointerDownOnFocusBtnRef.current = true;
+            }}
+            onClick={(e) => {
+              pointerDownOnFocusBtnRef.current = false;
+              e.stopPropagation();
+              setFocusedCardId((curr) => (curr === 'attention' ? null : 'attention'));
+            }}
+          >
+            {focusedCardId === 'attention' ? t('Unfocus', 'Bỏ tập trung') : t('Focus', 'Tập trung')}
+          </button>
+        </div>
+        <ul className="attn">
+          {warnings.map((tool) => (
+            <li key={tool.agent}>
+              <i className={`dot ${toolHealth(tool)}`} />
+              <span className="at-t">
+                <b>{shortNames[tool.agent] ?? tool.title}</b> · {attention(tool, t)}
+              </span>
+              <button className="attn-open" onClick={() => onDetails(tool.agent)}>
+                {t('Open', 'Mở')}
+              </button>
+            </li>
+          ))}
+        </ul>
+        {!warnings.length && (
+          <p className="minilegend">{t('No warnings in the latest checks.', 'Chưa có cảnh báo trong lần kiểm tra gần nhất.')}</p>
+        )}
+      </section></div>
     <div className="noterow"><p className="tablenote">{t('Each card is one tool zone. The dot shows the latest quota and key health.', 'Mỗi thẻ là một công cụ. Chấm trạng thái theo lần kiểm tra hạn mức và key gần nhất.')}</p><Legend /></div>
   </div>;
 }

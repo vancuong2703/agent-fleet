@@ -1,6 +1,9 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 
 import { splitPatch } from '../../web/src/diff.js';
+import { DiffView } from '../../web/src/components/DiffView.js';
 
 const TWO_FILE_PATCH = [
   'diff --git a/src/a.ts b/src/a.ts',
@@ -107,5 +110,98 @@ describe('splitPatch', () => {
 
   test('returns nothing for an empty patch', () => {
     expect(splitPatch('')).toEqual([]);
+  });
+});
+
+describe('DiffView rendering', () => {
+  const makeFiles = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      path: `src/file-${index}.ts`,
+      added: index + 1,
+      removed: index,
+    }));
+
+  const makePatch = (count: number) =>
+    makeFiles(count)
+      .map(
+        (file) =>
+          `diff --git a/${file.path} b/${file.path}\n--- a/${file.path}\n+++ b/${file.path}\n@@ -1,1 +1,2 @@\n-old line\n+new line 1\n+new line 2\n`,
+      )
+      .join('');
+
+  const renderDiff = (props: Partial<Parameters<typeof DiffView>[0]> = {}) => {
+    const defaultProps = {
+      files: makeFiles(2),
+      patch: makePatch(2),
+      taskId: 't-test-1',
+      worktreePath: 'C:\\test\\worktree',
+    };
+    return renderToStaticMarkup(createElement(DiffView, { ...defaultProps, ...props }));
+  };
+
+  test('renders each file inside its own .diff-section card container with header and toggle', () => {
+    const html = renderDiff({ files: makeFiles(2), patch: makePatch(2) });
+
+    expect(html).toContain('class="diff-pane"');
+    expect(html.match(/<section class="diff-section/g)).toHaveLength(2);
+    expect(html.match(/class="diff-section-head"/g)).toHaveLength(2);
+    expect(html.match(/class="diff-toggle"/g)).toHaveLength(2);
+    expect(html.match(/class="diff-chevron"/g)).toHaveLength(2);
+    expect(html).toContain('src/file-0.ts');
+    expect(html).toContain('src/file-1.ts');
+  });
+
+  test('defaults to aria-expanded="true" for small diffs (<= 3 files) and mounts .diff-body-wrap', () => {
+    const html = renderDiff({ files: makeFiles(3), patch: makePatch(3) });
+
+    // All 3 sections are open
+    expect(html.match(/aria-expanded="true"/g)).toHaveLength(3);
+    expect(html.match(/class="diff-section open"/g)).toHaveLength(3);
+    expect(html.match(/class="diff-body-wrap"/g)).toHaveLength(3);
+    expect(html.match(/class="diff-body"/g)).toHaveLength(3);
+    expect(html).toContain('Thu gọn tất cả');
+  });
+
+  test('defaults to only first file open for diffs > 3 files, collapsing the rest without body DOM', () => {
+    const html = renderDiff({ files: makeFiles(5), patch: makePatch(5) });
+
+    expect(html.match(/<section class="diff-section/g)).toHaveLength(5);
+    // Only 1 is open (aria-expanded="true"), 4 are collapsed (aria-expanded="false")
+    expect(html.match(/aria-expanded="true"/g)).toHaveLength(1);
+    expect(html.match(/aria-expanded="false"/g)).toHaveLength(4);
+
+    // Only open file has .diff-body-wrap and .diff-body
+    expect(html.match(/class="diff-body-wrap"/g)).toHaveLength(1);
+    expect(html.match(/class="diff-body"/g)).toHaveLength(1);
+    expect(html).toContain('src/file-0.ts');
+    expect(html).toContain('Mở rộng tất cả');
+  });
+
+  test('renders .diff-chevron with icon in each toggle button', () => {
+    const html = renderDiff({ files: makeFiles(1), patch: makePatch(1) });
+
+    expect(html).toContain('class="diff-chevron"');
+    // SVG chevron inside the span
+    expect(html).toMatch(/<span class="diff-chevron">\s*<svg/);
+  });
+
+  test('preserves error banner when error prop is provided', () => {
+    const html = renderDiff({ error: 'Git diff failed: disk full' });
+
+    expect(html).toContain('class="banner banner-error"');
+    expect(html).toContain('Git diff failed: disk full');
+  });
+
+  test('renders skeleton when loading with no files', () => {
+    const html = renderDiff({ files: [], loading: true });
+
+    expect(html).toContain('diff-skeleton');
+  });
+
+  test('renders placeholder when no files and not loading', () => {
+    const html = renderDiff({ files: [], loading: false });
+
+    expect(html).toContain('class="placeholder"');
+    expect(html).toContain('Chưa có thay đổi.');
   });
 });

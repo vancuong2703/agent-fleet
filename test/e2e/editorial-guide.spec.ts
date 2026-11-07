@@ -18,10 +18,12 @@ test.beforeEach(async ({ page }) => {
 test('reference shell keeps warm/plain preferences and does not replace the app when cycling styles', async ({ page }) => {
   await expect(page.locator('.dashboard-page .zones > .card')).toHaveCount(4);
   const initial = await page.locator('html').getAttribute('data-style');
-  await page.getByRole('button', { name: 'Sắc độ giao diện', exact: true }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-style', initial === 'plain' ? 'warm' : 'plain');
+  const nextStyle = initial === 'plain' ? 'warm' : 'plain';
+  await page.getByRole('button', { name: 'Diện mạo', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Tuỳ chỉnh diện mạo' }).getByRole('button', { name: nextStyle === 'warm' ? 'Giấy ấm' : 'Trắng (mặc định)', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-style', nextStyle);
   await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-style', initial === 'plain' ? 'warm' : 'plain');
+  await expect(page.locator('html')).toHaveAttribute('data-style', nextStyle);
   await expect(page.locator('.dashboard-page .zones > .card')).toHaveCount(4);
 });
 

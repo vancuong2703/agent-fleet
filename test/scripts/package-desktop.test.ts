@@ -60,25 +60,19 @@ console.log(JSON.stringify({ platform, answer, helper: helper() }));`);
 }
 
 describe.skipIf(process.platform !== 'win32' || process.arch !== 'x64')('desktop runtime packaging', () => {
-  it('bundles server/shared and CommonJS dependencies, preserving the FleetRuntime entry point', () => {
+  it('bundles runnable server/CLI entries with only Windows x64 runtime files and package-version metadata', () => {
     const root = fixture();
-    execFileSync(process.execPath, [path.join(root, 'scripts/package-desktop.mjs'), path.join(root, '.tmp/publish'), path.join(root, 'dist/AgentFleet')]);
-    const app = path.join(root, 'dist/AgentFleet/app');
+    const output = path.join(root, 'dist/AgentFleet');
+    execFileSync(process.execPath, [path.join(root, 'scripts/package-desktop.mjs'), path.join(root, '.tmp/publish'), output], { windowsHide: true });
+    const app = path.join(output, 'app');
     expect(readdirSync(path.join(app, 'server'))).toEqual(['main.js']);
     expect(existsSync(path.join(app, 'shared'))).toBe(false);
-    expect(execFileSync(process.execPath, [path.join(app, 'cli/fleet.js')], { encoding: 'utf8' }).trim()).toBe('portable-cli');
+    expect(execFileSync(process.execPath, [path.join(app, 'cli/fleet.js')], { encoding: 'utf8', windowsHide: true }).trim()).toBe('portable-cli');
     expect(readFileSync(path.join(app, 'docs/leader-guide.md'), 'utf8')).toContain('Leader guide fixture');
     expect(readFileSync(path.join(root, 'dist/AgentFleet/licenses/cli-helper-1.0.0/LICENSE'), 'utf8')).toBe('CLI helper license');
     const manifest = JSON.parse(readFileSync(path.join(root, 'dist/AgentFleet/runtime-manifest.json'), 'utf8'));
     expect(manifest.packages).toContainEqual(expect.objectContaining({ name: 'cli-helper', bundled: true }));
-    expect(JSON.parse(execFileSync(process.execPath, [path.join(app, 'server/main.js')], { encoding: 'utf8' }))).toEqual({ platform: 'win32-x64', answer: 42, helper: 'bundled' });
-  });
-
-  it('ships only the Windows x64 PTY runtime and takes release versions from package.json', () => {
-    const root = fixture();
-    execFileSync(process.execPath, [path.join(root, 'scripts/package-desktop.mjs'), path.join(root, '.tmp/publish'), path.join(root, 'dist/AgentFleet')]);
-    const output = path.join(root, 'dist/AgentFleet');
-    const app = path.join(output, 'app');
+    expect(JSON.parse(execFileSync(process.execPath, [path.join(app, 'server/main.js')], { encoding: 'utf8', windowsHide: true }))).toEqual({ platform: 'win32-x64', answer: 42, helper: 'bundled' });
     expect(existsSync(path.join(app, 'test'))).toBe(false);
     expect(readdirSync(path.join(app, 'node_modules'))).toEqual(['@lydell']);
     expect(readdirSync(path.join(app, 'node_modules/@lydell'))).toEqual(['node-pty', 'node-pty-win32-x64']);
@@ -98,9 +92,9 @@ describe.skipIf(process.platform !== 'win32' || process.arch !== 'x64')('desktop
     for (const entry of readdirSync(parent)) {
       if (!['worktree', 'node_modules'].includes(entry)) cpSync(path.join(parent, entry), path.join(root, entry), { recursive: true });
     }
-    execFileSync(process.execPath, [path.join(root, 'scripts/package-desktop.mjs'), path.join(root, '.tmp/publish'), path.join(root, 'dist/AgentFleet')]);
+    execFileSync(process.execPath, [path.join(root, 'scripts/package-desktop.mjs'), path.join(root, '.tmp/publish'), path.join(root, 'dist/AgentFleet')], { windowsHide: true });
     const app = path.join(root, 'dist/AgentFleet/app');
-    expect(JSON.parse(execFileSync(process.execPath, [path.join(app, 'server/main.js')], { encoding: 'utf8' }))).toEqual({ platform: 'win32-x64', answer: 42, helper: 'bundled' });
+    expect(JSON.parse(execFileSync(process.execPath, [path.join(app, 'server/main.js')], { encoding: 'utf8', windowsHide: true }))).toEqual({ platform: 'win32-x64', answer: 42, helper: 'bundled' });
     expect(readdirSync(path.join(app, 'node_modules/@lydell'))).toEqual(['node-pty', 'node-pty-win32-x64']);
   });
 
@@ -114,11 +108,11 @@ describe.skipIf(process.platform !== 'win32' || process.arch !== 'x64')('desktop
     writeFileSync(marker, 'keep');
 
     // `dist/` is the parent of every release and must never be the deletion target.
-    expect(() => execFileSync(process.execPath, [script, publish, path.join(root, 'dist')])).toThrow();
+    expect(() => execFileSync(process.execPath, [script, publish, path.join(root, 'dist')], { windowsHide: true })).toThrow();
     // Absolute paths outside the workspace are rejected before any cleanup.
-    expect(() => execFileSync(process.execPath, [script, publish, path.resolve(root, '..', 'AgentFleet-escaped')])).toThrow();
+    expect(() => execFileSync(process.execPath, [script, publish, path.resolve(root, '..', 'AgentFleet-escaped')], { windowsHide: true })).toThrow();
     // A source directory that contains the release would copy the output into itself.
-    expect(() => execFileSync(process.execPath, [script, path.join(root, 'dist'), release])).toThrow(/overlap/i);
+    expect(() => execFileSync(process.execPath, [script, path.join(root, 'dist'), release], { windowsHide: true })).toThrow(/overlap/i);
     expect(readFileSync(marker, 'utf8')).toBe('keep');
   });
 
@@ -140,7 +134,7 @@ describe.skipIf(process.platform !== 'win32' || process.arch !== 'x64')('desktop
       }
       & './scripts/package-desktop.ps1' -SkipWebBuild -OutputName AgentFleet-1.0.0
     `;
-    execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], { cwd: root });
+    execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script], { cwd: root, windowsHide: true });
     expect(existsSync(path.join(root, 'dist/AgentFleet-9.8.7-win-x64.zip'))).toBe(true);
     expect(existsSync(path.join(root, 'dist/AgentFleet-1.0.0/app/server/main.js'))).toBe(true);
   });

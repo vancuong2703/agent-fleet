@@ -48,15 +48,23 @@ using (var child = Process.Start(new ProcessStartInfo(pingPath) { Arguments = "-
 }
 // The cleanup target is checked before recursive removal.
 var preferences = new DesktopPreferences(testRoot);
+if (preferences.Appearance != new DesktopAppearance("plain", "system", "standard", "system")) throw new Exception("DesktopPreferences appearance default mismatch");
+checkedCases++;
 preferences.SetTheme("dark");
 using (var layout = JsonDocument.Parse("{\"sidebarWidth\":350,\"inspectorWidth\":400,\"terminalHeight\":620}")) preferences.SetLayout(layout.RootElement);
+using (var appearance = JsonDocument.Parse("{\"style\":\"warm\",\"font\":\"inter\",\"size\":\"large\",\"motion\":\"reduced\"}")) preferences.SetAppearance(appearance.RootElement);
 var restoredPreferences = new DesktopPreferences(testRoot);
 restoredPreferences.Load();
 if (restoredPreferences.Theme != "dark" || restoredPreferences.Layout != new DesktopLayout(350, 400, 620)) throw new Exception("Theme/layout did not persist together");
-checkedCases++;
+if (restoredPreferences.Appearance != new DesktopAppearance("warm", "inter", "large", "reduced")) throw new Exception("Appearance did not persist with theme and layout");
+checkedCases += 2;
 using (var layout = JsonDocument.Parse("{\"sidebarWidth\":-3,\"inspectorWidth\":9000,\"terminalHeight\":\"invalid\"}")) restoredPreferences.SetLayout(layout.RootElement);
 if (restoredPreferences.Layout != new DesktopLayout(190, 520, 380)) throw new Exception("Native layout bounds failed");
 checkedCases++;
+using (var invalidAppearance = JsonDocument.Parse("{\"style\":\"neon\",\"font\":123,\"size\":null,\"motion\":\"hyper\"}")) restoredPreferences.SetAppearance(invalidAppearance.RootElement);
+if (restoredPreferences.Appearance != new DesktopAppearance("plain", "system", "standard", "system")) throw new Exception("Appearance invalid fallback failed");
+if (restoredPreferences.Theme != "dark" || restoredPreferences.Layout != new DesktopLayout(190, 520, 380)) throw new Exception("Theme/layout corrupted during invalid appearance update");
+checkedCases += 2;
 // CLI smoke framing: a previous CLI's tab, a still-connecting socket and a
 // blank screen must never count as the expected agent's rendered frame.
 string Frame(string label, string caption, string conn, int lines, int letters, int textLen, int hash) =>

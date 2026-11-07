@@ -1,98 +1,126 @@
 /* =========================================================================
-   Jobs page — page-scoped styles on top of app.css.
-   Layout: a status bar on top, then list (left) + detail of the picked job
-   (right). The pair fills the window, so the page itself never scrolls.
+   Jobs page — page-scoped styles on top of reference.css.
+   Layout: status bar on top, then list (left) + detail of the picked job (right).
    ========================================================================= */
 
-/* Shared rules (.wrap, .grid2, .btn.sm, .stab, button.chip) live in assets/pages.css. */
-
 /* ---- status filter bar ---- */
-.jbar{margin-bottom:16px}
+.jbar { margin-bottom: 16px; }
 
 /* ---- list + detail split ---- */
-.split{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(0,1fr);gap:16px;align-items:stretch}
-.split .panel{display:flex;flex-direction:column;min-height:0;min-width:0}
-.list{padding:12px 14px}
-.list .tablewrap{flex:1;min-height:0;overflow:auto}
+.split { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.split .panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.list { padding: 12px 14px; }
+.list .tablewrap { flex: 1; min-height: 0; overflow: auto; }
 
-table.jobs{min-width:460px}
-table.jobs th.num,table.jobs td.num{text-align:right}
-table.jobs td{padding:10px 6px;vertical-align:middle}
-/* rows keep their content height; the list panel scrolls (see workflow.css, Jobs layout) */
-.rows tr{cursor:pointer}
-.rows tr.sel td{background:var(--accent-soft)}
-/* row picker = a real button, so a job can be selected with the keyboard */
-.rowbtn{display:block;background:transparent;border:0;padding:0;margin:0 0 2px;cursor:pointer;
-  font:700 13px var(--sans);color:inherit;text-align:left}
-.rowbtn:hover{text-decoration:underline}
-.rowbtn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
-.agentchip{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font:600 12px var(--sans)}
-.logo.xs{width:22px;height:22px;border-radius:6px;font-size:9.5px}
-.cellmain{font:700 13px var(--sans)}
-.cellsub{display:block;font:500 11px var(--mono);color:var(--muted);margin-top:3px}
-.acts{display:flex;align-items:center;gap:7px;flex-wrap:nowrap}
+table.jobs { min-width: 460px; }
+table.jobs th.num, table.jobs td.num { text-align: right; }
+table.jobs td { padding: 10px 6px; vertical-align: middle; }
+
+/* rows keep their content height */
+.rows tr { cursor: pointer; }
+.rows tr.sel td { background: var(--accent-soft); }
+.rows tr.sel td:first-child { border-left: 3px solid var(--accent); }
+
+/* row picker */
+.rowbtn {
+  display: block;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0 0 2px;
+  cursor: pointer;
+  font: 600 0.8125rem var(--sans);
+  color: inherit;
+  text-align: left;
+}
+.rowbtn:hover { text-decoration: underline; }
+.rowbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.agentchip { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font: 600 0.75rem var(--sans); }
+.logo.xs { width: 22px; height: 22px; border-radius: 6px; font-size: 9.5px; }
+.cellmain { font: 600 0.8125rem var(--sans); }
+.cellsub { display: block; font: 450 0.75rem var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); margin-top: 3px; }
+.acts { display: flex; align-items: center; gap: 7px; flex-wrap: nowrap; }
 
 /* ---- detail panel ---- */
-.detail{padding:16px 18px}
-.jobmeta{margin:0 0 12px;letter-spacing:.02em}
-.dacts{margin:0 0 12px}
-.jtabs{display:flex;align-items:center;gap:4px;min-width:0;flex:1;overflow-x:auto;
-  /* the active tab underline sits 1px below the row (margin-bottom:-1px); room for it avoids a stray vertical scrollbar */
-  padding-bottom:1px;margin-bottom:-1px}
-/* tabs and the log-zoom button share one underline row */
-.task-tabs-row{display:flex;align-items:stretch;gap:6px;min-width:0;
-  border-bottom:1px solid var(--border);margin-bottom:12px}
-.zoom-toggle{align-self:center;flex:none;white-space:nowrap}
+.detail { padding: 16px 18px; }
+.jobmeta { margin: 0 0 12px; letter-spacing: 0.01em; font: 450 0.75rem var(--mono); color: var(--muted); }
+.dacts { margin: 0 0 12px; }
+.jtabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  padding-bottom: 1px;
+  margin-bottom: -1px;
+}
+.task-tabs-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+.zoom-toggle { align-self: center; flex: none; white-space: nowrap; }
 
-/* ---- log zoom: narrow the list, widen the log ------------------------------
-   The split is list | detail. Zoom shrinks the list to a title + status strip
-   and hands the freed width to the detail panel, where the log lives; pressing
-   it again restores the two-column split. */
-.split.zoom{grid-template-columns:minmax(0,224px) minmax(0,1fr)}
-.split.zoom .list{padding:10px}
-/* fixed layout keeps the two remaining columns inside the 224 px strip: the
-   status badge gets a fixed width and the title takes (and ellipses) the rest */
-.split.zoom table.jobs{table-layout:fixed;width:100%;min-width:0;height:auto}
-.split.zoom table.jobs thead{display:none}
-.split.zoom table.jobs th:nth-child(2),.split.zoom table.jobs td:nth-child(2),
-.split.zoom table.jobs th:nth-child(4),.split.zoom table.jobs td:nth-child(4){display:none}
-.split.zoom table.jobs th:nth-child(3),.split.zoom table.jobs td:nth-child(3){width:76px}
-.split.zoom .rowbtn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.split.zoom .cellsub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.panes{flex:1;min-height:0;display:flex;flex-direction:column}
-.pane{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto}
+/* ---- log zoom: narrow the list, widen the log ---- */
+.split.zoom { grid-template-columns: minmax(0, 224px) minmax(0, 1fr); }
+.split.zoom .list { padding: 10px; }
+.split.zoom table.jobs { table-layout: fixed; width: 100%; min-width: 0; height: auto; }
+.split.zoom table.jobs thead { display: none; }
+.split.zoom table.jobs th:nth-child(2), .split.zoom table.jobs td:nth-child(2),
+.split.zoom table.jobs th:nth-child(4), .split.zoom table.jobs td:nth-child(4) { display: none; }
+.split.zoom table.jobs th:nth-child(3), .split.zoom table.jobs td:nth-child(3) { width: 76px; }
+.split.zoom .rowbtn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.split.zoom .cellsub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panes { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.pane { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
 
-.logbox{margin:0;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
-  padding:12px 14px;font:400 12px/1.7 var(--mono);color:var(--ink);flex:1;
-  white-space:pre-wrap;overflow-wrap:anywhere;overflow:hidden}
-.logbox .dim{color:var(--faint)}
-.req{margin:0;padding:12px 14px;border-left:3px solid var(--accent);background:var(--surface-2);
-  border-radius:0 10px 10px 0;font:500 13px/1.6 var(--sans);color:var(--ink)}
+.logbox {
+  margin: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font: 400 0.75rem/1.7 var(--mono);
+  color: var(--ink);
+  flex: 1;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+.logbox .dim { color: var(--faint); }
+.req {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-2);
+  border-radius: 0 10px 10px 0;
+  font: 500 0.8125rem/1.55 var(--sans);
+  color: var(--ink);
+}
 
 /* ---- empty state ---- */
-.empty .steps{margin:14px 0;font:600 12px var(--mono);color:var(--muted)}
-.empty .btn{margin-top:6px}
+.empty .steps { margin: 14px 0; font: 500 0.75rem var(--sans); color: var(--muted); }
+.empty .btn { margin-top: 6px; }
 
-/* ---- narrow but still side-by-side -----------------------------------------
-   Between 1101 and 1250 px the list panel is only ~430 px wide, so the fourth
-   column no longer fits: hide it (the file count is repeated in the job
-   detail) and let the title ellipsis instead of panning the row out of sight. */
-@media(max-width:1250px){
-  table.jobs{min-width:0}
-  table.jobs th.num,table.jobs td.num{display:none}
-  .rowbtn{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .cellsub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---- narrow viewports ---- */
+@media (max-width: 1250px) {
+  table.jobs { min-width: 0; }
+  table.jobs th.num, table.jobs td.num { display: none; }
+  .rowbtn { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cellsub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
-/* ---- narrow screens: stack the two panels, page scrolls again ---- */
-@media(max-width:1100px){
-  .split{grid-template-columns:1fr;flex:none}
-  .split .panel{min-height:0}
-  .list .tablewrap{flex:none}
-  .detail .logbox{max-height:340px}
-  /* no room to trade widths once the panels stack */
-  .split.zoom{grid-template-columns:1fr}
-  .zoom-toggle{display:none}
+@media (max-width: 1100px) {
+  .split { grid-template-columns: 1fr; flex: none; }
+  .split .panel { min-height: 0; }
+  .list .tablewrap { flex: none; }
+  .detail .logbox { max-height: 340px; }
+  .split.zoom { grid-template-columns: 1fr; }
+  .zoom-toggle { display: none; }
 }
-@media(max-width:640px){.topbar .tbtn span{display:none}}
-@media(max-width:520px){.topbar{padding:13px 14px;gap:8px}.wrap{padding:20px 14px}}
+@media (max-width: 640px) { .topbar .tbtn span { display: none; } }
+@media (max-width: 520px) { .topbar { padding: 13px 14px; gap: 8px; } .wrap { padding: 20px 14px; } }

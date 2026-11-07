@@ -23,7 +23,38 @@ export function Ring({ pct, small = false, label, used = false }: { pct: number 
   // 80 px and 56 px. The arc keeps the precise value; only the label rounds.
   const value = precise === null ? null : Math.round(precise);
   const colour = tone(precise === null ? null : used ? 100 - precise : precise);
-  return <div className={`donut${small ? ' sm' : ''} ${colour}`} style={{ '--pct': precise === null ? 0 : Math.round(precise * 10) / 10, '--col': precise === null ? 'var(--faint)' : `var(--${colour})` } as CSSProperties} role="img" aria-label={`${label}: ${value === null ? '—' : value + '%'}`}><svg viewBox="0 0 44 44" aria-hidden="true"><circle className="edge" cx="22" cy="22" r="21" /><circle className="trk" cx="22" cy="22" r="15" />{precise !== null && <circle className="val" cx="22" cy="22" r="15" pathLength="100" />}</svg><span className="pct">{value === null ? '—' : `${value}%`}</span></div>;
+  const fillPct = precise === null ? 0 : Math.round(precise * 10) / 10;
+  return (
+    <div
+      className={`donut${small ? ' sm' : ''} ${colour} energy-ring${precise === null ? ' is-empty' : ''}`}
+      style={{ '--pct': fillPct, '--col': precise === null ? 'var(--faint)' : `var(--${colour})` } as CSSProperties}
+      role="img"
+      aria-label={`${label}: ${value === null ? '—' : value + '%'}`}
+    >
+      <svg viewBox="0 0 44 44" aria-hidden="true">
+        <defs>
+          <linearGradient id="energy-grad-ok" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#10B981" />
+            <stop offset="55%" stopColor="#14B8A6" />
+            <stop offset="100%" stopColor="#06B6D4" />
+          </linearGradient>
+          <linearGradient id="energy-grad-warn" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#F59E0B" />
+            <stop offset="100%" stopColor="#F97316" />
+          </linearGradient>
+          <linearGradient id="energy-grad-bad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#F43F5E" />
+            <stop offset="100%" stopColor="#E11D48" />
+          </linearGradient>
+        </defs>
+        <circle className="edge" cx="22" cy="22" r="21" />
+        <circle className="core" cx="22" cy="22" r="11.2" />
+        <circle className="trk" cx="22" cy="22" r="15" />
+        {precise !== null && <circle className="val" cx="22" cy="22" r="15" pathLength="100" />}
+      </svg>
+      <span className="pct">{value === null ? '—' : `${value}%`}</span>
+    </div>
+  );
 }
 export function Bar({ pct, label, number, reset, used = false }: { pct: number | null | undefined; label: string; number?: string | null; reset?: string | null; used?: boolean }) {
   const precise = known(pct) ? Math.max(0, Math.min(100, pct)) : null;
@@ -34,7 +65,7 @@ export function Bar({ pct, label, number, reset, used = false }: { pct: number |
   return <div className={`gbar ${colour}`} style={{ '--pct': precise === null ? 0 : Math.round(precise * 10) / 10, '--col': precise === null ? 'var(--faint)' : `var(--${colour})` } as CSSProperties}>
     <span className="g-cap">{label}</span>
     <span className="pct">{value === null ? '—' : `${value}%`}</span>
-    <span className="meter" aria-hidden="true"><i /></span>
+    <span className="meter" aria-hidden="true"><i /><b className="energy-cells" /></span>
     {number && <span className="g-num">{number}</span>}
     {reset && <span className="g-reset" title={reset}>↻ {resetLabel}</span>}
   </div>;
@@ -51,9 +82,12 @@ export function Gauge({ row, pct, label, number, reset, used = false }: { row?: 
   const resetLabel = Number.isFinite(parsedReset) ? new Date(parsedReset).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' }) : rawReset;
   return <div className="gauge"><Ring pct={pct ?? row?.remainingPct ?? null} used={used} label={caption} /><span className="g-cap">{caption}</span>{number && <span className="g-num">{number}</span>}{rawReset && <span className="g-reset" title={rawReset}>↻ {resetLabel}</span>}</div>;
 }
-export function Meter({ pct }: { pct: number | null | undefined }) { return <div className={`bar ${tone(pct)}`} role={known(pct) ? 'progressbar' : undefined} aria-label="Remaining" aria-valuemin={known(pct) ? 0 : undefined} aria-valuemax={known(pct) ? 100 : undefined} aria-valuenow={known(pct) ? Math.max(0, Math.min(100, pct)) : undefined}><span style={{ width: known(pct) ? `${Math.max(0, Math.min(100, pct))}%` : '0%' }} /></div>; }
+export function Meter({ pct }: { pct: number | null | undefined }) { return <div className={`bar energy-bar ${tone(pct)}`} role={known(pct) ? 'progressbar' : undefined} aria-label="Remaining" aria-valuemin={known(pct) ? 0 : undefined} aria-valuemax={known(pct) ? 100 : undefined} aria-valuenow={known(pct) ? Math.max(0, Math.min(100, pct)) : undefined}><span style={{ width: known(pct) ? `${Math.max(0, Math.min(100, pct))}%` : '0%' }} /><i className="energy-cells" aria-hidden="true" /></div>; }
 export function Stats({ stats, dashboard = false }: { stats?: AgentStats; dashboard?: boolean }) { const { t } = useLanguage(); return <div className="stats"><div className="stat"><span className="k">{t('Avg time', 'Thời gian TB')}</span><span className="v">{duration(stats?.avgDurationMs)}</span></div><div className="stat"><span className="k">{t('Success', 'Thành công')}</span><span className="v">{rate(stats?.successRate)}</span></div><div className="stat"><span className="k">{dashboard ? t('Tasks 7d', 'Việc 7 ngày') : t('Tasks', 'Công việc')}</span><span className="v">{stats?.runs ?? '—'}</span></div></div>; }
-export function PageHead({ title, accent, eyebrow, actions, large = false, label }: { title: string; accent: string; eyebrow: string; actions?: ReactNode; large?: boolean; label?: string }) { return <header className="head"><div><p className="eyebrow">{eyebrow}</p><h1 className={`title${large ? '' : ' sm'}`} aria-label={label}>{title}<em>{accent}</em></h1></div>{actions && <div className="actions">{actions}</div>}</header>; }
+export function PageHead({ title, accent, eyebrow, actions, large, label }: { title?: string; accent?: string; eyebrow: string; actions?: ReactNode; large?: boolean; label?: string }) {
+  const heading = label || `${title ?? ''}${accent ?? ''}`;
+  return <header className="head"><div><div className="eyebrow">{eyebrow}</div><h1 className="title">{heading}</h1></div>{actions && <div className="actions">{actions}</div>}</header>;
+}
 export function PeriodPicker({ days, onChange }: { days: number; onChange: (value: number) => void }) { const { t } = useLanguage(); return <div className="filters" role="group" aria-label={t('Time window', 'Khoảng thời gian')}>{[7, 30].map(value => <button className="chip" key={value} aria-pressed={days === value} onClick={() => onChange(value)}>{value} {t('days', 'ngày')}</button>)}</div>; }
 export function Legend() { const { t } = useLanguage(); return <p className="legend"><span><i className="dot" />{t('OK', 'Ổn')}</span><span><i className="dot warn" />{t('Warning: low headroom or an expired key', 'Cảnh báo: hạn mức thấp hoặc key cạn')}</span><span><i className="dot bad" />{t('Failed', 'Lỗi')}</span></p>; }
 export function Notice({ message, error = false, onRetry }: { message: string; error?: boolean; onRetry?: () => void }) { const { t } = useLanguage(); return <div className={`notice${error ? ' error' : ''}`} role={error ? 'alert' : 'status'}><Icon name="info" size={16} /><span className="txt">{message}</span>{onRetry && <button className="btn" onClick={onRetry}>{t('Retry', 'Thử lại')}</button>}</div>; }

@@ -13,7 +13,7 @@ import { describe, expect, test } from 'vitest';
 
 const root = path.resolve(import.meta.dirname, '..');
 const read = (file: string): string => readFileSync(path.join(root, file), 'utf8');
-const RELEASE = '2.6.1';
+const RELEASE = '2.7.1';
 
 describe('release version consistency', () => {
   test('package.json, lockfile, csproj, native marker and server fallback share one version', () => {
@@ -33,7 +33,7 @@ describe('release version consistency', () => {
     expect(read('server/observability.ts')).toContain(`this.version = '${pkg.version}'`);
   });
 
-  test('current docs point at the 2.6.1 build and keep the historical 2.0 section', () => {
+  test('current docs point at the 2.7.1 build and keep the historical 2.0 section', () => {
     const readme = read('README.md');
     expect(readme).toContain(`dist/AgentFleet-${RELEASE}/AgentFleet.exe`);
     expect(readme).toContain(`dist/AgentFleet-${RELEASE}-win-x64.zip`);

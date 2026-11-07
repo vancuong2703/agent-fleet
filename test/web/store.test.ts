@@ -10,12 +10,14 @@ import {
   addEvents,
   buildLogRows,
   eventText,
+  FleetStore,
   formatClock,
   formatElapsed,
   groupByRepo,
   initialFleetState,
   mergeErrorMessage,
   reduceFleet,
+  type RunsLoadState,
   taskActions,
   taskCounts,
   taskProgress,
@@ -356,5 +358,145 @@ describe('mergeErrorMessage', () => {
 
   test('handles a conflict without a file list', () => {
     expect(mergeErrorMessage({ ok: false, reason: 'conflict' }, 'main')).toBe('Xung đột');
+  });
+});
+
+describe('FleetStore and runsLoadState', () => {
+  test('initialFleetState starts with runsLoadState refreshing: true', () => {
+    const state = initialFleetState();
+    expect(state.runsLoadState).toEqual({
+      loaded: false,
+      refreshing: true,
+      error: null,
+    });
+  });
+
+  test('bootstrap transitions runsLoadState to loaded on success and merges runs', async () => {
+    const mockRuns = [
+      makeRun('r-1', { taskId: 't-1', inputTokens: 50, outputTokens: 25 }),
+    ];
+    const mockTasks = [makeTask('t-1')];
+    const mockPlans = [makePlan('p-1')];
+
+    const mockApi = {
+      listPlans: vi.fn().mockResolvedValue(mockPlans),
+      listTasks: vi.fn().mockResolvedValue(mockTasks),
+      listRuns: vi.fn().mockResolvedValue(mockRuns),
+    };
+
+    const store = new FleetStore({ api: mockApi });
+    expect(store.runsLoadState).toEqual({ loaded: false, refreshing: true, error: null });
+
+    const emitSpy = vi.fn();
+    store.subscribe(emitSpy);
+
+    const bootstrapPromise = store.bootstrap();
+    // During hydration, refreshing is true
+    expect(store.runsLoadState.refreshing).toBe(true);
+
+    await bootstrapPromise;
+
+    expect(store.runsLoadState).toEqual({ loaded: true, refreshing: false, error: null });
+    expect(store.state.runsByTask['t-1']).toHaveLength(1);
+    expect(store.state.runsByTask['t-1']![0]!.id).toBe('r-1');
+    expect(emitSpy).toHaveBeenCalled();
+  });
+
+  test('bootstrap transitions runsLoadState to error when listRuns rejects', async () => {
+    const mockApi = {
+      listPlans: vi.fn().mockResolvedValue([]),
+      listTasks: vi.fn().mockResolvedValue([]),
+      listRuns: vi.fn().mockRejectedValue(new Error('503 Service Unavailable')),
+    };
+
+    const store = new FleetStore({ api: mockApi });
+    await store.bootstrap();
+
+    expect(store.runsLoadState).toEqual({
+      loaded: false,
+      refreshing: false,
+      error: '503 Service Unavailable',
+    });
+    expect(store.error).toBe('503 Service Unavailable');
+  });
+
+  test('preserves and replays WebSocket frames received during hydration', async () => {
+    let resolveRuns: (value: Run[]) => void;
+    const runsPromise = new Promise<Run[]>((res) => {
+      resolveRuns = res;
+    });
+
+    const mockApi = {
+      listPlans: vi.fn().mockResolvedValue([]),
+      listTasks: vi.fn().mockResolvedValue([makeTask('t-1', { status: 'queued' })]),
+      listRuns: vi.fn().mockReturnValue(runsPromise),
+    };
+
+    const store = new FleetStore({ api: mockApi });
+    const bootstrapPromise = store.bootstrap();
+
+    expect(store.hydrating).toBe(true);
+
+    // Simulate WebSocket push arriving while bootstrap is in flight
+    const wsTaskUpdate = makeTask('t-1', { status: 'running' });
+    store.handleMessage({ type: 'task', task: wsTaskUpdate });
+
+    // Ensure it was buffered in pendingFrames
+    expect(store.pendingFrames).toHaveLength(1);
+
+    // Now resolve runs
+    resolveRuns!([makeRun('r-1', { taskId: 't-1' })]);
+    await bootstrapPromise;
+
+    expect(store.hydrating).toBe(false);
+    expect(store.pendingFrames).toHaveLength(0);
+
+    // The task should have the status from the WS push ('running'), not the snapshot ('queued')
+    expect(store.state.tasks.find((t) => t.id === 't-1')?.status).toBe('running');
+    expect(store.state.runsByTask['t-1']).toHaveLength(1);
+  });
+
+  test('retryRuns retries loading all runs when called without taskId', async () => {
+    let callCount = 0;
+    const mockApi = {
+      listPlans: vi.fn().mockResolvedValue([]),
+      listTasks: vi.fn().mockResolvedValue([]),
+      listRuns: vi.fn().mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) throw new Error('Initial network error');
+        return [makeRun('r-1', { taskId: 't-1' })];
+      }),
+    };
+
+    const store = new FleetStore({ api: mockApi });
+    await store.bootstrap();
+
+    expect(store.runsLoadState.error).toBe('Initial network error');
+    expect(store.runsLoadState.loaded).toBe(false);
+
+    // Retry loading all runs
+    await store.retryRuns();
+
+    expect(store.runsLoadState).toEqual({
+      loaded: true,
+      refreshing: false,
+      error: null,
+    });
+    expect(store.state.runsByTask['t-1']).toHaveLength(1);
+  });
+
+  test('refresh triggers bootstrap', async () => {
+    const mockApi = {
+      listPlans: vi.fn().mockResolvedValue([makePlan('p-new')]),
+      listTasks: vi.fn().mockResolvedValue([]),
+      listRuns: vi.fn().mockResolvedValue([]),
+    };
+
+    const store = new FleetStore({ api: mockApi });
+    await store.refresh();
+
+    expect(store.state.plans).toHaveLength(1);
+    expect(store.state.plans[0]!.id).toBe('p-new');
+    expect(store.runsLoadState.loaded).toBe(true);
   });
 });

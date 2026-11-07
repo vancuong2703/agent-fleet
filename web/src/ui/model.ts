@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DashboardCheck, DashboardTool, ModelOffer, QuotaWindow } from '../../../shared/dashboard.js';
-import type { AgentId } from '../../../shared/types.js';
+import type { DashboardAgent, DashboardCheck, DashboardTool, ModelOffer, QuotaWindow } from '../../../shared/dashboard.js';
+import type { AgentId, Run } from '../../../shared/types.js';
 import { api, type AgentStats } from '../api.js';
 export const AGENTS = ['codex', 'qodercli', 'agy', 'opencode'] as const;
 export const agentNames: Record<AgentId, string> = { codex: 'Codex', qodercli: 'Qoder', agy: 'Antigravity CLI', opencode: 'OpenCode', fake: 'Test agent' };
@@ -47,6 +47,153 @@ export function buildTokenBins(runs: readonly { startedAt: number | null; inputT
     const rows = runs.filter(run => known(run.startedAt) && run.startedAt >= start && (run.startedAt < end || index === count - 1 && run.startedAt === end));
     return { start, end, value: rows.reduce((sum, run) => sum + (run.inputTokens ?? 0) + (run.outputTokens ?? 0), 0) };
   });
+}
+
+export interface DailyTokenBin {
+  dateKey: string;            // Local calendar key: YYYY-MM-DD
+  key: string;                // Alias matching dateKey for compatibility
+  start: number;              // 00:00:00.000 local time
+  end: number;                // 00:00:00.000 local time of next day
+  totalTokens: number | null; // null when reportedRuns === 0
+  reportedTotal: number | null; // Alias matching totalTokens
+  inputTokens: number;
+  input: number | null;       // null if no reported input tokens
+  outputTokens: number;
+  output: number | null;      // null if no reported output tokens
+  reportedRuns: number;       // Runs that reported at least one valid token field
+  unreportedRuns: number;     // Runs in that day with both inputTokens & outputTokens null/invalid
+  runs: number;               // reportedRuns + unreportedRuns
+  coverage: 'none' | 'partial' | 'complete';
+  byAgent: Partial<Record<DashboardAgent, number>>;
+  isToday: boolean;
+}
+
+export function validToken(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n) && n >= 0;
+}
+
+export function buildDailyTokenSeries(
+  runs: readonly (Pick<Run, 'startedAt' | 'inputTokens' | 'outputTokens'> & Partial<Pick<Run, 'id' | 'agent'>>)[],
+  days = 7,
+  now = Date.now(),
+): DailyTokenBin[] {
+  const nowDate = new Date(now);
+  const y = nowDate.getFullYear();
+  const m = nowDate.getMonth();
+  const d = nowDate.getDate();
+
+  const bins: DailyTokenBin[] = Array.from({ length: days }, (_, i) => {
+    const offset = -(days - 1) + i;
+    const start = new Date(y, m, d + offset, 0, 0, 0, 0).getTime();
+    const end = new Date(y, m, d + offset + 1, 0, 0, 0, 0).getTime();
+    const binDate = new Date(start);
+    const dateKey = `${binDate.getFullYear()}-${String(binDate.getMonth() + 1).padStart(2, '0')}-${String(binDate.getDate()).padStart(2, '0')}`;
+    return {
+      dateKey,
+      key: dateKey,
+      start,
+      end,
+      totalTokens: null,
+      reportedTotal: null,
+      inputTokens: 0,
+      input: null,
+      outputTokens: 0,
+      output: null,
+      reportedRuns: 0,
+      unreportedRuns: 0,
+      runs: 0,
+      coverage: 'none' as const,
+      byAgent: {},
+      isToday: offset === 0,
+    };
+  });
+
+  if (bins.length === 0) return bins;
+
+  const firstStart = bins[0]!.start;
+
+  // Deduplicate by run.id (latest entry wins)
+  const deduped: (typeof runs)[number][] = [];
+  const seenIds = new Set<string>();
+  for (let i = runs.length - 1; i >= 0; i--) {
+    const run = runs[i]!;
+    if (run.id) {
+      if (seenIds.has(run.id)) continue;
+      seenIds.add(run.id);
+    }
+    deduped.unshift(run);
+  }
+
+  const binStats = bins.map(() => ({
+    hasValidInput: false,
+    hasValidOutput: false,
+    allReportedComplete: true,
+  }));
+
+  for (const run of deduped) {
+    if (!known(run.startedAt) || run.startedAt < firstStart || run.startedAt > now) {
+      continue;
+    }
+
+    const binIndex = bins.findIndex((bin) => run.startedAt! >= bin.start && run.startedAt! < bin.end);
+    if (binIndex === -1) continue;
+
+    const bin = bins[binIndex]!;
+    const stats = binStats[binIndex]!;
+
+    const hasInput = validToken(run.inputTokens);
+    const hasOutput = validToken(run.outputTokens);
+
+    if (!hasInput && !hasOutput) {
+      bin.unreportedRuns += 1;
+    } else {
+      bin.reportedRuns += 1;
+      const inTok = hasInput ? run.inputTokens! : 0;
+      const outTok = hasOutput ? run.outputTokens! : 0;
+
+      bin.inputTokens += inTok;
+      bin.outputTokens += outTok;
+
+      if (hasInput) stats.hasValidInput = true;
+      if (hasOutput) stats.hasValidOutput = true;
+      if (!hasInput || !hasOutput) {
+        stats.allReportedComplete = false;
+      }
+
+      if (run.agent && (run.agent === 'codex' || run.agent === 'qodercli' || run.agent === 'agy' || run.agent === 'opencode')) {
+        const currentAgentTotal = bin.byAgent[run.agent] ?? 0;
+        bin.byAgent[run.agent] = currentAgentTotal + inTok + outTok;
+      }
+    }
+  }
+
+  for (let i = 0; i < bins.length; i++) {
+    const bin = bins[i]!;
+    const stats = binStats[i]!;
+
+    bin.runs = bin.reportedRuns + bin.unreportedRuns;
+
+    if (bin.reportedRuns === 0) {
+      bin.totalTokens = null;
+      bin.reportedTotal = null;
+      bin.input = null;
+      bin.output = null;
+      bin.coverage = 'none';
+    } else {
+      bin.totalTokens = bin.inputTokens + bin.outputTokens;
+      bin.reportedTotal = bin.totalTokens;
+      bin.input = stats.hasValidInput ? bin.inputTokens : null;
+      bin.output = stats.hasValidOutput ? bin.outputTokens : null;
+
+      if (bin.unreportedRuns === 0 && stats.allReportedComplete) {
+        bin.coverage = 'complete';
+      } else {
+        bin.coverage = 'partial';
+      }
+    }
+  }
+
+  return bins;
 }
 /** `enabled=false` pauses polling (a mounted-but-hidden page); it refreshes at once when enabled again. */
 export function useStats(days = 7, repo = '', enabled = true) {

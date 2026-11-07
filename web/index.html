@@ -7,7 +7,48 @@
     <meta name="theme-color" content="#ffffff" />
     <link rel="icon" type="image/svg+xml" href="/fleet.svg" />
     <title>Agent Fleet Desktop</title>
-    <script>try{var t=window.__FLEET_DESKTOP__?.theme||localStorage.getItem('fleet.theme');var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';document.documentElement.dataset.theme=d;document.documentElement.style.colorScheme=d}catch{document.documentElement.dataset.theme='light'}</script>
+    <script>
+      try {
+        var el = document.documentElement;
+        var desk = window.__FLEET_DESKTOP__;
+        var t = desk?.theme || localStorage.getItem('fleet.theme');
+        var isDark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        var theme = isDark ? 'dark' : 'light';
+        el.dataset.theme = theme;
+        el.style.colorScheme = theme;
+
+        var app = desk?.appearance;
+        if (!app) {
+          try {
+            var raw = localStorage.getItem('fleet.appearance');
+            if (raw) app = JSON.parse(raw);
+          } catch (_) {}
+        }
+        var legacy = null;
+        if (!app) {
+          try { legacy = localStorage.getItem('fleet.view-style'); } catch (_) {}
+        }
+
+        var s = app?.style || (legacy === 'warm' ? 'warm' : 'plain');
+        el.dataset.style = (s === 'warm' || s === 'plain') ? s : 'plain';
+
+        var f = app?.font;
+        el.dataset.font = (f === 'inter' || f === 'bricolage' || f === 'system') ? f : 'system';
+
+        var sz = app?.size;
+        el.dataset.size = (sz === 'large' || sz === 'standard') ? sz : 'standard';
+
+        var m = app?.motion;
+        el.dataset.motion = (m === 'reduced' || m === 'off' || m === 'system') ? m : 'system';
+      } catch (_) {
+        var el = document.documentElement;
+        el.dataset.theme = 'light';
+        el.dataset.style = 'plain';
+        el.dataset.font = 'system';
+        el.dataset.size = 'standard';
+        el.dataset.motion = 'system';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -12,6 +12,8 @@
 
 **Trạng thái:** BẢN ĐỀ XUẤT CHỜ DUYỆT. Chưa triển khai, chưa chạy ứng dụng, chưa nghiệm thu bằng trình duyệt. Đã đọc ảnh/source và tính tương phản của các cặp màu đề xuất.
 
+**Rà soát 06/11/2026:** Bổ sung phạm vi `cli-workspace.ts`, quy tắc phân biệt request hoàn tất với CLI sẵn sàng và kiểm thử kết quả Check. Đã xoá thư mục demo untracked `web/public/cinema/` theo yêu cầu người dùng. Lần chỉnh sửa này chỉ cập nhật tài liệu và dọn demo; chưa triển khai UI.
+
 ## Global Constraints
 
 - Chỉ sửa phạm vi UI/UX, presentation state, lưu tuỳ chọn diện mạo và test tương ứng; không thay scheduler, quyền agent, database schema hay parser CLI.
@@ -239,8 +241,8 @@ Resources giữ nguyên khoảng rolling 7/30 ngày và test hiện tại trong 
 ### 6.2 Check và viền xoay rượt đuổi
 
 ```text
-Idle → Pending → Success hoặc Error
-       icon quay   checkmark hoặc biểu tượng lỗi + nhãn rõ
+Idle → Pending → Ready / Needs attention / Error
+       icon quay   icon + nhãn theo kết quả kiểm tra
        viền đuổi   kết thúc vòng ngay, không còn animation nền
 ```
 
@@ -249,7 +251,10 @@ Idle → Pending → Success hoặc Error
 - Viền chỉ 1–1.5px, màu nhạt, không glow và không gradient chạy trên chữ. Ưu tiên SVG stroke/dash quanh hình bo góc được clip đúng viền; đo paint cost trước khi chọn cách thực thi.
 - Icon pending của nút vẫn được phép quay khi chính nút disabled; không làm nhãn busy mờ khó đọc.
 - Check all giữ tiến độ `n/4`: viền chạy ở nút Check all; card đang được kiểm tra dùng icon quay; không cho cả bốn card phát sáng/quay cùng lúc. Không tự chuyển spotlight qua từng CLI.
-- Promise resolved mới success; vòng thành công checkmark hiện khoảng 1.2 giây rồi trở về idle. Lỗi giữ thông báo và nút thử lại; không lắc màn hình, không rung đỏ.
+- Request hoàn tất không đồng nghĩa CLI sẵn sàng. Dùng `tool.lastCheck.status` của chính kết quả vừa trả về: `ready` → nhãn sẵn sàng và checkmark khoảng 1.2 giây; `needs-login` → cần đăng nhập; `unavailable` → CLI không khả dụng; `unknown` hoặc thiếu `lastCheck` → chưa xác định; `error` → kiểm tra lỗi. Các trạng thái khác `ready` không nhận checkmark sẵn sàng; giữ nhãn/chi tiết và thao tác phù hợp. HTTP/network lỗi là lỗi request, không ghi đè dữ liệu cũ bằng một kết quả thành công.
+- `web/src/cli-workspace.ts` sở hữu pending/kết quả của Check và Check all. Hiện `check()` bắt lỗi bên trong và trả `Promise<void>`, còn `runCheck()` bỏ giá trị `DashboardTool` sau khi cập nhật snapshot; không dùng việc `await cli.check()` hoàn tất làm tín hiệu success. Khi triển khai, cho luồng kiểm tra giữ kết quả có cấu trúc hoặc state kết quả theo agent để UI đọc trực tiếp; giữ các callsite `void cli.check(...)` an toàn, không tạo Promise rejection không được xử lý.
+- Check all chạy tuần tự và tiếp tục sau lỗi từng agent. Tiến độ `n/total` đếm số lượt đã kết thúc, kể cả lỗi, tách khỏi số CLI `ready`; tổng kết hiển thị số sẵn sàng và từng công cụ cần chú ý/lỗi. Chỉ báo tất cả sẵn sàng nếu mọi kết quả đều `ready`. Không đổi parser hoặc suy diễn trạng thái từ quota/credit.
+- Lỗi giữ thông báo và nút thử lại; không lắc màn hình, không rung đỏ. Animation kết thúc theo trạng thái thật, không dùng timer để quyết định kết quả.
 - Nếu tác vụ xong rất nhanh, bỏ qua viền chạy trước frame đầu; không kéo dài spinner để trình diễn.
 - Khi component bị ẩn hoặc document hidden: dừng animation CSS/JS, request vẫn theo lifecycle hiện tại; khi quay lại render đúng trạng thái, không phát lại success cũ.
 - Nếu benchmark không đạt, bỏ lớp viền trước, giữ icon và label pending. Viền là hiệu ứng phụ, không phải điều kiện đúng của tác vụ.
@@ -346,14 +351,14 @@ Không tạo cây design system mới song song. Sửa các stylesheet đang đ�
 | T3 — Token theo ngày | `ui/model.ts`, `ui/Dashboard.tsx`, `ui/Workspace.tsx`, `store.ts`, `reference-dashboard.css`, test store/reference | `web/src/ui/DailyTokenChart.tsx`, `test/web/daily-tokens.test.ts`, `test/e2e/dashboard-tokens.spec.ts` | T1 |
 | T4 — Card riêng + focus | `ui/Dashboard.tsx`, `ui/Common.tsx`, `reference-dashboard.css`, test reference | `test/e2e/dashboard-focus.spec.ts` | T2, T3 |
 | T5 — Diff collapse | `components/DiffView.tsx`, `workflow.css`, test diff/jobs | `test/e2e/diff-collapse.spec.ts` | T2 |
-| T6 — Motion/feedback toàn ứng dụng | Các UI/component trong inventory, `theme.css`, các style tương ứng | `web/src/styles/motion.css`, `test/e2e/motion.spec.ts` | T2, T4, T5 |
+| T6 — Motion/feedback toàn ứng dụng | `cli-workspace.ts`, các UI/component trong inventory, `theme.css`, các style tương ứng và test CLI workspace hiện có | `web/src/styles/motion.css`, `test/e2e/motion.spec.ts` | T2, T4, T5 |
 | T7 — Nghiệm thu tích hợp | Tests, sửa nhỏ trong file thuộc task trên | Không bắt buộc | T1–T6 |
 
 Các đường dẫn style trong bảng thuộc `web/src/styles/`; UI/component thuộc `web/src/`. File test mới được nêu là đề xuất, chưa tồn tại tại thời điểm viết plan. T2/T3 đều chạm Workspace, T1/T4 đều chạm Dashboard CSS, T5/T6 đều chạm workflow: thực hiện tuần tự hoặc giao owner rõ ràng, không cho hai worker sửa cùng file.
 
 ### T0 — Baseline, tái hiện trước khi sửa
 
-- [ ] Xem `git status`; giữ nguyên `web/public/cinema/` đang untracked, không đưa vào task.
+- [ ] Xem `git status`; giữ nguyên thay đổi ngoài phạm vi. Thư mục demo `web/public/cinema/` đã được xoá theo yêu cầu người dùng, không tạo lại để triển khai plan.
 - [ ] Đọc playbook; khởi động môi trường tạm riêng; không đụng server/CLI đang dùng.
 - [ ] Chụp Dashboard sáng/tối, 1440×900 và 1280×640; ghi font/computed style/geometry của chart và card.
 - [ ] Tái hiện đóng một file và đóng tất cả; đo `.diff-pane`, `.diff-section`, background và vertical scroller; ghi kết quả trước sửa.
@@ -433,6 +438,8 @@ expect(box!.height - head!.height).toBeLessThanOrEqual(2);
 ### T6 — Phản hồi nút và motion hệ thống
 
 - [ ] Viết test request Check bị giữ pending để xác nhận spinner/viền chỉ hoạt động khi request chưa xong; success/error/retry không gửi trùng.
+- [ ] Viết test HTTP 200 cho từng `lastCheck.status`: `ready`, `needs-login`, `unavailable`, `unknown`, `error`, thêm kết quả thiếu `lastCheck` và HTTP/network lỗi. Chỉ `ready` nhận checkmark sẵn sàng; Promise hoàn tất sau khi bắt lỗi không được báo success. Chạy regression fail đúng hành vi trước sửa.
+- [ ] Bổ sung state/kết quả Check tại `cli-workspace.ts` theo mục 6.2; UI dùng kết quả của lần kiểm tra vừa kết thúc, không snapshot cũ hoặc Promise `void`. Test Check all có kết quả trộn và lỗi request: vẫn thử mọi agent, tiến độ kết thúc đủ `total`, tổng kết số sẵn sàng và lỗi/cần chú ý chính xác; giữ chống gửi trùng và retry.
 - [ ] Tập trung duration/easing/keyframe và selector trạng thái trong `motion.css`; các layout tiếp tục ở stylesheet hiện có. Không tạo hệ Button abstraction mới nếu lớp hiện tại đủ dùng.
 - [ ] Gắn busy state vào tác vụ thật của từng nhóm inventory; hành động fire-and-forget chỉ báo điều có thể xác nhận, không giả success.
 - [ ] Thêm Check all progress + viền đuổi, single Check spinner/viền, copy success và menu/tab feedback.
@@ -449,7 +456,7 @@ expect(box!.height - head!.height).toBeLessThanOrEqual(2);
 - [ ] Chụp 375/768/1440 × light/dark ở Dashboard và Jobs Diff; thêm font lớn, 1280×640, selected card, Check pending, error, dữ liệu partial. Giữ ảnh fixture tách khỏi dữ liệu vận hành.
 - [ ] Theo dõi console/network, request trùng, PTY/session còn nguyên, scroll positions, focus trap/restore, Ctrl+K/Esc, clipboard failure và reduced motion.
 - [ ] Đo CPU/RAM/DOM/listener trước/sau cùng fixture, 100 lần focus và thu/mở; kiểm tra không retained node tăng tuyến tính. Không hứa mức RAM tiết kiệm nếu chưa có số đo.
-- [ ] `git diff --check`, `git diff --stat`, `git status --short`: chỉ file phạm vi duyệt; không dính cinema hoặc token/profile. Không commit/release nếu chưa có yêu cầu riêng.
+- [ ] `git diff --check`, `git diff --stat`, `git status --short`: chỉ file phạm vi duyệt; không thêm lại demo cinema hoặc token/profile. Không commit/release nếu chưa có yêu cầu riêng.
 
 ## 10. Checklist duyệt thiết kế và định nghĩa hoàn tất
 

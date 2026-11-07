@@ -174,7 +174,10 @@ export function Jobs({ state, selectedId, onSelect, onCreate, loaded, error, rel
 
   return <div className={`wrap jobs-page${zoom ? ' is-zoom' : ''}`} data-page="tasks">
     <header className="head jobs-head">
-      <h1 className="title sm" aria-label={t('Jobs', 'Công việc')}>JO<em>BS</em></h1>
+      <div className="head-title-block">
+        <div className="eyebrow">{t('Task execution', 'Điều phối công việc')}</div>
+        <h1 className="title sm">{t('Jobs', 'Công việc')}</h1>
+      </div>
       <div className="filters jbar" role="group" aria-label={t('Job status', 'Trạng thái công việc')}>{statuses.map(status => <button className="chip" key={status.id} aria-pressed={filter === status.id} onClick={() => setFilter(status.id)}>{t(status.en, status.vi)}</button>)}<span className="count">{countText} {t('jobs', 'công việc')}</span></div>
       <label className="job-search"><Icon name="search" size={14} /><input value={query} onChange={event => setQuery(event.target.value)} aria-label={t('Find a job', 'Tìm công việc hoặc dự án')} placeholder={t('Search jobs…', 'Tìm công việc…')} /></label>
       <button className="btn primary" onClick={onCreate}><Icon name="plus" size={14} />{t('New job', 'Công việc mới')}</button>

@@ -1,0 +1,174 @@
+/* =========================================================================
+   System Motion & Button Feedback
+   Calm animations, interactive feedback, and accessible motion controls.
+   ========================================================================= */
+
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-instant: 90ms;
+  --dur-fast: 150ms;
+  --dur-normal: 220ms;
+  --dur-slow: 280ms;
+}
+
+/* ---- Interactive button feedback ---- */
+:where(.btn, .tbtn, .check-all, .pbtn, .card-focus-btn) {
+  transition: background-color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              transform var(--dur-instant) var(--ease-out);
+}
+
+:where(.btn, .tbtn, .check-all, .pbtn, .card-focus-btn):not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* ---- Pending / Checking button feedback ---- */
+:where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) {
+  position: relative;
+}
+
+:where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1.5px solid transparent;
+  box-shadow: 0 0 0 1px var(--accent, #2563eb);
+  animation: check-pulse-ring 1.4s var(--ease-in-out) infinite;
+}
+
+@keyframes check-pulse-ring {
+  0% {
+    opacity: 0.3;
+    box-shadow: 0 0 0 1px var(--accent, #2563eb), 0 0 4px rgba(37, 99, 235, 0.2);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 0 1.5px var(--accent, #2563eb), 0 0 8px rgba(37, 99, 235, 0.35);
+  }
+  100% {
+    opacity: 0.3;
+    box-shadow: 0 0 0 1px var(--accent, #2563eb), 0 0 4px rgba(37, 99, 235, 0.2);
+  }
+}
+
+/* ---- Card transitions ---- */
+.zones > .card,
+.row3 > .panel {
+  transition: transform var(--dur-normal) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              background-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-normal) var(--ease-out);
+}
+
+/* ---- Popover & modal entry animation ---- */
+@keyframes surface-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes surface-fade-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.appearance-popover,
+.modal,
+.palette {
+  animation: surface-enter var(--dur-fast) var(--ease-out);
+}
+
+/* =========================================================================
+   Reduced & Off Motion Overrides
+   ========================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="off"]) {
+    --dur-instant: 0ms;
+    --dur-fast: 80ms;
+    --dur-normal: 100ms;
+    --dur-slow: 120ms;
+  }
+
+  :where(html:not([data-motion="off"])) :where(.btn, .tbtn, .check-all, .pbtn, .card-focus-btn):not(:disabled):active {
+    transform: none !important;
+  }
+
+  :where(html:not([data-motion="off"])) :where(.zones > .card, .row3 > .panel) {
+    transform: none !important;
+  }
+
+  :where(html:not([data-motion="off"])) :where(.appearance-popover, .modal, .palette) {
+    transform: none !important;
+    animation: surface-fade-enter var(--dur-fast) var(--ease-out);
+  }
+
+  :where(html:not([data-motion="off"])) .spin {
+    animation: none !important;
+  }
+
+  :where(html:not([data-motion="off"])) :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::after {
+    animation: none !important;
+    display: none !important;
+  }
+}
+
+html[data-motion="reduced"] {
+  --dur-instant: 0ms;
+  --dur-fast: 80ms;
+  --dur-normal: 100ms;
+  --dur-slow: 120ms;
+}
+
+html[data-motion="reduced"] :where(.btn, .tbtn, .check-all, .pbtn, .card-focus-btn):not(:disabled):active {
+  transform: none !important;
+}
+
+html[data-motion="reduced"] :where(.zones > .card, .row3 > .panel) {
+  transform: none !important;
+}
+
+html[data-motion="reduced"] :where(.appearance-popover, .modal, .palette) {
+  transform: none !important;
+  animation: surface-fade-enter var(--dur-fast) var(--ease-out);
+}
+
+html[data-motion="reduced"] .spin {
+  animation: none !important;
+}
+
+html[data-motion="reduced"] :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::after {
+  animation: none !important;
+  display: none !important;
+}
+
+/* Off motion: completely disable transitions and animations */
+html[data-motion="off"] {
+  --dur-instant: 0ms;
+  --dur-fast: 0ms;
+  --dur-normal: 0ms;
+  --dur-slow: 0ms;
+}
+
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0ms !important;
+  scroll-behavior: auto !important;
+}

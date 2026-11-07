@@ -16,15 +16,28 @@ import { connectBus } from './ws.js';
 
 // ── state ───────────────────────────────────────────────────────────────────
 
+export interface RunsLoadState {
+  loaded: boolean;
+  refreshing: boolean;
+  error: string | null;
+}
+
 export interface FleetState {
   plans: Plan[];
   tasks: Task[];
   runsByTask: Record<string, Run[]>;
   eventsByRun: Record<string, StoredEvent[]>;
+  runsLoadState: RunsLoadState;
 }
 
 export function initialFleetState(): FleetState {
-  return { plans: [], tasks: [], runsByTask: {}, eventsByRun: {} };
+  return {
+    plans: [],
+    tasks: [],
+    runsByTask: {},
+    eventsByRun: {},
+    runsLoadState: { loaded: false, refreshing: true, error: null },
+  };
 }
 
 function upsert<T extends { id: string }>(list: T[], item: T): T[] {
@@ -492,15 +505,325 @@ export interface FleetStore {
   tasksLoaded: boolean;
   /** Tasks whose run history could not be read, with the reason. */
   runErrors: Record<string, string>;
-  /** Re-read the run history of one task only. */
-  retryRuns: (taskId: string) => void;
+  /** Runs load state shortcut. */
+  runsLoadState?: RunsLoadState;
+  /** Re-read the run history of one task only or all runs. */
+  retryRuns: (taskId?: string) => Promise<void> | void;
   /** Load state of one run's log; a task without runs is "nothing to load". */
   logState: (runId: string | null) => LoadState;
   /** Re-run the initial GET sweep (plans, tasks, runs). */
   reload: () => void;
+  refresh?: () => Promise<void>;
+  bootstrap?: () => Promise<void>;
   /** Fetch a run's stored events once; `retry` bypasses the loaded bookmark. */
   loadEvents: (runId: string, retry?: boolean) => void;
 }
+
+export class FleetStoreClass implements FleetStore {
+  state: FleetState;
+  connected = false;
+  error: string | null = null;
+  errorCode: string | null = null;
+  tasksLoaded = false;
+  runErrors: Record<string, string> = {};
+  logStates: Record<string, LoadState> = {};
+
+  hydrating = false;
+  pendingFrames: BusMsg[] = [];
+
+  private listeners = new Set<() => void>();
+  private api: any;
+  private loadedRuns = new Set<string>();
+  private loadingRuns = new Set<string>();
+
+  constructor(options?: { api?: any }) {
+    this.state = initialFleetState();
+    this.api = options?.api ?? api;
+    this.logState = this.logState.bind(this);
+    this.loadEvents = this.loadEvents.bind(this);
+    this.retryRuns = this.retryRuns.bind(this);
+    this.reload = this.reload.bind(this);
+    this.bootstrap = this.bootstrap.bind(this);
+  }
+
+  get runsLoadState(): RunsLoadState {
+    return this.state.runsLoadState;
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  emit(): void {
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+
+  mergePlan(plan: Plan): void {
+    this.state = reduceFleet(this.state, { type: 'plan', plan });
+  }
+
+  mergeTask(task: Task): void {
+    this.state = reduceFleet(this.state, { type: 'task', task });
+  }
+
+  mergeRun(run: Run): void {
+    this.state = reduceFleet(this.state, { type: 'run', run });
+  }
+
+  flushFrame(frame: BusMsg): void {
+    this.state = reduceFleet(this.state, frame);
+  }
+
+  handleMessage(message: BusMsg): void {
+    if (this.hydrating) {
+      this.pendingFrames.push(message);
+    }
+    this.state = reduceFleet(this.state, message);
+    this.emit();
+  }
+
+  async bootstrap(): Promise<void> {
+    if (this.hydrating) return;
+    this.hydrating = true;
+    this.pendingFrames = [];
+
+    this.state = {
+      ...this.state,
+      runsLoadState: {
+        loaded: this.state.runsLoadState.loaded,
+        refreshing: true,
+        error: null,
+      },
+    };
+    this.emit();
+
+    const fetchPlans = this.api.listPlans ? () => this.api.listPlans() : this.api.plans ? () => this.api.plans() : () => Promise.resolve([]);
+    const fetchTasks = this.api.listTasks ? () => this.api.listTasks() : this.api.tasks ? () => this.api.tasks() : () => Promise.resolve([]);
+    const fetchRuns = this.api.listRuns ? () => this.api.listRuns() : null;
+
+    try {
+      const [plansRes, tasksRes, runsRes] = await Promise.allSettled([
+        fetchPlans(),
+        fetchTasks(),
+        fetchRuns ? fetchRuns() : Promise.reject(new Error('no direct runs method')),
+      ]);
+
+      let sweepFailed = false;
+      if (plansRes.status === 'fulfilled') {
+        for (const plan of plansRes.value) {
+          this.mergePlan(plan);
+        }
+      } else {
+        sweepFailed = true;
+        const failure = describeFailure(plansRes.reason);
+        this.error = failure.message;
+        this.errorCode = failure.code;
+      }
+
+      let loadedTasks: Task[] = [];
+      if (tasksRes.status === 'fulfilled') {
+        loadedTasks = tasksRes.value;
+        for (const task of loadedTasks) {
+          this.mergeTask(task);
+        }
+      } else {
+        sweepFailed = true;
+        const failure = describeFailure(tasksRes.reason);
+        this.error = failure.message;
+        this.errorCode = failure.code;
+      }
+
+      if (!sweepFailed) {
+        this.error = null;
+        this.errorCode = null;
+        this.tasksLoaded = true;
+        const earlyPending = this.pendingFrames.slice();
+        for (const frame of earlyPending) {
+          this.flushFrame(frame);
+        }
+        this.emit();
+      }
+
+      if (runsRes.status === 'fulfilled') {
+        for (const run of runsRes.value) {
+          this.mergeRun(run);
+        }
+        this.state = {
+          ...this.state,
+          runsLoadState: { loaded: true, refreshing: false, error: null },
+        };
+      } else {
+        // Fallback to loadRuns if direct runs failed and api.runs exists
+        if (typeof this.api.runs === 'function' && !this.api.listRuns) {
+          try {
+            const history = await loadRuns(loadedTasks, this.api);
+            for (const run of history.runs) {
+              this.mergeRun(run);
+            }
+            this.runErrors = history.errors;
+            if (history.fatal) {
+              this.error = history.fatal.message;
+              this.errorCode = history.fatal.code;
+              this.state = {
+                ...this.state,
+                runsLoadState: { loaded: false, refreshing: false, error: history.fatal.message },
+              };
+            } else {
+              this.state = {
+                ...this.state,
+                runsLoadState: { loaded: true, refreshing: false, error: null },
+              };
+            }
+          } catch (cause) {
+            const failure = describeFailure(cause);
+            this.error = failure.message;
+            this.errorCode = failure.code;
+            this.state = {
+              ...this.state,
+              runsLoadState: { loaded: false, refreshing: false, error: failure.message },
+            };
+          }
+        } else {
+          const failure = describeFailure(runsRes.reason);
+          this.error = failure.message;
+          this.errorCode = failure.code;
+          this.state = {
+            ...this.state,
+            runsLoadState: { loaded: false, refreshing: false, error: failure.message },
+          };
+        }
+      }
+
+      // Replay pending frames buffered during hydration
+      const pending = this.pendingFrames.slice();
+      this.pendingFrames = [];
+      for (const frame of pending) {
+        this.flushFrame(frame);
+      }
+
+      await Promise.all([...this.loadedRuns].map((runId) => this.fetchEvents(runId, true)));
+    } finally {
+      this.hydrating = false;
+      this.emit();
+    }
+  }
+
+  async retryRuns(taskId?: string): Promise<void> {
+    if (taskId) {
+      try {
+        const runs = await this.api.runs(taskId);
+        for (const run of runs) {
+          this.mergeRun(run);
+        }
+        const nextErrors = { ...this.runErrors };
+        delete nextErrors[taskId];
+        this.runErrors = nextErrors;
+        this.emit();
+      } catch (cause) {
+        this.runErrors = { ...this.runErrors, [taskId]: describeFailure(cause).message };
+        this.emit();
+      }
+    } else {
+      this.state = {
+        ...this.state,
+        runsLoadState: { loaded: this.state.runsLoadState.loaded, refreshing: true, error: null },
+      };
+      this.emit();
+      try {
+        if (this.api.listRuns) {
+          const runs = await this.api.listRuns();
+          for (const run of runs) {
+            this.mergeRun(run);
+          }
+          this.state = {
+            ...this.state,
+            runsLoadState: { loaded: true, refreshing: false, error: null },
+          };
+        } else {
+          const history = await loadRuns(this.state.tasks, this.api);
+          for (const run of history.runs) {
+            this.mergeRun(run);
+          }
+          this.runErrors = history.errors;
+          if (history.fatal) {
+            this.error = history.fatal.message;
+            this.errorCode = history.fatal.code;
+            this.state = {
+              ...this.state,
+              runsLoadState: { loaded: false, refreshing: false, error: history.fatal.message },
+            };
+          } else {
+            this.state = {
+              ...this.state,
+              runsLoadState: { loaded: true, refreshing: false, error: null },
+            };
+          }
+        }
+      } catch (cause) {
+        const failure = describeFailure(cause);
+        this.error = failure.message;
+        this.state = {
+          ...this.state,
+          runsLoadState: { loaded: false, refreshing: false, error: failure.message },
+        };
+      } finally {
+        this.emit();
+      }
+    }
+  }
+
+  refresh(): Promise<void> {
+    return this.bootstrap();
+  }
+
+  reload(): void {
+    void this.bootstrap();
+  }
+
+  async fetchEvents(runId: string, catchUp = false, retry = false): Promise<void> {
+    if (this.loadingRuns.has(runId)) return;
+    const existing = this.state.eventsByRun[runId];
+    if (!catchUp && !retry && this.loadedRuns.has(runId) && existing) return;
+    this.loadingRuns.add(runId);
+    try {
+      const afterSeq = catchUp && existing?.length ? existing[existing.length - 1]!.seq : undefined;
+      const events = await this.api.events(runId, afterSeq === undefined ? { tail: 4_000 } : { afterSeq, tail: 4_000 });
+      this.loadedRuns.add(runId);
+      for (const key of [...this.loadedRuns].slice(0, -30)) this.loadedRuns.delete(key);
+      this.state = addEvents(this.state, runId, events);
+      this.logStates = withLoadState(this.logStates, runId, LOADED);
+      this.emit();
+    } catch (cause) {
+      this.loadedRuns.delete(runId);
+      this.logStates = withLoadState(this.logStates, runId, loadError(cause));
+      this.emit();
+    } finally {
+      this.loadingRuns.delete(runId);
+    }
+  }
+
+  loadEvents(runId: string, retry = false): void {
+    if (retry) {
+      this.loadedRuns.delete(runId);
+      this.logStates = withLoadState(this.logStates, runId, NOT_LOADED);
+      this.emit();
+    }
+    void this.fetchEvents(runId, false, retry);
+  }
+
+  logState(runId: string | null): LoadState {
+    return runId === null ? LOADED : this.logStates[runId] ?? NOT_LOADED;
+  }
+}
+
+export const FleetStore = FleetStoreClass;
 
 /**
  * Live fleet store: an initial GET sweep seeds plans/tasks/runs, then every
@@ -508,147 +831,59 @@ export interface FleetStore {
  * per run via `loadEvents` and stream in afterwards. A failed log read is kept
  * as an error instead of being swallowed, so the log can offer a retry.
  */
-export function useFleet(): FleetStore {
-  const [state, setState] = useState<FleetState>(initialFleetState);
-  const [connected, setConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [tasksLoaded, setTasksLoaded] = useState(false);
-  const [runErrors, setRunErrors] = useState<Record<string, string>>({});
-  const [logStates, setLogStates] = useState<Record<string, LoadState>>({});
-  const stateRef = useRef(state);
-  stateRef.current = state;
-  const mounted = useRef(true);
-  const loadedRuns = useRef<Set<string>>(new Set());
-  const loadingRuns = useRef<Set<string>>(new Set());
-  const buffered = useRef<BusMsg[] | null>(null);
-  const hydrating = useRef(false);
-
-  const fetchEvents = useCallback(async (runId: string, catchUp = false, retry = false): Promise<void> => {
-    if (loadingRuns.current.has(runId)) return;
-    const existing = stateRef.current.eventsByRun[runId];
-    if (!catchUp && !retry && loadedRuns.current.has(runId) && existing) return;
-    loadingRuns.current.add(runId);
-    try {
-      const afterSeq = catchUp && existing?.length ? existing[existing.length - 1]!.seq : undefined;
-      const events = await api.events(runId, afterSeq === undefined ? { tail: 4_000 } : { afterSeq, tail: 4_000 });
-      if (!mounted.current) return;
-      loadedRuns.current.add(runId);
-      // Bound bookkeeping as well as the actual event buffers.
-      for (const key of [...loadedRuns.current].slice(0, -30)) loadedRuns.current.delete(key);
-      setState((current) => addEvents(current, runId, events));
-      setLogStates((current) => withLoadState(current, runId, LOADED));
-    } catch (cause) {
-      loadedRuns.current.delete(runId);
-      // Dropping this error used to leave the log showing "Chưa có sự kiện".
-      if (mounted.current) setLogStates((current) => withLoadState(current, runId, loadError(cause)));
-    } finally {
-      loadingRuns.current.delete(runId);
-    }
-  }, []);
-
-  const hydrate = useCallback(() => {
-    if (hydrating.current) return;
-    hydrating.current = true;
-    buffered.current = [];
-    void (async () => {
-      try {
-        const [plans, tasks] = await Promise.all([api.plans(), api.tasks()]);
-        if (!mounted.current) return;
-        // The task list is enough to show Jobs: apply it now and let the run
-        // history arrive (or fail) on its own. A push that landed while the
-        // GET was in flight is replayed after the snapshot so it is kept; the
-        // buffer stays open until the history snapshot is applied as well.
-        setState((current) => {
-          let next = current;
-          for (const plan of plans) next = reduceFleet(next, { type: 'plan', plan });
-          for (const task of tasks) next = reduceFleet(next, { type: 'task', task });
-          for (const message of buffered.current ?? []) next = reduceFleet(next, message);
-          return next;
-        });
-        setError(null);
-        setErrorCode(null);
-        setTasksLoaded(true);
-        const history = await loadRuns(tasks, api);
-        if (!mounted.current) return;
-        const pending = buffered.current?.slice() ?? [];
-        buffered.current = null;
-        setState((current) => {
-          let next = current;
-          for (const run of history.runs) next = reduceFleet(next, { type: 'run', run });
-          for (const message of pending) next = reduceFleet(next, message);
-          return next;
-        });
-        setRunErrors(history.errors);
-        if (history.fatal) { setError(history.fatal.message); setErrorCode(history.fatal.code); }
-        await Promise.all([...loadedRuns.current].map((runId) => fetchEvents(runId, true)));
-      } catch (cause) {
-        if (mounted.current) {
-          const failure = describeFailure(cause);
-          setError(failure.message);
-          setErrorCode(failure.code);
-        }
-      } finally {
-        buffered.current = null;
-        hydrating.current = false;
-      }
-    })();
-  }, [fetchEvents]);
+export function useFleet(apiClient = api): FleetStore {
+  const storeRef = useRef<FleetStoreClass | null>(null);
+  if (!storeRef.current) {
+    storeRef.current = new FleetStoreClass({ api: apiClient });
+  }
+  const store = storeRef.current;
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    mounted.current = true;
-    hydrate();
-    const close = connectBus({
-      onMessage: (message) => {
-        buffered.current?.push(message);
-        setState((current) => reduceFleet(current, message));
-      },
-      onOpen: () => { setConnected(true); hydrate(); },
-      onClose: () => setConnected(false),
+    let mounted = true;
+    const unsub = store.subscribe(() => {
+      if (mounted) setTick((v) => v + 1);
     });
-    const refreshVisible = () => { if (document.visibilityState !== 'hidden') hydrate(); };
-    // Reconcile missed pushes (sleep/resume, reconnect, or a transport proxy).
-    // Healthy streaming remains immediate; this slow fallback limits idle work.
-    const timer = window.setInterval(refreshVisible, 15_000);
-    window.addEventListener('focus', refreshVisible);
-    document.addEventListener('visibilitychange', refreshVisible);
-    return () => {
-      mounted.current = false;
-      close();
-      window.clearInterval(timer);
-      window.removeEventListener('focus', refreshVisible);
-      document.removeEventListener('visibilitychange', refreshVisible);
-    };
-  }, [hydrate]);
 
-  const loadEvents = useCallback((runId: string, retry = false) => {
-    if (retry) {
-      loadedRuns.current.delete(runId);
-      setLogStates((current) => withLoadState(current, runId, NOT_LOADED));
-    }
-    void fetchEvents(runId, false, retry);
-  }, [fetchEvents]);
-
-  const retryRuns = useCallback((taskId: string) => {
-    void api.runs(taskId).then(
-      (runs) => {
-        if (!mounted.current) return;
-        setState((current) => runs.reduce((next, run) => reduceFleet(next, { type: 'run', run }), current));
-        setRunErrors((current) => {
-          const { [taskId]: _removed, ...rest } = current;
-          return rest;
-        });
+    const closeBus = connectBus({
+      onMessage: (message) => store.handleMessage(message),
+      onOpen: () => {
+        store.connected = true;
+        store.emit();
+        void store.bootstrap();
       },
-      (cause) => { if (mounted.current) setRunErrors((current) => ({ ...current, [taskId]: describeFailure(cause).message })); },
-    );
-  }, []);
+      onClose: () => {
+        store.connected = false;
+        store.emit();
+      },
+    });
 
-  const logState = useCallback(
-    (runId: string | null): LoadState => (runId === null ? LOADED : logStates[runId] ?? NOT_LOADED),
-    [logStates],
-  );
+    void store.bootstrap();
 
-  return { state, connected, error, errorCode, tasksLoaded, runErrors, retryRuns, logState, reload: hydrate, loadEvents };
+    const refreshVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'hidden') {
+        void store.bootstrap();
+      }
+    };
+    const timer = typeof window !== 'undefined' ? window.setInterval(refreshVisible, 15_000) : undefined;
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', refreshVisible);
+      document.addEventListener('visibilitychange', refreshVisible);
+    }
+
+    return () => {
+      mounted = false;
+      unsub();
+      closeBus();
+      if (timer !== undefined) window.clearInterval(timer);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', refreshVisible);
+        document.removeEventListener('visibilitychange', refreshVisible);
+      }
+    };
+  }, [store]);
+
+  return store;
 }
 
 /**

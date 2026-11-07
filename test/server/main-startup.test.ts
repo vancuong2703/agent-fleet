@@ -3,12 +3,13 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSy
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { corruptRunsIndex, seedDatabase } from './db-corruption-helper.js';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 20_000 });
 
-const tsx = path.resolve('node_modules/tsx/dist/cli.mjs');
+const tsx = pathToFileURL(path.resolve('node_modules/tsx/dist/loader.mjs')).href;
 const entry = path.resolve('server/main.ts');
 let dir: string;
 const blockers: net.Server[] = [];
@@ -37,7 +38,7 @@ function writeConfig(port: number): void {
 
 function runMain(args: string[] = []): Promise<{ code: number | null; stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [tsx, entry, ...args], {
+    const child = spawn(process.execPath, ['--import', tsx, entry, ...args], {
       env: { ...process.env, FLEET_DATA_DIR: dir }, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
     });
     let stdout = '';

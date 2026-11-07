@@ -5,7 +5,7 @@ import http from 'node:http';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadConfig } from '../server/config.js';
 import { dataDir, files } from '../server/paths.js';
 
@@ -104,7 +104,7 @@ export async function ensureServer(options: { startTimeoutMs?: number } = {}): P
 
   const compiled = path.win32.resolve(root, 'server/main.js');
   const child = spawn(process.execPath, existsSync(compiled) ? [compiled] : [
-    require.resolve('tsx/cli', { paths: [root] }), path.win32.resolve(root, 'server/main.ts'),
+    '--import', pathToFileURL(require.resolve('tsx', { paths: [root] })).href, path.win32.resolve(root, 'server/main.ts'),
   ], {
     detached: true, windowsHide: true, shell: false, stdio: 'ignore', env: { ...process.env },
   });

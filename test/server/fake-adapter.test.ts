@@ -99,7 +99,7 @@ describe('fake adapter', () => {
     ).resolves.toEqual({ ok: true });
   });
 
-  test('runs the fake agent with node and sends the brief on stdin', () => {
+  test('runs the fake agent with node, defaults to success and sends the brief on stdin', () => {
     const spec = getAdapter('fake').headless({
       bin: process.execPath,
       brief: 'làm việc này\nvà việc kia',
@@ -126,18 +126,6 @@ describe('fake adapter', () => {
 
     expect(spec.args[1]).toBe('slow');
     expect(spec.stdin).toBe(brief);
-  });
-
-  test('defaults the scenario to success when there is no prefix', () => {
-    const spec = getAdapter('fake').headless({
-      bin: process.execPath,
-      brief: 'không có tiền tố',
-      briefFile: '',
-      cwd: '.',
-      extraArgs: [],
-    });
-
-    expect(spec.args[1]).toBe('success');
   });
 
   test('finalMessage returns the text of the last message event', () => {
@@ -173,6 +161,7 @@ describe('fake-agent.mjs fixture', () => {
       cwd: dir,
       input: spec.stdin,
       encoding: 'utf8',
+      windowsHide: true,
     });
 
     expect(result.status).toBe(0);
@@ -201,6 +190,7 @@ describe('fake-agent.mjs fixture', () => {
       cwd: dir,
       input: spec.stdin,
       encoding: 'utf8',
+      windowsHide: true,
     });
 
     expect(result.status).toBe(1);
@@ -227,7 +217,7 @@ describe('fake-agent.mjs fixture', () => {
       extraArgs: [],
     });
 
-    const result = spawnSync(spec.cmd, spec.args, { cwd: dir, input: spec.stdin, encoding: 'utf8' });
+    const result = spawnSync(spec.cmd, spec.args, { cwd: dir, input: spec.stdin, encoding: 'utf8', windowsHide: true });
     expect(result.status).toBe(3);
   });
 });

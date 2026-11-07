@@ -7,6 +7,8 @@ internal sealed class DesktopPreferences(string dataDir)
 {
     internal string Theme { get; private set; } = "light";
     internal DesktopLayout Layout { get; private set; } = new(258, 320, 380);
+    internal DesktopAppearance Appearance { get; private set; } = new();
+
     internal void Load()
     {
         try
@@ -20,6 +22,7 @@ internal sealed class DesktopPreferences(string dataDir)
                 if (theme is "system" or "light" or "dark") Theme = theme;
             }
             if (document.RootElement.TryGetProperty("layout", out var layout)) Layout = ReadLayout(layout);
+            if (document.RootElement.TryGetProperty("appearance", out var appearance)) Appearance = ReadAppearance(appearance);
         }
         catch (Exception error) when (error is IOException or JsonException or KeyNotFoundException or InvalidOperationException) { }
     }
@@ -34,6 +37,11 @@ internal sealed class DesktopPreferences(string dataDir)
         Layout = ReadLayout(layout);
         Save();
     }
+    internal void SetAppearance(JsonElement appearance)
+    {
+        Appearance = ReadAppearance(appearance);
+        Save();
+    }
     private static DesktopLayout ReadLayout(JsonElement layout)
     {
         static double Read(JsonElement source, string key, double fallback, double min, double max)
@@ -43,10 +51,28 @@ internal sealed class DesktopPreferences(string dataDir)
         }
         return new(Read(layout, "sidebarWidth", 258, 190, 420), Read(layout, "inspectorWidth", 320, 260, 520), Read(layout, "terminalHeight", 380, 240, 2000));
     }
+    private static DesktopAppearance ReadAppearance(JsonElement source)
+    {
+        if (source.ValueKind != JsonValueKind.Object) return new();
+        static string Read(JsonElement obj, string key, string fallback, params string[] allowed)
+        {
+            if (obj.TryGetProperty(key, out var val) && val.ValueKind == JsonValueKind.String)
+            {
+                var s = val.GetString();
+                if (s != null && allowed.Contains(s)) return s;
+            }
+            return fallback;
+        }
+        var style = Read(source, "style", "plain", "plain", "warm");
+        var font = Read(source, "font", "system", "system", "inter", "bricolage");
+        var size = Read(source, "size", "standard", "standard", "large");
+        var motion = Read(source, "motion", "system", "system", "reduced", "off");
+        return new(style, font, size, motion);
+    }
     private void Save()
     {
         var temporary = Path.Combine(dataDir, "desktop-settings.json.tmp");
-        File.WriteAllText(temporary, JsonSerializer.Serialize(new { theme = Theme, layout = Layout }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        File.WriteAllText(temporary, JsonSerializer.Serialize(new { theme = Theme, layout = Layout, appearance = Appearance }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
         File.Move(temporary, Path.Combine(dataDir, "desktop-settings.json"), overwrite: true);
     }
     internal bool IsDark()
@@ -58,3 +84,4 @@ internal sealed class DesktopPreferences(string dataDir)
 }
 
 internal sealed record DesktopLayout(double SidebarWidth, double InspectorWidth, double TerminalHeight);
+internal sealed record DesktopAppearance(string Style = "plain", string Font = "system", string Size = "standard", string Motion = "system");
