@@ -73,21 +73,70 @@
   transition: opacity var(--dur-fast) var(--ease-out);
 }
 
-/* The beam only shows while a check is running, until it finishes. */
+/* The SVG .check-pill-beam renders the crisp uniform blue segment; keep ::before transparent. */
 :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::before {
-  opacity: 1;
-  filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.55));
+  opacity: 0;
 }
 
-:where(.check-all, .zones .foot .btn:first-of-type) svg {
+@keyframes check-pill-stroke {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.check-pill-beam {
+  position: absolute;
+  inset: -1.5px;
+  width: calc(100% + 3px);
+  height: calc(100% + 3px);
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+  z-index: 2;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.check-pill-beam rect {
+  x: 1.5px;
+  y: 1.5px;
+  width: calc(100% - 3px);
+  height: calc(100% - 3px);
+  rx: 14px;
+  ry: 14px;
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke-dasharray: 30 70;
+  stroke-dashoffset: 100;
+  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.75));
+}
+
+.check-all .check-pill-beam rect {
+  rx: 18px;
+  ry: 18px;
+}
+
+:where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) .check-pill-beam {
+  opacity: 1;
+}
+
+:where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) .check-pill-beam rect {
+  animation: check-pill-stroke 1.05s linear infinite;
+}
+
+:where(.check-all, .zones .foot .btn:first-of-type) svg:not(.check-pill-beam) {
   transition: transform 380ms var(--ease-out);
 }
 
-:where(.check-all, .zones .foot .btn:first-of-type):hover:not(:disabled):not(.is-checking) svg {
+:where(.check-all, .zones .foot .btn:first-of-type):hover:not(:disabled):not(.is-checking) svg:not(.check-pill-beam) {
   transform: rotate(180deg);
 }
 
-:where(.check-all, .zones .foot .btn:first-of-type):active:not(:disabled):not(.is-checking) svg {
+:where(.check-all, .zones .foot .btn:first-of-type):active:not(:disabled):not(.is-checking) svg:not(.check-pill-beam) {
   transform: rotate(360deg);
 }
 
@@ -100,8 +149,8 @@
 
 /* Spin the refresh glyph itself, not just its wrapper: the <svg> keeps turning
    whenever the button is busy, even if the wrapper class is missing. */
-:where(.check-all, .zones .foot .btn:first-of-type) .spin svg,
-:where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) svg {
+:where(.check-all, .zones .foot .btn:first-of-type) .spin svg:not(.check-pill-beam),
+:where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) svg:not(.check-pill-beam) {
   transform-origin: center;
   animation: spin 0.75s linear infinite;
 }
@@ -199,18 +248,6 @@
     transform: none !important;
     animation: surface-fade-enter var(--dur-fast) var(--ease-out);
   }
-
-  :where(html:not([data-motion="off"])) .spin,
-  :where(html:not([data-motion="off"])) :where(.check-all, .zones .foot .btn:first-of-type) .spin svg,
-  :where(html:not([data-motion="off"])) :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) svg {
-    animation: none !important;
-  }
-
-  :where(html:not([data-motion="off"])) :where(.check-all, .zones .foot .btn:first-of-type, .is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::before,
-  :where(html:not([data-motion="off"])) :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::after {
-    animation: none !important;
-    display: none !important;
-  }
 }
 
 html[data-motion="reduced"] {
@@ -231,18 +268,6 @@ html[data-motion="reduced"] :where(.zones > .card, .row3 > .panel) {
 html[data-motion="reduced"] :where(.appearance-popover, .modal, .palette) {
   transform: none !important;
   animation: surface-fade-enter var(--dur-fast) var(--ease-out);
-}
-
-html[data-motion="reduced"] .spin,
-html[data-motion="reduced"] :where(.check-all, .zones .foot .btn:first-of-type) .spin svg,
-html[data-motion="reduced"] :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) svg {
-  animation: none !important;
-}
-
-html[data-motion="reduced"] :where(.check-all, .zones .foot .btn:first-of-type, .is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::before,
-html[data-motion="reduced"] :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::after {
-  animation: none !important;
-  display: none !important;
 }
 
 /* Off motion: completely disable transitions and animations */

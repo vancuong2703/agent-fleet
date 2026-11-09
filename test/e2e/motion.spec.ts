@@ -115,35 +115,34 @@ test.describe('Motion controls, button feedback, and check status honesty', () =
     // and the busy button is not dimmed (group opacity would fade the beam).
     const pendingStyles = await checkBtn.evaluate((el) => {
       const before = getComputedStyle(el, '::before');
-      const svg = el.querySelector('svg')!;
+      const pillRect = el.querySelector('.check-pill-beam rect') as SVGRectElement;
+      const svg = el.querySelector('.spin svg')!;
       return {
         beamAnimation: before.animationName,
         beamDuration: parseFloat(before.animationDuration) || 0,
-        beamDisplay: before.display,
+        pillStrokeAnim: getComputedStyle(pillRect).animationName,
         iconAnimation: getComputedStyle(svg).animationName,
         opacity: parseFloat(getComputedStyle(el).opacity) || 0,
       };
     });
     expect(pendingStyles.beamAnimation).not.toBe('none');
     expect(pendingStyles.beamDuration).toBeGreaterThan(0);
-    expect(pendingStyles.beamDisplay).not.toBe('none');
+    expect(pendingStyles.pillStrokeAnim).toBe('check-pill-stroke');
     expect(pendingStyles.iconAnimation).not.toBe('none');
     expect(pendingStyles.opacity).toBeGreaterThan(0.95);
 
-    // Reduced motion still removes the rotating beam and the icon spin.
+    // Even under data-motion="reduced", active checking feedback remains visible and animated.
     await page.evaluate(() => document.documentElement.setAttribute('data-motion', 'reduced'));
     const reducedStyles = await checkBtn.evaluate((el) => {
-      const before = getComputedStyle(el, '::before');
-      const svg = el.querySelector('svg')!;
+      const pillRect = el.querySelector('.check-pill-beam rect') as SVGRectElement;
+      const svg = el.querySelector('.spin svg')!;
       return {
-        beamAnimation: before.animationName,
-        beamDisplay: before.display,
+        pillStrokeAnim: getComputedStyle(pillRect).animationName,
         iconAnimation: getComputedStyle(svg).animationName,
       };
     });
-    expect(reducedStyles.beamAnimation).toBe('none');
-    expect(reducedStyles.beamDisplay).toBe('none');
-    expect(reducedStyles.iconAnimation).toBe('none');
+    expect(reducedStyles.pillStrokeAnim).toBe('check-pill-stroke');
+    expect(reducedStyles.iconAnimation).not.toBe('none');
     await page.evaluate(() => document.documentElement.setAttribute('data-motion', 'system'));
 
     // Complete the check
@@ -194,16 +193,19 @@ test.describe('Motion controls, button feedback, and check status honesty', () =
 
     const styles = await checkAllBtn.evaluate((el) => {
       const before = getComputedStyle(el, '::before');
-      const svg = el.querySelector('svg')!;
+      const pillRect = el.querySelector('.check-pill-beam rect') as SVGRectElement;
+      const svg = el.querySelector('.spin svg')!;
       return {
         beamAnimation: before.animationName,
         beamDuration: parseFloat(before.animationDuration) || 0,
+        pillStrokeAnim: getComputedStyle(pillRect).animationName,
         iconAnimation: getComputedStyle(svg).animationName,
         opacity: parseFloat(getComputedStyle(el).opacity) || 0,
       };
     });
     expect(styles.beamAnimation).not.toBe('none');
     expect(styles.beamDuration).toBeGreaterThan(0);
+    expect(styles.pillStrokeAnim).toBe('check-pill-stroke');
     expect(styles.iconAnimation).not.toBe('none');
     expect(styles.opacity).toBeGreaterThan(0.95);
 

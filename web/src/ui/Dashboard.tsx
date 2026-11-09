@@ -154,7 +154,7 @@ export function Dashboard({
   };
 
   return <div className="wrap dashboard-page" data-page="dashboard" onClick={handlePageClick}>
-    <PageHead title="DASH" accent="BOARD" large label={t('Dashboard', 'Bảng điều khiển')} eyebrow={t('AI workspace', 'Không gian làm việc AI')} actions={<><span className="stamp">{checks.length ? clock(Math.max(...checks)) : '—'}</span><button className={`check-all${cli.checkingAll.active ? ' is-checking' : ''}`} aria-busy={cli.checkingAll.active || undefined} disabled={!tools.length || Boolean(cli.checking) || cli.checkingAll.active} onClick={() => void cli.checkAll()}><span className={cli.checkingAll.active ? 'spin' : ''}><Icon name="refresh" size={16} /></span><span>{cli.checkingAll.active ? `${t('Checking', 'Đang kiểm tra')} ${cli.checkingAll.done}/${cli.checkingAll.total}` : t('Check all', 'Kiểm tra tất cả')}</span></button></>} />
+    <PageHead title="DASH" accent="BOARD" large label={t('Dashboard', 'Bảng điều khiển')} eyebrow={t('AI workspace', 'Không gian làm việc AI')} actions={<><span className="stamp">{checks.length ? clock(Math.max(...checks)) : '—'}</span><button className={`check-all${cli.checkingAll.active ? ' is-checking' : ''}`} aria-busy={cli.checkingAll.active || undefined} disabled={!tools.length || Boolean(cli.checking) || cli.checkingAll.active} onClick={() => void cli.checkAll()}><svg className="check-pill-beam" aria-hidden="true"><rect pathLength={100} /></svg><span className={cli.checkingAll.active ? 'spin' : ''}><Icon name="refresh" size={16} /></span><span>{cli.checkingAll.active ? `${t('Checking', 'Đang kiểm tra')} ${cli.checkingAll.done}/${cli.checkingAll.total}` : t('Check all', 'Kiểm tra tất cả')}</span></button></>} />
     {cli.message && <Notice message={cli.message} error={cli.messageKind === 'error'} onRetry={cli.messageKind === 'error' ? () => void cli.checkAll() : undefined} />}
     {stats.error && <Notice message={stats.error} error onRetry={stats.retry} />}
     <div className="zones">
@@ -233,6 +233,9 @@ export function Dashboard({
                 onClick={() => void cli.check(tool.agent)}
                 aria-label={`${t('Check', 'Kiểm tra')} ${tool.title}`}
               >
+                <svg className="check-pill-beam" aria-hidden="true">
+                  <rect pathLength={100} />
+                </svg>
                 <span className={cli.checking === tool.agent ? 'spin' : ''}>
                   <Icon name="refresh" size={14} />
                 </span>
