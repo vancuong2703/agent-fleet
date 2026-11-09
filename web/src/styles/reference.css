@@ -524,9 +524,9 @@ textarea:focus-visible,
 .btn.danger { color: var(--bad); border-color: var(--border); background: var(--surface); }
 .btn.danger:hover { background: var(--bad-soft); border-color: var(--bad); }
 
-.check-all { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: #fff; font: 600 0.8125rem var(--sans); cursor: pointer; transition: background-color 100ms ease, border-color 100ms ease; }
-.check-all:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
-.check-all:disabled { opacity: 0.6; cursor: default; }
+.check-all { position: relative; isolation: isolate; display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 18px; border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--ink) 5.5%, transparent); color: var(--ink); font: 650 0.8125rem var(--sans); cursor: pointer; backdrop-filter: blur(6px); transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease; }
+.check-all:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 9.5%, transparent); border-color: color-mix(in srgb, var(--ink) 26%, transparent); }
+.check-all:disabled { opacity: 0.65; cursor: default; }
 
 i.ic { width: 15px; height: 15px; display: inline-block; flex: none; background: currentColor; -webkit-mask: var(--u) center/contain no-repeat; mask: var(--u) center/contain no-repeat; }
 .spin { animation: spin .8s linear infinite; }
@@ -691,13 +691,16 @@ h1.title em {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
-  padding: 18px;
+  padding: 14px 16px;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 9px;
   min-width: 0;
   position: relative;
+}
+.zones > .card[data-tool="agy"] {
+  gap: 7px;
 }
 @media (max-width: 1320px) {
   .zones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -761,22 +764,43 @@ h1.title em {
 .dot.bad { background: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft); }
 
 .zones .gauge { gap: 6px; }
-.zones .mtx td { padding: 6px 4px; }
-.zones .m { padding: 8px 2px; }
+.zones .mtx td { padding: 3px 4px; }
+.zones .mtx .donut.sm { width: 44px; height: 44px; }
+.zones .m { padding: 6px 2px; }
 .zones .credit b { font-size: 28px; }
 .statusline {
   font: 650 0.6875rem/1.35 var(--mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
-  padding: 5px 8px;
+  padding: 4px 8px;
   border-radius: 7px;
   background: var(--surface-2);
   border: 1px solid var(--border);
 }
-.foot { margin-top: auto; display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; flex-wrap: wrap; }
-.foot .when { flex: 1; font: 650 0.6875rem var(--sans); letter-spacing: 0.03em; text-transform: uppercase; font-variant-numeric: tabular-nums; color: var(--muted); }
-.zones .foot .btn { text-transform: uppercase; letter-spacing: 0.03em; font-weight: 700; }
+.foot { margin-top: auto; display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--border); padding-top: 9px; flex-wrap: nowrap; }
+.foot .when { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 650 0.65rem var(--sans); letter-spacing: 0.03em; text-transform: uppercase; font-variant-numeric: tabular-nums; color: var(--muted); }
+.zones .foot .btn,
+.cmp .foot .btn {
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 5.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  color: var(--ink);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  flex: none;
+  backdrop-filter: blur(6px);
+}
+.zones .foot .btn:hover:not(:disabled),
+.cmp .foot .btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 9.5%, transparent);
+  border-color: color-mix(in srgb, var(--ink) 26%, transparent);
+  color: var(--ink);
+}
 
 /* three numbers side by side (dashboard cards, compare cards) */
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; border-top: 1px solid var(--border); padding-top: 9px; }
@@ -891,12 +915,12 @@ h1.title em {
 
 /* ---- antigravity matrix ---- */
 .mtx { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.mtx th { font-family: var(--sans); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); padding: 0 4px 6px; text-align: right; }
-.mtx th:first-child { text-align: left; width: 34%; padding-left: 0; }
+.mtx th { font-family: var(--sans); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); padding: 0 4px 4px; text-align: center; }
+.mtx th:first-child { text-align: left; width: 40%; padding-left: 0; }
 .mtx .colreset { font: 500 0.6875rem var(--sans); font-variant-numeric: tabular-nums; color: var(--muted); display: block; text-transform: uppercase; letter-spacing: 0.02em; }
-.mtx td { padding: 7px 4px; border-top: 1px solid var(--border); text-align: right; vertical-align: middle; font-size: 0.75rem; }
-.mtx td:first-child { text-align: left; padding-left: 0; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; white-space: normal; overflow-wrap: anywhere; line-height: 1.3; color: var(--ink); }
-.mtx td .donut { margin: 0 0 0 auto; }
+.mtx td { padding: 4px 4px; border-top: 1px solid var(--border); text-align: center; vertical-align: middle; font-size: 0.75rem; }
+.mtx td:first-child { text-align: left; padding-left: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; white-space: normal; overflow-wrap: anywhere; line-height: 1.25; color: var(--ink); }
+.mtx td .donut { margin: 0 auto; }
 
 /* ---- models / credit / kpi ---- */
 .models { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--border); }

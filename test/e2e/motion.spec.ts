@@ -185,6 +185,67 @@ test.describe('Motion controls, button feedback, and check status honesty', () =
     await expect(notice).toBeVisible();
     await expect(notice).toContainText(/Lỗi kiểm tra/i);
     await expect(notice).toHaveClass(/error/);
+    await expect(notice).toContainText(/Lỗi kiểm tra/i);
     await expect(notice).not.toContainText(/Sẵn sàng/i);
+  });
+
+  test('Antigravity CLI card fits without scrolling and aligns matrix time headers with donuts, with pill buttons', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.addInitScript(() => {
+      localStorage.setItem('fleet.language', 'en');
+      localStorage.setItem('fleet.theme', 'light');
+    });
+    await referenceFixture(page);
+
+    const token = (await readFile(path.join(process.env.FLEET_DATA_DIR!, 'token'), 'utf8')).trim();
+    await page.goto(`/auth?token=${encodeURIComponent(token)}`);
+
+    const agyCard = page.locator('[data-card-id="cli:agy"]');
+    await expect(agyCard).toBeVisible();
+
+    const metrics = await agyCard.evaluate((card) => {
+      const cardStyle = getComputedStyle(card);
+      const checkBtn = card.querySelector('.foot .btn:first-of-type') as HTMLElement;
+      const detailsBtn = card.querySelector('.foot .btn.ghost') as HTMLElement;
+      const checkAllBtn = document.querySelector('.check-all') as HTMLElement;
+
+      const checkStyle = getComputedStyle(checkBtn);
+      const detailsStyle = getComputedStyle(detailsBtn);
+      const checkAllStyle = getComputedStyle(checkAllBtn);
+
+      const ths = Array.from(card.querySelectorAll('.mtx thead th')).slice(1);
+      const firstRowDonuts = Array.from(card.querySelectorAll('.mtx tbody tr:first-child td .donut'));
+
+      const headerCenters = ths.map((th) => {
+        const r = th.getBoundingClientRect();
+        return r.left + r.width / 2;
+      });
+      const donutCenters = firstRowDonuts.map((d) => {
+        const r = d.getBoundingClientRect();
+        return r.left + r.width / 2;
+      });
+
+      return {
+        scrollHeight: card.scrollHeight,
+        clientHeight: card.clientHeight,
+        overflowY: cardStyle.overflowY,
+        checkRadius: checkStyle.borderRadius,
+        detailsRadius: detailsStyle.borderRadius,
+        detailsBorderWidth: detailsStyle.borderTopWidth,
+        checkAllRadius: checkAllStyle.borderRadius,
+        headerCenters,
+        donutCenters,
+      };
+    });
+
+    expect(metrics.overflowY).toBe('hidden');
+    expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.clientHeight);
+    expect(metrics.checkRadius).toBe('999px');
+    expect(metrics.detailsRadius).toBe('999px');
+    expect(parseFloat(metrics.detailsBorderWidth)).toBeGreaterThan(0);
+    expect(metrics.checkAllRadius).toBe('999px');
+    expect(metrics.headerCenters).toHaveLength(2);
+    expect(Math.abs(metrics.headerCenters[0]! - metrics.donutCenters[0]!)).toBeLessThanOrEqual(2);
+    expect(Math.abs(metrics.headerCenters[1]! - metrics.donutCenters[1]!)).toBeLessThanOrEqual(2);
   });
 });

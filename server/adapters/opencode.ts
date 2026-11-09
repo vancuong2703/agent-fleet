@@ -94,7 +94,7 @@ export const opencodeAdapter: AgentAdapter = {
   headless(i) {
     return {
       cmd: i.bin,
-      args: ['run', '--standalone', '--format', 'json', '--auto', ...i.extraArgs, '--', i.brief],
+      args: ['run', '--standalone', '--format', 'json', '--auto', ...(i.sessionId ? ['--session', i.sessionId] : []), ...i.extraArgs, '--', i.brief],
     };
   },
 

@@ -105,6 +105,7 @@ export const qodercliAdapter: AgentAdapter = {
         'stream-json',
         '--permission-mode',
         'auto',
+        ...(i.sessionId ? ['-r', i.sessionId] : []),
         '-w',
         i.cwd,
         ...i.extraArgs,

@@ -244,7 +244,7 @@ export class Store {
 
   // ── runs ─────────────────────────────────────────────────────────────────
 
-  createRun(r: Pick<Run, 'taskId' | 'agent' | 'brief' | 'note' | 'commandPolicy' | 'allowedCommands'>): Run {
+  createRun(r: Pick<Run, 'taskId' | 'agent' | 'brief' | 'note' | 'commandPolicy' | 'allowedCommands'> & { sessionId?: string | null }): Run {
     const maxRow = this.db
       .prepare('SELECT MAX(attempt) AS maxAttempt FROM runs WHERE taskId = ?')
       .get(r.taskId) as Row | undefined;
@@ -269,7 +269,7 @@ export class Store {
       costUsd: null,
       finalMessage: null,
       errorCategory: null,
-      sessionId: null,
+      sessionId: r.sessionId ?? null,
       commandPolicy: r.commandPolicy ?? 'ask',
       allowedCommands: r.allowedCommands ?? [],
     };

@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import type { ConnectedToolId } from '../shared/connections.js';
 import { loadConfig } from '../server/config.js';
 import { dataDir, files } from '../server/paths.js';
 
@@ -202,15 +203,77 @@ export class TokenMismatchError extends ApiError {
   }
 }
 
+export function detectClientTool(env: Record<string, string | undefined> = process.env): {
+  toolId: ConnectedToolId;
+  toolName: string;
+} {
+  const override = env.FLEET_CLIENT_TOOL?.trim().toLowerCase();
+  if (override) {
+    if (override === 'agy' || override === 'antigravity') {
+      return { toolId: 'agy', toolName: 'Antigravity CLI' };
+    }
+    if (override === 'codex') {
+      return { toolId: 'codex', toolName: 'Codex CLI' };
+    }
+    if (override === 'qoder' || override === 'qodercli') {
+      return { toolId: 'qodercli', toolName: 'Qoder CLI' };
+    }
+    if (override === 'opencode') {
+      return { toolId: 'opencode', toolName: 'OpenCode' };
+    }
+    if (override === 'claude') {
+      return { toolId: 'claude', toolName: 'Claude Code' };
+    }
+    if (override === 'powershell' || override === 'pwsh') {
+      return { toolId: 'powershell', toolName: 'PowerShell / Terminal' };
+    }
+    return { toolId: 'unknown', toolName: 'Fleet CLI' };
+  }
+
+  if (env.ANTIGRAVITY_CLI_ALIAS || env.ANTIGRAVITY_AGENT || env.AGY_ACCOUNT || /antigravity/i.test(env.TERM_PROGRAM ?? '')) {
+    return { toolId: 'agy', toolName: 'Antigravity CLI' };
+  }
+  if (env.CODEX_SANDBOX || env.CODEX_THREAD_ID || env.CODEX_CI || env.CODEX_HOME) {
+    return { toolId: 'codex', toolName: 'Codex CLI' };
+  }
+  if (env.QODER_CLI || env.QODER_SESSION_ID || env.QODER_HOME) {
+    return { toolId: 'qodercli', toolName: 'Qoder CLI' };
+  }
+  if (env.OPENCODE || env.OPENCODE_SESSION_ID || env.OPENCODE_SERVER) {
+    return { toolId: 'opencode', toolName: 'OpenCode' };
+  }
+  if (env.CLAUDECODE || env.CLAUDE_CODE_ENTRYPOINT) {
+    return { toolId: 'claude', toolName: 'Claude Code' };
+  }
+
+  return { toolId: 'powershell', toolName: 'PowerShell / Terminal' };
+}
+
+function currentCliCommand(route: string): string {
+  const entry = process.argv[1] ?? '';
+  const isFleetCli = /(?:^|[\\/])fleet(?:\.[cm]?[jt]s|(?:\.exe)?)?$/i.test(entry);
+  const args = process.argv.slice(2);
+  if (isFleetCli && args.length > 0) {
+    return `fleet ${args.join(' ')}`.slice(0, 160);
+  }
+  return route;
+}
+
 /** HTTP has no header timeout here: fleet wait may legitimately take hours. */
 export async function apiRequest<T>(baseUrl: string, route: string, body?: unknown): Promise<T> {
   const token = (await readFile(tokenFilePath(), 'utf8')).trim();
   const payload = body === undefined ? undefined : JSON.stringify(body);
+  const clientTool = detectClientTool();
   return new Promise<T>((resolve, reject) => {
     const request = http.request(new URL(route, baseUrl), {
       method: payload === undefined ? 'GET' : 'POST',
       headers: {
         'x-fleet-token': token,
+        'x-fleet-client-tool': clientTool.toolId,
+        'x-fleet-client-name': clientTool.toolName,
+        'x-fleet-client-pid': String(process.pid),
+        'x-fleet-client-cwd': encodeURIComponent(process.cwd()),
+        'x-fleet-client-cmd': encodeURIComponent(currentCliCommand(route)),
         ...(payload === undefined ? {} : { 'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) }),
       },
     }, (response) => {

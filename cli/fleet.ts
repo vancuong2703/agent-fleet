@@ -150,13 +150,29 @@ program.command('diff <id>').option('--stat').action(async (id: string, opts: { 
   output(diff, () => { if (opts.stat) printFiles(diff.files); else process.stdout.write(diff.patch); });
 });
 
+const retryAction = async (id: string, opts: { agent?: string; note: string; commandPolicy?: CommandPolicy; allowCommand?: string[]; session?: boolean }) => {
+  const run = await apiRequest<Run>(await ensureServer(), `${taskRoute(id)}/retry`, {
+    agent: opts.agent,
+    note: opts.note,
+    commandPolicy: opts.commandPolicy,
+    allowedCommands: opts.allowCommand,
+    ...(opts.session === false ? { resumeSession: false } : {}),
+  });
+  output(run, () => console.log(`${id}  ${run.status}  ${run.agent}  attempt ${run.attempt}  ${run.id}`));
+};
+
 program.command('retry <id>').option('--agent <agent>').requiredOption('--note <text>')
   .addOption(new Option('--command-policy <policy>', 'AGY command approval for this run').choices(['ask', 'check-only', 'auto']))
   .option('--allow-command <command>', 'Explicit command to allow (repeatable)', (value: string, previous: string[] = []) => [...previous, value])
-  .action(async (id: string, opts: { agent?: string; note: string; commandPolicy?: CommandPolicy; allowCommand?: string[] }) => {
-    const run = await apiRequest<Run>(await ensureServer(), `${taskRoute(id)}/retry`, { agent: opts.agent, note: opts.note, commandPolicy: opts.commandPolicy, allowedCommands: opts.allowCommand });
-    output(run, () => console.log(`${id}  ${run.status}  ${run.agent}  attempt ${run.attempt}  ${run.id}`));
-  });
+  .option('--no-session', 'Start a fresh agent session instead of resuming the previous one')
+  .action(retryAction);
+
+program.command('continue <id>').description('Continue a finished task in the same session to preserve context')
+  .option('--agent <agent>').requiredOption('--note <text>')
+  .addOption(new Option('--command-policy <policy>', 'AGY command approval for this run').choices(['ask', 'check-only', 'auto']))
+  .option('--allow-command <command>', 'Explicit command to allow (repeatable)', (value: string, previous: string[] = []) => [...previous, value])
+  .option('--no-session', 'Start a fresh agent session instead of resuming the previous one')
+  .action(retryAction);
 
 for (const [action, status] of [['stop', 'interrupted'], ['discard', 'discarded']] as const) {
   program.command(`${action} <id>`).action(async (id: string) => {

@@ -13,6 +13,7 @@ import { isCorruptionError } from './db-maintenance.js';
 import { agyCommandArgs } from './command-permissions.js';
 import { registerDashboardRoutes } from './dashboard.js';
 import { Observability } from './observability.js';
+import { ConnectionRegistry } from './connections.js';
 import type { PtyManager, PtyResolver } from './pty.js';
 import { FleetError, type TaskService } from './service.js';
 import { computeStats } from './stats.js';
@@ -78,6 +79,7 @@ export function buildServer(o: {
 }): FastifyInstance {
   const { service, store, bus } = o;
   const instanceId = randomUUID();
+  const connections = new ConnectionRegistry();
   const diffsInFlight = new Map<string, ReturnType<typeof diffWorktree>>();
   const app = fastify({ ajv: { customOptions: { coerceTypes: true, removeAdditional: false } } });
   const observability = new Observability(store, bus);
@@ -110,6 +112,9 @@ export function buildServer(o: {
         || matches(cookieToken(request.headers.cookie))
         || ((url.pathname === '/ws' || url.pathname.startsWith('/ws/')) && matches(url.searchParams.get('token')));
       if (!authenticated) return reply.code(401).send({ error: 'unauthorized', message: 'Invalid or missing fleet token' });
+      if (headerAuth) {
+        connections.record(request.headers, url.pathname, request.method);
+      }
       if (request.method !== 'GET' && url.pathname.startsWith('/api/') && !headerAuth
         && !request.headers['content-type']?.startsWith('application/json')) {
         return reply.code(415).send({ error: 'unsupported_media_type' });
@@ -147,6 +152,7 @@ export function buildServer(o: {
     const removeWorktreeGuard = service.addWorktreeGuard(taskId => dashboardTerminals.closeForTask(taskId));
     routes.addHook('onClose', async () => { removeWorktreeGuard(); });
     routes.get('/api/health', async () => ({ ok: true, service: 'agent-fleet', instanceId }));
+    routes.get('/api/connections', async () => connections.list());
     routes.get('/api/leader-guide', async (request, reply) => {
       reply.header('Cache-Control', 'no-store');
       return leaderGuide(o.port ?? request.raw.socket.localPort ?? loadConfig().port, instanceId);
@@ -206,7 +212,7 @@ export function buildServer(o: {
       return started;
     });
     routes.post<IdParams & { Body: Parameters<TaskService['retry']>[1] }>('/api/tasks/:id/retry', {
-      schema: { body: objectSchema({ agent, note: text, ...commandOptionsSchema }, ['note']) },
+      schema: { body: objectSchema({ agent, note: text, resumeSession: { type: 'boolean' }, ...commandOptionsSchema }, ['note']) },
     }, async (request) => service.retry(request.params.id, request.body));
     for (const [action, method] of [
       ['stop', 'stop'], ['takeover', 'takeOver'], ['done', 'markDone'], ['discard', 'discard'],

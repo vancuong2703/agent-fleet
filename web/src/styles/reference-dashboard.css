@@ -5,8 +5,8 @@
 
 /* The tool zones keep their natural height; the info row below is what
    absorbs the leftover window height, so the page still ends flush. */
-.zones .foot { padding-top: 10px; }
-.zones .stats { padding-top: 7px; }
+.zones .foot { padding-top: 8px; }
+.zones .stats { padding-top: 6px; }
 
 /* ---- Row 3: Token → Jobs → Attention ---- */
 .row3 {
@@ -492,4 +492,28 @@
 @media (max-width: 1250px) {
   .noterow .tablenote { display: none; }
   .row3 .panel { justify-content: space-between; }
+}
+
+/* Desktop: the dashboard never scrolls as a page. The tool cards absorb the
+   leftover height and scroll inside themselves only when their own content is
+   taller than the space they get. */
+@media (min-width: 901px) {
+  .wrap.dashboard-page { overflow: hidden; }
+  .wrap.dashboard-page > .zones { flex: 1 1 0; min-height: 230px; grid-template-rows: minmax(0, 1fr); }
+  .wrap.dashboard-page > .zones > .card { min-height: 0; overflow: hidden; }
+  .wrap.dashboard-page > .zones > .card > * { flex-shrink: 0; }
+  .wrap.dashboard-page > .row3 { flex: 0 1 auto; min-height: 120px; }
+  .wrap.dashboard-page > .row3 > .panel[data-card-id="tokens"] { overflow: visible; z-index: 20; }
+  .wrap.dashboard-page > .row3 > .panel:not([data-card-id="tokens"]) { overflow-y: auto; }
+}
+@media (min-width: 901px) and (max-height: 820px) {
+  .wrap.dashboard-page { padding-top: 12px; padding-bottom: 8px; }
+  .dashboard-page .row3 { gap: 12px; }
+  .row3 .panel { padding: 12px 16px; }
+  .daily-token-chart { gap: 6px; }
+  .token-chart-visual { min-height: 96px; }
+}
+@media (min-width: 901px) and (max-height: 680px) {
+  .token-chart-visual { min-height: 56px; }
+  .wrap.dashboard-page { padding-top: 8px; }
 }

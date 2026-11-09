@@ -72,7 +72,11 @@ input,textarea,select { color:var(--ink); background:var(--surface); border:1px 
 .cmp .g-reset { max-width:110px; overflow-wrap:anywhere; }
 .cmp .card { min-height:370px; }
 .repo-filter { height:28px; padding:0 9px; max-width:180px; font:11px var(--mono); border-radius:99px; }
-.notice { margin-bottom:12px; flex:none; }
+/* Notices float above the page so they never push content down or add scrolling. */
+.notice { position:fixed; top:16px; right:20px; z-index:100; width:min(420px, calc(100vw - 40px)); margin:0; flex:none; box-shadow:var(--shadow); background-color:var(--surface, #fff); background-image:linear-gradient(var(--warn-soft), var(--warn-soft)); animation:notice-in 180ms ease-out; }
+.notice.error { background-image:linear-gradient(var(--bad-soft), var(--bad-soft)); }
+@keyframes notice-in { from { opacity:0; transform:translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .notice { animation:none; } }
 .notice.error { border-color:var(--bad); background:var(--bad-soft); }
 .notice.error .txt { color:var(--bad); }
 .skeleton-card>div { height:20px; background:var(--surface-2); border-radius:5px; animation:pulse 1.5s infinite alternate; }
@@ -411,4 +415,45 @@ table.jobs thead th { position:sticky; top:0; z-index:1; background:var(--surfac
   .jobs-head .jbar .chip,.jobs-head .jbar .count { flex:none; }
   .jobs-head .job-search { flex:1 0 100%; margin-left:0; order:4; padding:2px 6px; }
   .diff-reveal-label { display:none; }
+}
+
+
+/* Connected tools & inline field controls */
+.field-inline { display:flex; align-items:center; gap:8px; margin:6px 0 10px; font-size:12px; color:var(--ink); cursor:pointer; }
+.field-inline input[type="checkbox"] { margin:0; width:15px; height:15px; accent-color:var(--accent); cursor:pointer; }
+
+.conn-empty { text-align:center; padding:32px 20px; display:flex; flex-direction:column; align-items:center; gap:16px; color:var(--muted); }
+.conn-empty p { max-width:540px; margin:0 auto; line-height:1.6; }
+
+.conn-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:14px; margin-top:14px; }
+.conn-card { display:flex; flex-direction:column; gap:12px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md, 10px); transition:border-color 140ms ease, box-shadow 140ms ease; }
+.conn-card:hover { border-color:var(--border-strong, var(--border)); box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+.conn-header { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+.conn-title-group { display:flex; align-items:center; gap:10px; min-width:0; }
+.conn-title-group h3 { margin:0; font-size:14px; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tool-logo { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; background:var(--surface-2); color:var(--ink); border:1px solid var(--border); }
+.conn-meta { display:flex; flex-direction:column; gap:8px; font-size:12px; }
+.conn-row { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.conn-label { color:var(--muted); font-size:11px; flex-shrink:0; }
+.conn-cmd, .conn-cwd { max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:var(--surface-2); padding:2px 6px; border-radius:4px; border:1px solid var(--border); font-size:11px; text-align:right; }
+.conn-stat { display:flex; align-items:center; gap:8px; font-size:13px; }
+
+/* Guide page connected tools section */
+.guide-connected-tools { margin-bottom:16px; padding:12px 16px; }
+.guide-connected-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.guide-connected-head h4 { margin:0; font-size:13px; }
+.guide-connected-list { display:flex; flex-direction:column; gap:6px; }
+.guide-connected-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 10px; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; font-size:12px; }
+.conn-cmd-inline { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+@media(max-width:768px) {
+  .conn-grid { grid-template-columns:1fr; }
+  .conn-cmd, .conn-cwd { max-width:180px; }
+  .conn-cmd-inline { display:none; }
+}
+
+@media(max-width:480px) {
+  .conn-row { flex-direction:column; align-items:flex-start; gap:2px; }
+  .conn-cmd, .conn-cwd { max-width:100%; width:100%; text-align:left; }
+  .guide-connected-item { flex-wrap:wrap; gap:6px; }
 }

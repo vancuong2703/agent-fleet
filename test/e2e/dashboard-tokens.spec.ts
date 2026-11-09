@@ -119,6 +119,22 @@ test.describe('Dashboard Daily Token Usage Chart', () => {
     await expect(tooltip).toContainText(/Input \/ Output/i);
     await expect(tooltip).toContainText(/Lần chạy|Runs/i);
 
+    // Ensure tooltip is not clipped by .panel overflow and sits above the panel without ancestor clipping
+    const clipCheck = await tooltip.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      let parent = el.parentElement;
+      while (parent && !parent.classList.contains('dashboard-page')) {
+        const style = getComputedStyle(parent);
+        if (style.overflowY !== 'visible' || style.overflowX !== 'visible') {
+          const pRect = parent.getBoundingClientRect();
+          if (rect.top < pRect.top || rect.bottom > pRect.bottom) return false;
+        }
+        parent = parent.parentElement;
+      }
+      return rect.height > 80;
+    });
+    expect(clipCheck).toBe(true);
+
     // Escape closes tooltip
     await page.keyboard.press('Escape');
     await expect(tooltip).toBeHidden();

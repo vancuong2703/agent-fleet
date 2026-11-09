@@ -79,6 +79,7 @@ export const codexAdapter: AgentAdapter = {
         '-C',
         i.cwd,
         ...i.extraArgs,
+        ...(i.sessionId ? ['resume', i.sessionId] : []),
         '-',
       ],
       stdin: i.brief,

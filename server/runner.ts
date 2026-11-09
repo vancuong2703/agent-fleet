@@ -40,10 +40,11 @@ export async function runAttempt(o: {
   adapter: AgentAdapter; bin: string; extraArgs: string[]; brief: string; briefFile: string; cwd: string;
   timeouts: { totalMs: number; idleMs: number; networkMs?: number }; checkCmd: string | null;
   onEvent: (e: FleetEvent) => void; onSpawn: (pid: number) => void; signal: AbortSignal;
+  sessionId?: string | null; prompt?: string;
 }): Promise<RunOutcome> {
   const outcome: RunOutcome = {
     status: 'failed', exitCode: null, finalMessage: null, errorCategory: null,
-    sessionId: null, inputTokens: null, outputTokens: null, costUsd: null, checkPassed: null,
+    sessionId: o.sessionId ?? null, inputTokens: null, outputTokens: null, costUsd: null, checkPassed: null,
   };
   const events: FleetEvent[] = [];
   const usageIds = new Set<string>();
@@ -248,7 +249,8 @@ export async function runAttempt(o: {
 
     totalTimer = setTimeout(() => stop('timeout'), o.timeouts.totalMs);
     const spec = o.adapter.headless({
-      bin: o.bin, extraArgs: o.extraArgs, brief: o.brief, briefFile, cwd: path.win32.resolve(o.cwd),
+      bin: o.bin, extraArgs: o.extraArgs, brief: o.prompt ?? o.brief, briefFile, cwd: path.win32.resolve(o.cwd),
+      sessionId: o.sessionId ?? null,
     });
     if ([spec.cmd, ...spec.args].join(' ').length > 30_000) {
       throw new Error(`Brief quá dài cho dòng lệnh của ${o.adapter.id} (giới hạn ~32k ký tự trên Windows)`);

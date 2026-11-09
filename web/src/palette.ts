@@ -7,7 +7,7 @@ import { statusLabel } from './store.js';
  * and the action payloads can be tested without a DOM (vitest runs in `node`).
  */
 
-export type PaletteView = 'dashboard' | 'terminal' | 'tasks' | 'compare' | 'usage' | 'guide';
+export type PaletteView = 'dashboard' | 'terminal' | 'tasks' | 'compare' | 'usage' | 'guide' | 'connections';
 export type PaletteTheme = 'light' | 'dark' | 'system';
 
 export type PaletteAction =
@@ -43,6 +43,7 @@ const VIEWS: Array<{ id: PaletteView; label: string; hint: string }> = [
   { id: 'compare', label: 'So sánh agent', hint: 'Màn hình' },
   { id: 'usage', label: 'Tài nguyên & sử dụng', hint: 'Màn hình' },
   { id: 'guide', label: 'Hướng dẫn leader', hint: 'Kết nối và giao việc' },
+  { id: 'connections', label: 'Công cụ kết nối', hint: 'Màn hình' },
 ];
 
 const THEMES: Array<{ id: PaletteTheme; label: string }> = [

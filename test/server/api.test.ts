@@ -149,6 +149,47 @@ test('repository validation is authenticated, read-only and does not create plan
   expect(store.listTasks()).toEqual([]);
 });
 
+test('GET /api/connections returns connected tool info recorded from client headers', async () => {
+  const unauth = await app.inject({ method: 'GET', url: '/api/connections' });
+  expect(unauth.statusCode).toBe(401);
+
+  const clientHeaders = {
+    ...headers,
+    'x-fleet-client-tool': 'agy',
+    'x-fleet-client-pid': '12345',
+    'x-fleet-client-cwd': encodeURIComponent('C:\\projects\\fleet'),
+    'x-fleet-client-cmd': encodeURIComponent('fleet connection'),
+  };
+
+  const response1 = await app.inject({ method: 'GET', url: '/api/connections', headers: clientHeaders });
+  expect(response1.statusCode).toBe(200);
+  const connections1 = response1.json<Array<{
+    id: string;
+    toolId: string;
+    toolName: string;
+    pid: number;
+    cwd: string;
+    lastCommand: string;
+    requestCount: number;
+  }>>();
+  expect(connections1).toHaveLength(1);
+  expect(connections1[0]).toMatchObject({
+    id: 'agy:C:\\projects\\fleet',
+    toolId: 'agy',
+    toolName: 'Antigravity CLI',
+    pid: 12345,
+    cwd: 'C:\\projects\\fleet',
+    lastCommand: 'fleet connection',
+    requestCount: 1,
+  });
+
+  // Second request from same tool in same directory updates count
+  const response2 = await app.inject({ method: 'GET', url: '/api/connections', headers: clientHeaders });
+  expect(response2.statusCode).toBe(200);
+  const connections2 = response2.json<Array<{ requestCount: number }>>();
+  expect(connections2[0]?.requestCount).toBe(2);
+});
+
 async function createTask(brief = 'Sửa "lỗi"\n✓'): Promise<Task> {
   const planResponse = await post('/api/plans', { name: 'API plan', repoPath: repo });
   expect(planResponse.statusCode).toBe(200);

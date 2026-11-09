@@ -285,6 +285,48 @@ describe('TaskService', () => {
     expect(existsSync(task.worktreePath)).toBe(true);
   });
 
+  test('retry inherits sessionId when same agent, drops sessionId when resumeSession is false or agent changes', async () => {
+    await service.close();
+    service = new TaskService({ store, bus, config, adapters: fakeBacked });
+    const task = await service.run({ planId: plan.id, title: 'Session task', agent: 'agy', brief: 'first run' });
+    await finished(task);
+    const run1 = store.latestRun(task.id)!;
+    store.updateRun(run1.id, { sessionId: 'sess-first' });
+
+    // Same agent, default resumeSession: inherits sessionId
+    const retry1 = await service.retry(task.id, { note: 'retry same agent' });
+    expect(retry1.sessionId).toBe('sess-first');
+    await finished(task);
+
+    // Same agent, resumeSession: false: drops sessionId
+    const retry2 = await service.retry(task.id, { note: 'retry fresh session', resumeSession: false });
+    expect(retry2.sessionId).toBeNull();
+    await finished(task);
+
+    // Different agent: drops sessionId even if previous had sessionId
+    store.updateRun(retry2.id, { sessionId: 'sess-second' });
+    const retry3 = await service.retry(task.id, { note: 'retry with codex', agent: 'codex' });
+    expect(retry3.sessionId).toBeNull();
+    await finished(task);
+  });
+
+  test('retry continues a merged task and recreates worktree', async () => {
+    const task = await run();
+    await finished(task);
+    expect(await service.merge(task.id)).toEqual({ ok: true });
+    expect(existsSync(task.worktreePath)).toBe(false);
+    expect(store.getTask(task.id)?.status).toBe('merged');
+
+    const continued = await service.retry(task.id, { note: 'continue after merge' });
+    expect(continued.attempt).toBe(2);
+    expect(existsSync(task.worktreePath)).toBe(true);
+    expect(store.getTask(task.id)?.status).toBe('queued');
+
+    const result = await finished(task);
+    expect(result.task.status).toBe('done');
+    expect(result.run!.status).toBe('done');
+  });
+
   test('discard stops running work, deletes branch and returns empty files', async () => {
     const task = await run('[[hang]]');
     await running(task);

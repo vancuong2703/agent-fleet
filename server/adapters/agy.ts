@@ -150,6 +150,7 @@ export const agyAdapter: AgentAdapter = {
         'stream-json',
         '--mode',
         'accept-edits',
+        ...(i.sessionId ? ['--conversation', i.sessionId] : []),
         ...i.extraArgs,
         '-p',
         i.brief,

@@ -34,6 +34,7 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
   const [retryNote, setRetryNote] = useState('Hoàn tất công việc và chạy lại kiểm tra.');
   const [retryPolicy, setRetryPolicy] = useState<CommandPolicy>(run?.commandPolicy ?? 'ask');
   const [retryAllowed, setRetryAllowed] = useState((run?.allowedCommands ?? []).join('\n'));
+  const [resumeSession, setResumeSession] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -51,6 +52,7 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
     setMessage(null);
     setRetryPolicy(run?.commandPolicy ?? 'ask');
     setRetryAllowed((run?.allowedCommands ?? []).join('\n'));
+    setResumeSession(true);
   }, [task.id, run?.id]);
 
   useEffect(() => {
@@ -168,7 +170,7 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
               {task.status === 'running' ? t('Take over terminal', 'Tiếp quản terminal') : t('Open CLI', 'Mở terminal')}
             </button>
           )}
-          {['done', 'failed', 'timeout', 'interrupted'].includes(task.status) && <button type="button" className="action-btn" disabled={busy} onClick={() => setRetryOpen((open) => !open)}>{t('Retry', 'Thử lại')}</button>}
+          {['done', 'merged', 'failed', 'timeout', 'interrupted'].includes(task.status) && <button type="button" className="action-btn" disabled={busy} onClick={() => setRetryOpen((open) => !open)}>{task.status === 'merged' ? t('Continue', 'Tiếp tục') : t('Retry', 'Thử lại')}</button>}
           {actions.includes('discard') && <div className="task-overflow">
             <button ref={menuButton} type="button" className="action-btn task-overflow-trigger" aria-label="Thao tác khác" title="Thao tác khác" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={busy}
               onClick={() => setMenuOpen(open => !open)} onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setMenuOpen(true); } }}>
@@ -219,7 +221,7 @@ export function TaskActions({ task, baseBranch, run, terminalHeight, onTerminalH
       </div>
       {actions.includes('merge') && mergeDisabledReason && <div className="task-merge-help"><span id={mergeReasonId} role="tooltip">{mergeDisabledReason}</span>{currentDiff?.failed && !busy && <button type="button" className="text-button" onClick={() => setDiffRevision(value => value + 1)}>Tải lại thay đổi</button>}</div>}
       {message !== null && <p className="action-message" role="alert">{message}</p>}
-      {retryOpen && <form className="retry-form" onSubmit={(event) => { event.preventDefault(); const allowed = retryAllowed.split(/\r?\n/).map((line) => line.trim()).filter(Boolean); void invoke(async () => { await api.retry(task.id, { note: retryNote, ...(task.agent === 'agy' ? { commandPolicy: retryPolicy, ...(retryPolicy === 'check-only' && allowed.length > 0 ? { allowedCommands: allowed } : {}) } : {}) }); setRetryOpen(false); }); }}><label className="field">Ghi chú lần thử lại<textarea value={retryNote} required rows={2} onChange={(event) => setRetryNote(event.target.value)} /></label>{task.agent === 'agy' && <div className="command-policy"><label className="field">Quyền lệnh cho lần thử này<select aria-label="Quyền lệnh AGY khi thử lại" value={retryPolicy} onChange={(event) => setRetryPolicy(event.target.value as CommandPolicy)}><option value="ask">Hỏi quyền theo mặc định của AGY</option><option value="check-only">Chỉ lệnh kiểm tra và danh sách cho phép</option><option value="auto">Tự duyệt lệnh terminal (chỉ phiên này)</option></select></label>{retryPolicy === 'check-only' && <label className="field">Lệnh được cho phép thêm<textarea rows={3} value={retryAllowed} onChange={(event) => setRetryAllowed(event.target.value)} placeholder={'npm test\nnode check.cjs'} /></label>}<p className="small-note">Dùng “Tự duyệt” khi lần trước thất bại vì AGY bị chặn quyền chạy lệnh. Quyền chỉ áp dụng phiên này và được ghi nhật ký.</p></div>}<button className="action-btn action-primary" disabled={busy} type="submit">Chạy lại agent</button></form>}
+      {retryOpen && <form className="retry-form" onSubmit={(event) => { event.preventDefault(); const allowed = retryAllowed.split(/\r?\n/).map((line) => line.trim()).filter(Boolean); void invoke(async () => { await api.retry(task.id, { note: retryNote, resumeSession: run?.sessionId ? resumeSession : false, ...(task.agent === 'agy' ? { commandPolicy: retryPolicy, ...(retryPolicy === 'check-only' && allowed.length > 0 ? { allowedCommands: allowed } : {}) } : {}) }); setRetryOpen(false); }); }}><label className="field">Ghi chú lần thử lại<textarea value={retryNote} required rows={2} onChange={(event) => setRetryNote(event.target.value)} /></label>{run?.sessionId && <label className="field-inline"><input type="checkbox" checked={resumeSession} onChange={(event) => setResumeSession(event.target.checked)} /><span>{t(`Keep previous session context (${run.sessionId.slice(0, 8)}…)`, `Giữ ngữ cảnh phiên trước (${run.sessionId.slice(0, 8)}…)`)}</span></label>}{task.agent === 'agy' && <div className="command-policy"><label className="field">Quyền lệnh cho lần thử này<select aria-label="Quyền lệnh AGY khi thử lại" value={retryPolicy} onChange={(event) => setRetryPolicy(event.target.value as CommandPolicy)}><option value="ask">Hỏi quyền theo mặc định của AGY</option><option value="check-only">Chỉ lệnh kiểm tra và danh sách cho phép</option><option value="auto">Tự duyệt lệnh terminal (chỉ phiên này)</option></select></label>{retryPolicy === 'check-only' && <label className="field">Lệnh được cho phép thêm<textarea rows={3} value={retryAllowed} onChange={(event) => setRetryAllowed(event.target.value)} placeholder={'npm test\nnode check.cjs'} /></label>}<p className="small-note">Dùng “Tự duyệt” khi lần trước thất bại vì AGY bị chặn quyền chạy lệnh. Quyền chỉ áp dụng phiên này và được ghi nhật ký.</p></div>}<button className="action-btn action-primary" disabled={busy} type="submit">Chạy lại agent</button></form>}
 
       {terminalOpen && (
         <Suspense fallback={<p className="small-note">Đang tải terminal…</p>}><TerminalPanel taskId={task.id} height={terminalHeight} onHeightChange={onTerminalHeight} onClose={() => setTerminalOpen(false)} /></Suspense>

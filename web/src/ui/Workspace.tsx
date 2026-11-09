@@ -11,6 +11,7 @@ import { useTheme } from '../theme.js';
 import { AppearanceMenu } from './AppearanceMenu.js';
 import { type PaletteAction } from '../palette.js';
 import { Compare } from './Compare.js';
+import { Connections } from './Connections.js';
 import { Dashboard } from './Dashboard.js';
 import { Guide } from './Guide.js';
 import { Jobs } from './Jobs.js';
@@ -21,13 +22,14 @@ import { Meter, Notice } from './Common.js';
 import { LanguageProvider, useLanguage } from './language.js';
 import { known } from './model.js';
 
-type View = 'dashboard' | 'terminal' | 'tasks' | 'compare' | 'usage' | 'guide' | 'tool';
+type View = 'dashboard' | 'terminal' | 'tasks' | 'compare' | 'usage' | 'guide' | 'tool' | 'connections';
 const NAV: Array<{ id: Exclude<View, 'tool'>; en: string; vi: string; icon: IconName }> = [
   { id: 'dashboard', en: 'Dashboard', vi: 'Bảng điều khiển', icon: 'dashboard' },
   { id: 'terminal', en: 'Terminal', vi: 'Terminal', icon: 'terminal' },
   { id: 'tasks', en: 'Jobs', vi: 'Công việc', icon: 'tasks' },
   { id: 'compare', en: 'Compare', vi: 'So sánh agent', icon: 'compare' },
   { id: 'usage', en: 'Resources & usage', vi: 'Tài nguyên', icon: 'activity' },
+  { id: 'connections', en: 'Connected tools', vi: 'Công cụ kết nối', icon: 'terminal' },
 ];
 export function Workspace() { return <LanguageProvider><WorkspaceBody /></LanguageProvider>; }
 function WorkspaceBody() {
@@ -71,7 +73,7 @@ function WorkspaceBody() {
         {view === 'compare' && <Compare cli={cli} plans={state.plans} onDetails={details} />}
         {view === 'tasks' && <Jobs state={state} selectedId={selectedId} onSelect={setSelectedId} onCreate={() => setComposer(true)} loaded={fleet.tasksLoaded} error={fleet.error} errorCode={fleet.errorCode} runErrors={fleet.runErrors} retryRuns={fleet.retryRuns} reload={fleet.reload} loadEvents={fleet.loadEvents} logState={fleet.logState} snapshot={observations.snapshot} />}
         {view === 'usage' && <Resources cli={cli} state={state} snapshot={observations.snapshot} error={observations.error} onRefresh={observations.reload} />}
-        {view === 'guide' && <Guide />}{view === 'tool' && <ToolDetail agent={detailAgent} cli={cli} onBack={() => go('dashboard')} />}
+        {view === 'guide' && <Guide />}{view === 'connections' && <Connections />}{view === 'tool' && <ToolDetail agent={detailAgent} cli={cli} onBack={() => go('dashboard')} />}
       </div>
     </main>
     {composer && <TaskComposer plans={state.plans} initialPlanId={state.tasks.find(task => task.id === selectedId)?.planId} onClose={() => setComposer(false)} onCreated={task => { setComposer(false); selectTask(task.id); }} />}

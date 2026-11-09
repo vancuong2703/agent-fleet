@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { AgentId, FleetEvent, Plan, Run, Task, TaskResult } from '../shared/types.js';
 import { getAdapter, getAdapterConfig } from './adapters/index.js';
@@ -29,7 +30,7 @@ interface ActiveAttempt {
 
 /** Mirrors config.ts DEFAULT_NETWORK_MIN for injected configs that omit networkMin. */
 const DEFAULT_NETWORK_MIN = 5;
-const retryable = new Set(['done', 'failed', 'timeout', 'interrupted']);
+const retryable = new Set(['done', 'failed', 'timeout', 'interrupted', 'merged']);
 const pending = (task: Task): boolean => task.status === 'queued' || task.status === 'running';
 
 export class TaskService {
@@ -103,13 +104,17 @@ export class TaskService {
     return this.task(id);
   }
 
-  retry(taskId: string, i: { agent?: AgentId; note: string } & CommandOptions): Promise<Run> {
+  retry(taskId: string, i: { agent?: AgentId; note: string; resumeSession?: boolean } & CommandOptions): Promise<Run> {
     try { validateCommandOptions(i); } catch (error) { return Promise.reject(new FleetError('bad_request', String(error))); }
     return this.withTask(taskId, async () => {
       await this.prepareWorktree(taskId);
       this.assertOpen();
       const task = this.task(taskId);
       this.requireState(task, retryable);
+      if (!existsSync(task.worktreePath)) {
+        const plan = this.plan(task.planId);
+        await createWorktree({ repoPath: plan.repoPath, baseBranch: plan.baseBranch, branch: task.branch, path: task.worktreePath });
+      }
       const agent = i.agent ?? task.agent;
       if (agent !== 'agy' && ((i.commandPolicy !== undefined && i.commandPolicy !== 'ask') || i.allowedCommands?.length)) {
         throw new FleetError('bad_request', 'Command approval policies are currently supported by AGY only');
@@ -119,9 +124,11 @@ export class TaskService {
       if (!original) throw new FleetError('invalid_state', 'Task has no original run');
       const attempt = this.latest(taskId).attempt + 1;
       const previous = this.latest(taskId);
+      const sessionId = i.resumeSession !== false && previous.agent === agent ? previous.sessionId : null;
       const run = this.createRun({ taskId, agent, note: i.note, brief: `${original.brief}\n\n## Ghi chú lần thử ${attempt}\n${i.note}`,
         commandPolicy: i.commandPolicy ?? (previous.agent === agent ? previous.commandPolicy : 'ask'),
-        allowedCommands: i.allowedCommands ?? (previous.agent === agent ? previous.allowedCommands : []) });
+        allowedCommands: i.allowedCommands ?? (previous.agent === agent ? previous.allowedCommands : []),
+        sessionId });
       this.updateTask(taskId, { agent, status: 'queued', finishedAt: null });
       this.schedule();
       return this.store.getRun(run.id)!;
@@ -266,6 +273,8 @@ export class TaskService {
           networkMs: (this.config.timeouts.networkMin ?? DEFAULT_NETWORK_MIN) * 60_000,
         },
         signal,
+        sessionId: run.sessionId,
+        prompt: run.sessionId && run.note && run.agent !== 'fake' ? run.note : run.brief,
         onEvent: (event) => this.event(run, event),
         onSpawn: (pid) => {
           this.updateRun(run.id, { pid, startedAt: Date.now(), status: 'running' });
@@ -310,7 +319,7 @@ export class TaskService {
     this.bus.emit({ type: 'event', taskId: run.taskId, stored });
   }
 
-  private createRun(input: Pick<Run, 'taskId' | 'agent' | 'brief' | 'note' | 'commandPolicy' | 'allowedCommands'>): Run {
+  private createRun(input: Pick<Run, 'taskId' | 'agent' | 'brief' | 'note' | 'commandPolicy' | 'allowedCommands'> & { sessionId?: string | null }): Run {
     const run = this.store.createRun(input);
     this.bus.emit({ type: 'run', run });
     return run;

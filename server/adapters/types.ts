@@ -28,6 +28,7 @@ export interface AgentAdapter {
     briefFile: string;
     cwd: string;
     extraArgs: string[];
+    sessionId?: string | null;
   }): HeadlessSpec;
   /** A fresh, stateful parser per run. Lines it cannot understand become `raw`. */
   createParser(): LineParser;

@@ -25,9 +25,66 @@
   transform: scale(0.98);
 }
 
-/* ---- Pending / Checking button feedback ---- */
-:where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) {
+/* ---- Pending / Checking button feedback & rotating light border ---- */
+@property --check-beam-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes check-beam-spin {
+  to {
+    --check-beam-angle: 360deg;
+  }
+}
+
+:where(.check-all, .zones .foot .btn:first-of-type, .is-checking, .btn[aria-busy="true"]) {
   position: relative;
+  isolation: isolate;
+}
+
+:where(.check-all, .zones .foot .btn:first-of-type)::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: 999px;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--check-beam-angle),
+    transparent 0deg,
+    transparent 185deg,
+    rgba(56, 189, 248, 0.45) 250deg,
+    var(--accent, #2563eb) 310deg,
+    #38bdf8 345deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.65;
+  animation: check-beam-spin 2.4s linear infinite;
+  transition: opacity var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out);
+}
+
+:where(.check-all, .zones .foot .btn:first-of-type):hover:not(:disabled)::before,
+:where(.check-all, .zones .foot .btn:first-of-type):active:not(:disabled)::before,
+:where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::before {
+  opacity: 1;
+  animation-duration: 1.1s;
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.6));
+}
+
+:where(.check-all, .zones .foot .btn:first-of-type) svg {
+  transition: transform 380ms var(--ease-out);
+}
+
+:where(.check-all, .zones .foot .btn:first-of-type):hover:not(:disabled):not(.is-checking) svg {
+  transform: rotate(180deg);
+}
+
+:where(.check-all, .zones .foot .btn:first-of-type):active:not(:disabled):not(.is-checking) svg {
+  transform: rotate(360deg);
 }
 
 :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::after {
@@ -121,6 +178,7 @@
     animation: none !important;
   }
 
+  :where(html:not([data-motion="off"])) :where(.check-all, .zones .foot .btn:first-of-type, .is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::before,
   :where(html:not([data-motion="off"])) :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::after {
     animation: none !important;
     display: none !important;
@@ -151,6 +209,7 @@ html[data-motion="reduced"] .spin {
   animation: none !important;
 }
 
+html[data-motion="reduced"] :where(.check-all, .zones .foot .btn:first-of-type, .is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::before,
 html[data-motion="reduced"] :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::after {
   animation: none !important;
   display: none !important;

@@ -360,3 +360,66 @@ describe('interactive resume commands', () => {
     ).toEqual({ cmd: 'C:\\o.exe', args: [] });
   });
 });
+
+describe('headless session resumption', () => {
+  test('codex resumes session in headless mode', () => {
+    const spec = getAdapter('codex').headless({ ...headlessInput, sessionId: 'sess-123' });
+    expect(spec.args).toEqual([
+      'exec',
+      '--json',
+      '-s',
+      'workspace-write',
+      '-C',
+      headlessInput.cwd,
+      'resume',
+      'sess-123',
+      '-',
+    ]);
+  });
+
+  test('agy resumes conversation in headless mode', () => {
+    const spec = getAdapter('agy').headless({ ...headlessInput, sessionId: 'sess-123' });
+    expect(spec.args).toEqual([
+      '--output-format',
+      'stream-json',
+      '--mode',
+      'accept-edits',
+      '--conversation',
+      'sess-123',
+      '-p',
+      headlessInput.brief,
+    ]);
+  });
+
+  test('qodercli resumes session in headless mode', () => {
+    const spec = getAdapter('qodercli').headless({ ...headlessInput, sessionId: 'sess-123' });
+    expect(spec.args).toEqual([
+      '-p',
+      '-o',
+      'stream-json',
+      '--permission-mode',
+      'auto',
+      '-r',
+      'sess-123',
+      '-w',
+      headlessInput.cwd,
+      '--',
+      headlessInput.brief,
+    ]);
+  });
+
+  test('opencode resumes session in headless mode', () => {
+    const spec = getAdapter('opencode').headless({ ...headlessInput, sessionId: 'sess-123' });
+    expect(spec.args).toEqual([
+      'run',
+      '--standalone',
+      '--format',
+      'json',
+      '--auto',
+      '--session',
+      'sess-123',
+      '--',
+      headlessInput.brief,
+    ]);
+  });
+});

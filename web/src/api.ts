@@ -12,6 +12,8 @@ import type {
 import type { RepositoryValidation } from '../../shared/repository.js';
 import type { LeaderGuide } from '../../shared/leader-guide.js';
 export type { RepositoryValidation } from '../../shared/repository.js';
+import type { ConnectedClient } from '../../shared/connections.js';
+export type { ConnectedClient, ConnectedToolId } from '../../shared/connections.js';
 
 /** `GET /api/agents` row. */
 export interface AgentInfo {
@@ -99,6 +101,7 @@ function jsonInit(method: string, body?: unknown): RequestInit {
  */
 export const api = {
   leaderGuide: (): Promise<LeaderGuide> => request('/api/leader-guide'),
+  connections: (): Promise<ConnectedClient[]> => request('/api/connections'),
   health: (): Promise<{ ok: boolean }> => request('/api/health'),
 
   plans: (): Promise<Plan[]> => request('/api/plans'),
@@ -133,7 +136,7 @@ export const api = {
 
   wait: (ids: string[], timeoutMs: number): Promise<TaskResult[]> =>
     request('/api/wait', jsonInit('POST', { ids, timeoutMs })),
-  retry: (id: string, body: { agent?: AgentId; note: string; commandPolicy?: 'ask' | 'check-only' | 'auto'; allowedCommands?: string[] }): Promise<Run> =>
+  retry: (id: string, body: { agent?: AgentId; note: string; commandPolicy?: 'ask' | 'check-only' | 'auto'; allowedCommands?: string[]; resumeSession?: boolean }): Promise<Run> =>
     request(`/api/tasks/${id}/retry`, jsonInit('POST', body)),
   stop: (id: string): Promise<void> => request(`/api/tasks/${id}/stop`, jsonInit('POST')),
   takeover: (id: string): Promise<void> =>
