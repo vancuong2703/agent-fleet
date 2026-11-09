@@ -111,6 +111,41 @@ test.describe('Motion controls, button feedback, and check status honesty', () =
     await expect(checkBtn).toHaveClass(/is-checking/);
     await expect(codexCard).toHaveAttribute('aria-busy', 'true');
 
+    // The pill keeps its rotating conic beam, the refresh glyph itself spins,
+    // and the busy button is not dimmed (group opacity would fade the beam).
+    const pendingStyles = await checkBtn.evaluate((el) => {
+      const before = getComputedStyle(el, '::before');
+      const svg = el.querySelector('svg')!;
+      return {
+        beamAnimation: before.animationName,
+        beamDuration: parseFloat(before.animationDuration) || 0,
+        beamDisplay: before.display,
+        iconAnimation: getComputedStyle(svg).animationName,
+        opacity: parseFloat(getComputedStyle(el).opacity) || 0,
+      };
+    });
+    expect(pendingStyles.beamAnimation).not.toBe('none');
+    expect(pendingStyles.beamDuration).toBeGreaterThan(0);
+    expect(pendingStyles.beamDisplay).not.toBe('none');
+    expect(pendingStyles.iconAnimation).not.toBe('none');
+    expect(pendingStyles.opacity).toBeGreaterThan(0.95);
+
+    // Reduced motion still removes the rotating beam and the icon spin.
+    await page.evaluate(() => document.documentElement.setAttribute('data-motion', 'reduced'));
+    const reducedStyles = await checkBtn.evaluate((el) => {
+      const before = getComputedStyle(el, '::before');
+      const svg = el.querySelector('svg')!;
+      return {
+        beamAnimation: before.animationName,
+        beamDisplay: before.display,
+        iconAnimation: getComputedStyle(svg).animationName,
+      };
+    });
+    expect(reducedStyles.beamAnimation).toBe('none');
+    expect(reducedStyles.beamDisplay).toBe('none');
+    expect(reducedStyles.iconAnimation).toBe('none');
+    await page.evaluate(() => document.documentElement.setAttribute('data-motion', 'system'));
+
     // Complete the check
     resolveCheck();
 
@@ -118,6 +153,62 @@ test.describe('Motion controls, button feedback, and check status honesty', () =
     await expect(checkBtn).not.toHaveAttribute('aria-busy', 'true');
     await expect(checkBtn).not.toHaveClass(/is-checking/);
     await expect(codexCard).not.toHaveAttribute('aria-busy', 'true');
+  });
+
+  test('Check all shows a rotating beam and spinning icon while busy', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.addInitScript(() => {
+      localStorage.setItem('fleet.language', 'en');
+      localStorage.setItem('fleet.theme', 'light');
+    });
+    await referenceFixture(page);
+
+    let resolveAll!: () => void;
+    const allPromise = new Promise<void>((resolve) => {
+      resolveAll = resolve;
+    });
+
+    const readyTool: DashboardTool = {
+      agent: 'codex',
+      title: 'Codex',
+      installed: true,
+      configuredBin: null,
+      suggestions: [],
+      lastCheck: { ...structuredClone(savedChecks.checks.codex), status: 'ready' as const, checkedAt: Date.now() },
+    };
+
+    await page.route('**/api/dashboard/check', async (route) => {
+      await allPromise;
+      await route.fulfill({ json: readyTool });
+    });
+
+    const token = (await readFile(path.join(process.env.FLEET_DATA_DIR!, 'token'), 'utf8')).trim();
+    await page.goto(`/auth?token=${encodeURIComponent(token)}`);
+
+    const checkAllBtn = page.locator('.check-all');
+    await expect(checkAllBtn).toBeVisible();
+    await checkAllBtn.click();
+
+    await expect(checkAllBtn).toHaveClass(/is-checking/);
+    await expect(checkAllBtn).toHaveAttribute('aria-busy', 'true');
+
+    const styles = await checkAllBtn.evaluate((el) => {
+      const before = getComputedStyle(el, '::before');
+      const svg = el.querySelector('svg')!;
+      return {
+        beamAnimation: before.animationName,
+        beamDuration: parseFloat(before.animationDuration) || 0,
+        iconAnimation: getComputedStyle(svg).animationName,
+        opacity: parseFloat(getComputedStyle(el).opacity) || 0,
+      };
+    });
+    expect(styles.beamAnimation).not.toBe('none');
+    expect(styles.beamDuration).toBeGreaterThan(0);
+    expect(styles.iconAnimation).not.toBe('none');
+    expect(styles.opacity).toBeGreaterThan(0.95);
+
+    resolveAll();
+    await expect(checkAllBtn).not.toHaveClass(/is-checking/);
   });
 
   test('notice banner accurately reflects needs-login and error statuses without false ready toast', async ({ page }) => {

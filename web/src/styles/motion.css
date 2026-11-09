@@ -25,6 +25,12 @@
   transform: scale(0.98);
 }
 
+/* The check buttons press a touch deeper than the generic buttons so the
+   response is obvious even on the compact pill. */
+:where(.check-all, .zones .foot .btn:first-of-type):not(:disabled):active {
+  transform: scale(0.96);
+}
+
 /* ---- Pending / Checking button feedback & rotating light border ---- */
 @property --check-beam-angle {
   syntax: '<angle>';
@@ -85,6 +91,27 @@
 
 :where(.check-all, .zones .foot .btn:first-of-type):active:not(:disabled):not(.is-checking) svg {
   transform: rotate(360deg);
+}
+
+/* While busy the button is disabled, and the generic `button:disabled` rule
+   dims the whole element with group opacity - which also fades the ::before
+   beam. Keep the busy button fully opaque so the rotating light stays visible. */
+:is(.check-all, .zones .foot .btn:first-of-type):is(.is-checking, [aria-busy="true"]) {
+  opacity: 1 !important;
+}
+
+/* Spin the refresh glyph itself, not just its wrapper: the <svg> keeps turning
+   whenever the button is busy, even if the wrapper class is missing. */
+:where(.check-all, .zones .foot .btn:first-of-type) .spin svg,
+:where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) svg {
+  transform-origin: center;
+  animation: spin 0.75s linear infinite;
+}
+
+/* Single source of rotation: drop the wrapper's own spin so the glyph does not
+   rotate twice as fast. */
+:where(.check-all, .zones .foot .btn:first-of-type) .spin {
+  animation: none;
 }
 
 :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::after {
@@ -174,7 +201,9 @@
     animation: surface-fade-enter var(--dur-fast) var(--ease-out);
   }
 
-  :where(html:not([data-motion="off"])) .spin {
+  :where(html:not([data-motion="off"])) .spin,
+  :where(html:not([data-motion="off"])) :where(.check-all, .zones .foot .btn:first-of-type) .spin svg,
+  :where(html:not([data-motion="off"])) :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) svg {
     animation: none !important;
   }
 
@@ -205,7 +234,9 @@ html[data-motion="reduced"] :where(.appearance-popover, .modal, .palette) {
   animation: surface-fade-enter var(--dur-fast) var(--ease-out);
 }
 
-html[data-motion="reduced"] .spin {
+html[data-motion="reduced"] .spin,
+html[data-motion="reduced"] :where(.check-all, .zones .foot .btn:first-of-type) .spin svg,
+html[data-motion="reduced"] :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type) svg {
   animation: none !important;
 }
 
