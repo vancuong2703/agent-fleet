@@ -4,6 +4,7 @@
 - [Cài đặt, cấu hình và phát triển](../README.md)
 - [Ứng dụng Windows và đóng gói EXE](../desktop/README.md)
 - [Kế hoạch Calm UI — 06/11/2026 (chờ duyệt triển khai)](superpowers/plans/2026-11-06-calm-ui-ux-motion.md)
+- [Viền xanh chạy quanh nút Check khi đang kiểm tra 2.7.2](releases/2.7.2.md)
 - [Căn chỉnh chân cột biểu đồ token và đường chuẩn baseline 2.7.1](releases/2.7.1.md)
 - [Calm UI, biểu đồ token 7 ngày, diện mạo và thu gọn diff 2.7.0](releases/2.7.0.md)
 - [Kéo dãn Terminal và Jobs, sửa Esc ô lệnh nhanh 2.6.1](releases/2.6.1.md)

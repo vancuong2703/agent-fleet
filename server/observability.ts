@@ -169,7 +169,7 @@ export class Observability {
   constructor(private readonly store: Store, private readonly bus: Bus, directory?: string) {
     this.directory = directory ?? dataDir();
     try { this.version = String(JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version); }
-    catch { this.version = '2.7.1'; }
+    catch { this.version = '2.7.2'; }
     this.restore();
   }
 

@@ -50,7 +50,7 @@ internal sealed class DesktopWindow : Form
             view.CoreWebView2.Settings.AreDevToolsEnabled = false;
             view.CoreWebView2.Settings.IsStatusBarEnabled = false;
             view.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
-            var marker = JsonSerializer.Serialize(new { version = "2.7.1", platform = "win32", theme = preferences.Theme, layout = preferences.Layout, appearance = preferences.Appearance }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            var marker = JsonSerializer.Serialize(new { version = "2.7.2", platform = "win32", theme = preferences.Theme, layout = preferences.Layout, appearance = preferences.Appearance }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
             await view.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync($"window.__FLEET_DESKTOP__ = Object.freeze({marker}); window.dispatchEvent(new Event('fleet:desktop-ready'));");
             view.CoreWebView2.NavigationStarting += (_, e) =>
             {
