@@ -1,10 +1,87 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import type { DashboardTool } from '../../shared/dashboard.js';
 import { referenceFixture } from './reference-fixture.js';
 import { openJobs } from './jobs-fixture.js';
 import { savedChecks } from './dashboard-fixture.js';
+
+async function expectCenteredRefresh(button: Locator) {
+  // Pause rotation so its changing bounding box cannot hide a baseline offset.
+  const offset = await button.evaluate((el) => {
+    const svg = el.querySelector('svg:not(.check-pill-beam)') as SVGElement;
+    const originalStyle = svg.getAttribute('style');
+    try {
+      svg.style.animation = 'none';
+      svg.style.transition = 'none';
+      svg.style.transform = 'none';
+      const icon = svg.getBoundingClientRect();
+      const button = el.getBoundingClientRect();
+      return Math.abs(icon.y + icon.height / 2 - button.y - button.height / 2);
+    } finally {
+      if (originalStyle === null) svg.removeAttribute('style');
+      else svg.setAttribute('style', originalStyle);
+    }
+  });
+  expect.soft(offset, 'refresh glyph stays vertically centered').toBeLessThanOrEqual(0.5);
+}
+
+for (const theme of ['light', 'dark']) {
+  for (const width of [375, 768, 1440]) {
+    test(`check light is neutral and icons stay centered at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      const errors: string[] = [];
+      page.on('pageerror', error => errors.push(error.message));
+      page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+      page.on('requestfailed', request => errors.push(request.failure()?.errorText ?? 'request failed'));
+      await page.setViewportSize({ width, height: 900 });
+      await page.addInitScript((theme) => {
+        localStorage.setItem('fleet.language', 'en');
+        localStorage.setItem('fleet.theme', theme);
+      }, theme);
+      await referenceFixture(page);
+      let release!: () => void;
+      const pending = new Promise<void>(resolve => { release = resolve; });
+      await page.route('**/api/dashboard/check', async route => {
+        await pending;
+        await route.fulfill({ json: {
+          agent: 'codex', title: 'Codex', installed: true, configuredBin: null,
+          suggestions: [], lastCheck: savedChecks.checks.codex,
+        } });
+      });
+      const token = (await readFile(path.join(process.env.FLEET_DATA_DIR!, 'token'), 'utf8')).trim();
+      await page.goto(`/auth?token=${encodeURIComponent(token)}`);
+      const check = page.locator('[data-card-id="cli:codex"] .foot .btn').first();
+      const all = page.locator('.check-all');
+      await expect(check).toBeVisible();
+      await expectCenteredRefresh(check);
+      await expectCenteredRefresh(all);
+      await page.screenshot({ path: testInfo.outputPath('idle.png'), fullPage: true });
+      await check.click();
+      await expect(check).toHaveAttribute('aria-busy', 'true');
+      await expectCenteredRefresh(check);
+      await expect(check.locator('.spin svg')).toHaveCSS('animation-name', 'spin');
+      const beam = check.locator('.check-pill-beam rect');
+      const stroke = await beam.evaluate(el => getComputedStyle(el).stroke);
+      const channels = stroke.match(/[\d.]+/g)!.map(Number);
+      expect.soft(channels[0], 'beam has a neutral gray hue').toBe(channels[1]);
+      expect.soft(channels[1], 'beam has a neutral gray hue').toBe(channels[2]);
+      expect.soft(channels[3] ?? 1, 'beam is translucent').toBeGreaterThan(0);
+      expect.soft(channels[3] ?? 1, 'beam is translucent').toBeLessThan(1);
+      const firstOffset = await beam.evaluate(el => getComputedStyle(el).strokeDashoffset);
+      await expect.poll(() => beam.evaluate(el => getComputedStyle(el).strokeDashoffset)).not.toBe(firstOffset);
+      await page.mouse.move(0, 0);
+      await page.screenshot({ path: testInfo.outputPath('checking.png'), fullPage: true });
+      expect.soft(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      release();
+      await expect(check).not.toHaveAttribute('aria-busy', 'true');
+      await expectCenteredRefresh(check);
+      await all.click();
+      await expect(all).not.toHaveAttribute('aria-busy', 'true');
+      await expectCenteredRefresh(all);
+      expect(errors).toEqual([]);
+    });
+  }
+}
 
 test.describe('Motion controls, button feedback, and check status honesty', () => {
   test('setting data-motion="off" sets animation and transition durations to <= 0.01ms and diff unmounts immediately', async ({ page }) => {

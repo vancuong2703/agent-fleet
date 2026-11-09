@@ -55,13 +55,13 @@
   inset: -1px;
   border-radius: 999px;
   padding: 2.5px;
-  /* One bright blue segment (~110deg) that travels along the pill edge. */
+  /* A translucent neutral light trail along the pill edge. */
   background: conic-gradient(
     from var(--check-beam-angle),
     transparent 0deg 250deg,
-    rgba(37, 99, 235, 0.35) 290deg,
-    #2563eb 330deg,
-    #3b82f6 355deg,
+    rgba(148, 148, 148, 0.12) 290deg,
+    rgba(148, 148, 148, 0.4) 330deg,
+    rgba(210, 210, 210, 0.65) 355deg,
     transparent 360deg
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -73,7 +73,7 @@
   transition: opacity var(--dur-fast) var(--ease-out);
 }
 
-/* The SVG .check-pill-beam renders the crisp uniform blue segment; keep ::before transparent. */
+/* The SVG .check-pill-beam renders the traveling light; keep ::before transparent. */
 :where(.is-checking, .check-all[aria-busy="true"], .btn[aria-busy="true"], article.card[aria-busy="true"] .foot .btn:first-of-type)::before {
   opacity: 0;
 }
@@ -107,12 +107,12 @@
   rx: 14px;
   ry: 14px;
   fill: none;
-  stroke: #2563eb;
-  stroke-width: 2.5px;
+  stroke: rgba(148, 148, 148, 0.6);
+  stroke-width: 2px;
   stroke-linecap: round;
   stroke-dasharray: 30 70;
   stroke-dashoffset: 100;
-  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.75));
+  filter: drop-shadow(0 0 2px rgba(210, 210, 210, 0.45));
 }
 
 .check-all .check-pill-beam rect {
@@ -129,6 +129,8 @@
 }
 
 :where(.check-all, .zones .foot .btn:first-of-type) svg:not(.check-pill-beam) {
+  /* Remove the inline baseline gap in both idle and spinning wrappers. */
+  display: block;
   transition: transform 380ms var(--ease-out);
 }
 

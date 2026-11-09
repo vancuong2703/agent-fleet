@@ -4,7 +4,7 @@ Bản **2.5.0** xây lại toàn bộ UI theo bản OpenCode: khung điều hư�
 Jobs hai cột, Terminal, Compare, Resources và trang chi tiết từng công cụ.
 Có EN/VI, giấy ấm/trắng thuần, sáng/tối và **Hướng dẫn leader** để sao chép
 kết nối cùng quy trình giao việc vào hội thoại.
-Xem [ghi chú 2.7.3](docs/releases/2.7.3.md) và [kế hoạch nền tảng](docs/dashboard-v3-plan.md).
+Xem [ghi chú 2.7.4](docs/releases/2.7.4.md) và [kế hoạch nền tảng](docs/dashboard-v3-plan.md).
 
 Agent Fleet là ứng dụng local cho Windows giúp một model leader giao việc cho
 các coding agent `codex`, `qodercli`, `agy`, `opencode`. Mỗi công việc có git worktree
@@ -14,8 +14,8 @@ so sánh agent. Leader quyết định việc cần làm và review trước khi
 
 ## Mở ứng dụng Windows
 
-Đóng bản cũ rồi mở [AgentFleet.exe](dist/AgentFleet-2.7.3/AgentFleet.exe), hoặc giải nén toàn bộ
-[AgentFleet-2.7.3-win-x64.zip](dist/AgentFleet-2.7.3-win-x64.zip) rồi mở `AgentFleet.exe`. Giữ thư mục `app/`
+Đóng bản cũ rồi mở [AgentFleet.exe](dist/AgentFleet-2.7.4/AgentFleet.exe), hoặc giải nén toàn bộ
+[AgentFleet-2.7.4-win-x64.zip](dist/AgentFleet-2.7.4-win-x64.zip) rồi mở `AgentFleet.exe`. Giữ thư mục `app/`
 và `runtime/` cạnh EXE. Bản portable mặc định đã kèm Node và .NET; không cần mở
 CMD hoặc trình duyệt riêng. Máy cần Windows 11 x64, WebView2, Git và agent CLI
 đã cài/đăng nhập để giao việc cho agent thật.
